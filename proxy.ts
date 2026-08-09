@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
 import { identityDispatcher } from "@/lib/identity";
-import { notifySecurityDispatcher } from "@/lib/notify";
+import { notifyDispatcher } from "@/lib/notify";
 
 const VISITOR_COOKIE_NAME = "visitor_uuid";
+const VISITOR_DATABASE_SYNC_COOKIE_NAME = "visitor_db_synced";
 const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 const APPLICATION_HOSTNAMES = new Set([
@@ -48,7 +49,7 @@ async function createVisitorReference(visitorUuid: string) {
     .slice(0, 12);
 }
 
-export const proxy: NextProxy = (request, event) => {
+export const proxy: NextProxy = async (request, event) => {
   const hostname = request.headers.get("host")?.split(":")[0];
   const pathname = request.nextUrl.pathname;
   const url = request.nextUrl.clone();
@@ -59,11 +60,15 @@ export const proxy: NextProxy = (request, event) => {
 
   if (blockedPathReason) {
     event.waitUntil(
-      notifySecurityDispatcher({
+      notifyDispatcher({
+        level: "warning",
         event: "suspicious_request_blocked",
-        hostname,
-        pathname,
-        reason: blockedPathReason,
+        data: {
+          action: "blocked",
+          hostname: hostname ?? "unknown",
+          pathname,
+          reason: blockedPathReason,
+        },
       }),
     );
 
@@ -142,6 +147,8 @@ export const proxy: NextProxy = (request, event) => {
   }
 
   const existingVisitorUuid = request.cookies.get(VISITOR_COOKIE_NAME)?.value;
+  const isVisitorDatabaseSynced =
+    request.cookies.get(VISITOR_DATABASE_SYNC_COOKIE_NAME)?.value === "1";
   const visitorUuid = existingVisitorUuid ?? crypto.randomUUID();
   const visitorCookieStatus = existingVisitorUuid ? "existing" : "created";
 
@@ -157,30 +164,74 @@ export const proxy: NextProxy = (request, event) => {
     });
   }
 
-  event.waitUntil(
-    (async () => {
-      let visitorDatabaseStatus = existingVisitorUuid
-        ? "not_required"
-        : "skipped_local_development";
+  let visitorDatabaseStatus = isLocalDevelopment
+    ? "skipped_local_development"
+    : isVisitorDatabaseSynced
+      ? "already_registered"
+      : "pending";
 
-      if (!existingVisitorUuid && isApplicationHostname) {
-        try {
-          await identityDispatcher({
-            action: "register_visitor",
-            visitorUuid,
-            entrySource,
-          });
-          visitorDatabaseStatus = "registered";
-        } catch {
-          visitorDatabaseStatus = "failed";
-          console.error("[IDENTITY] Visitor registration failed.");
-        }
-      }
+  if (isApplicationHostname && !isVisitorDatabaseSynced) {
+    try {
+      await identityDispatcher({
+        action: "register_visitor",
+        visitorUuid,
+        entrySource,
+      });
+      visitorDatabaseStatus = existingVisitorUuid
+        ? "synchronized"
+        : "registered";
 
-      const visitorReference = await createVisitorReference(visitorUuid);
+      response.cookies.set({
+        name: VISITOR_DATABASE_SYNC_COOKIE_NAME,
+        value: "1",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: VISITOR_COOKIE_MAX_AGE,
+      });
+    } catch {
+      visitorDatabaseStatus = "failed";
+      console.error("[IDENTITY] Visitor registration failed.");
+    }
+  }
 
-      await debugDispatcher({
-        level: visitorDatabaseStatus === "failed" ? "error" : "info",
+  const visitorReference = await createVisitorReference(visitorUuid);
+
+  if (
+    visitorDatabaseStatus === "registered" ||
+    visitorDatabaseStatus === "synchronized"
+  ) {
+    event.waitUntil(
+      notifyDispatcher({
+        level: "info",
+        event:
+          visitorDatabaseStatus === "registered"
+            ? "visitor_registered"
+            : "visitor_database_synchronized",
+        data: {
+          visitorReference,
+          hostname,
+          pathname,
+          entrySource,
+        },
+      }),
+    );
+  } else if (visitorDatabaseStatus === "failed") {
+    event.waitUntil(
+      notifyDispatcher({
+        level: "error",
+        event: "visitor_registration_failed",
+        data: {
+          hostname,
+          pathname,
+          entrySource,
+        },
+      }),
+    );
+  } else {
+    event.waitUntil(
+      debugDispatcher({
         event: "visitor_cookie_checked",
         data: {
           visitorCookieStatus,
@@ -191,9 +242,9 @@ export const proxy: NextProxy = (request, event) => {
           entrySource,
           isLineInAppBrowser,
         },
-      });
-    })(),
-  );
+      }),
+    );
+  }
 
   return response;
 };

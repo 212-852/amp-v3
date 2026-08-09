@@ -1,45 +1,44 @@
 import "server-only";
 
-type SecurityNotification = {
-  event: "suspicious_request_blocked";
-  hostname?: string;
-  pathname: string;
-  reason: string;
+type NotifyLevel = "info" | "warning" | "error";
+
+type NotifyRequest = {
+  level: NotifyLevel;
+  event: string;
+  data: Record<string, unknown>;
 };
 
-function sanitizeText(value: string) {
-  return value.replaceAll("`", "ˋ").slice(0, 500);
+function sanitizePayload(data: Record<string, unknown>) {
+  return JSON.stringify(data, null, 2)
+    .replaceAll("`", "ˋ")
+    .slice(0, 1_700);
 }
 
-export async function notifySecurityDispatcher({
+export async function notifyDispatcher({
+  level,
   event,
-  hostname,
-  pathname,
-  reason,
-}: SecurityNotification): Promise<void> {
+  data,
+}: NotifyRequest): Promise<void> {
   const webhookUrl = process.env.DISCORD_NOTIFY_WEBHOOK_URL;
   const mentionUserId = process.env.DISCORD_MENTION_USER_ID;
 
   if (!webhookUrl || !mentionUserId) {
-    console.error("[SECURITY] Discord notify configuration is missing.");
+    console.error("[NOTIFY] Discord notify configuration is missing.");
     return;
   }
 
   const payload = {
     event,
-    action: "blocked",
-    hostname: hostname ?? "unknown",
-    pathname: sanitizeText(pathname),
-    reason,
+    data,
     timestamp: new Date().toISOString(),
   };
 
   const content = [
     `<@${mentionUserId}>`,
-    "[NOTIFY WOLF] AMP_V3 / WARNING",
+    `[NOTIFY WOLF] AMP_V3 / ${level.toUpperCase()}`,
     `event: ${event}`,
     "```json",
-    JSON.stringify(payload, null, 2).slice(0, 1_700),
+    sanitizePayload(payload),
     "```",
   ].join("\n");
 
@@ -59,11 +58,11 @@ export async function notifySecurityDispatcher({
     });
 
     if (!response.ok) {
-      console.error("[SECURITY] Discord notify webhook failed.", {
+      console.error("[NOTIFY] Discord notify webhook failed.", {
         status: response.status,
       });
     }
   } catch (error) {
-    console.error("[SECURITY] Discord notify request failed.", error);
+    console.error("[NOTIFY] Discord notify request failed.", error);
   }
 }
