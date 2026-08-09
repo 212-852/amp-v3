@@ -2,10 +2,17 @@ import type { NextProxy } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
+import { identityDispatcher } from "@/lib/identity";
 import { notifySecurityDispatcher } from "@/lib/notify";
 
 const VISITOR_COOKIE_NAME = "visitor_uuid";
 const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+const APPLICATION_HOSTNAMES = new Set([
+  "test.da-nya.com",
+  "app.da-nya.com",
+  "test.pet-taxi-airport.com",
+]);
 
 const BLOCKED_PATH_PATTERNS = [
   /^\/@fs(?:\/|$)/i,
@@ -46,6 +53,9 @@ export const proxy: NextProxy = (request, event) => {
   const pathname = request.nextUrl.pathname;
   const url = request.nextUrl.clone();
   const blockedPathReason = getBlockedPathReason(pathname);
+  const isApplicationHostname = hostname
+    ? APPLICATION_HOSTNAMES.has(hostname)
+    : false;
 
   if (blockedPathReason) {
     event.waitUntil(
@@ -121,6 +131,16 @@ export const proxy: NextProxy = (request, event) => {
     });
   }
 
+  const acceptsHtml = request.headers.get("accept")?.includes("text/html");
+  const isHtmlPageRequest = request.method === "GET" && acceptsHtml;
+  const isLocalDevelopment =
+    process.env.NODE_ENV !== "production" &&
+    (hostname === "localhost" || hostname === "127.0.0.1");
+
+  if (!isHtmlPageRequest || (!isApplicationHostname && !isLocalDevelopment)) {
+    return response;
+  }
+
   const existingVisitorUuid = request.cookies.get(VISITOR_COOKIE_NAME)?.value;
   const visitorUuid = existingVisitorUuid ?? crypto.randomUUID();
   const visitorCookieStatus = existingVisitorUuid ? "existing" : "created";
@@ -137,27 +157,43 @@ export const proxy: NextProxy = (request, event) => {
     });
   }
 
-  const acceptsHtml = request.headers.get("accept")?.includes("text/html");
+  event.waitUntil(
+    (async () => {
+      let visitorDatabaseStatus = existingVisitorUuid
+        ? "not_required"
+        : "skipped_local_development";
 
-  if (request.method === "GET" && acceptsHtml) {
-    event.waitUntil(
-      (async () => {
-        const visitorReference = await createVisitorReference(visitorUuid);
-
-        await debugDispatcher({
-          event: "visitor_cookie_checked",
-          data: {
-            visitorCookieStatus,
-            visitorReference,
-            hostname,
-            pathname,
+      if (!existingVisitorUuid && isApplicationHostname) {
+        try {
+          await identityDispatcher({
+            action: "register_visitor",
+            visitorUuid,
             entrySource,
-            isLineInAppBrowser,
-          },
-        });
-      })(),
-    );
-  }
+          });
+          visitorDatabaseStatus = "registered";
+        } catch {
+          visitorDatabaseStatus = "failed";
+          console.error("[IDENTITY] Visitor registration failed.");
+        }
+      }
+
+      const visitorReference = await createVisitorReference(visitorUuid);
+
+      await debugDispatcher({
+        level: visitorDatabaseStatus === "failed" ? "error" : "info",
+        event: "visitor_cookie_checked",
+        data: {
+          visitorCookieStatus,
+          visitorReference,
+          visitorDatabaseStatus,
+          hostname,
+          pathname,
+          entrySource,
+          isLineInAppBrowser,
+        },
+      });
+    })(),
+  );
 
   return response;
 };
