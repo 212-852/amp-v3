@@ -2,9 +2,34 @@ import type { NextProxy } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
+import { notifySecurityDispatcher } from "@/lib/notify";
 
 const VISITOR_COOKIE_NAME = "visitor_uuid";
 const VISITOR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+const BLOCKED_PATH_PATTERNS = [
+  /^\/@fs(?:\/|$)/i,
+  /^\/\.aws(?:\/|$)/i,
+  /^\/\.env(?:[./]|$)/i,
+  /^\/\.git(?:\/|$)/i,
+  /\/\.aws\/credentials(?:\/|$)/i,
+];
+
+function getBlockedPathReason(pathname: string) {
+  let normalizedPathname: string;
+
+  try {
+    normalizedPathname = decodeURIComponent(pathname);
+  } catch {
+    return "malformed_path_encoding";
+  }
+
+  const isBlocked = BLOCKED_PATH_PATTERNS.some((pattern) =>
+    pattern.test(normalizedPathname),
+  );
+
+  return isBlocked ? "sensitive_file_probe" : undefined;
+}
 
 async function createVisitorReference(visitorUuid: string) {
   const encodedUuid = new TextEncoder().encode(visitorUuid);
@@ -20,6 +45,24 @@ export const proxy: NextProxy = (request, event) => {
   const hostname = request.headers.get("host")?.split(":")[0];
   const pathname = request.nextUrl.pathname;
   const url = request.nextUrl.clone();
+  const blockedPathReason = getBlockedPathReason(pathname);
+
+  if (blockedPathReason) {
+    event.waitUntil(
+      notifySecurityDispatcher({
+        event: "suspicious_request_blocked",
+        hostname,
+        pathname,
+        reason: blockedPathReason,
+      }),
+    );
+
+    return NextResponse.json(
+      { error: "Not Found" },
+      { status: 404 },
+    );
+  }
+
   const userAgent = request.headers.get("user-agent") ?? "";
   const isLineInAppBrowser = userAgent.includes("Line/");
   const isLiffEntrance =

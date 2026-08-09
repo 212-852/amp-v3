@@ -1,23 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type EntrySource = "web" | "pwa";
+import { useSyncExternalStore } from "react";
 
 type StandaloneNavigator = Navigator & {
   standalone?: boolean;
 };
 
+function subscribeToDisplayMode(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia("(display-mode: standalone)");
+
+  mediaQuery.addEventListener("change", onStoreChange);
+
+  return () => {
+    mediaQuery.removeEventListener("change", onStoreChange);
+  };
+}
+
+function getStandaloneSnapshot() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as StandaloneNavigator).standalone === true
+  );
+}
+
+function getServerStandaloneSnapshot() {
+  return false;
+}
+
 export default function MainAppPage() {
-  const [entrySource, setEntrySource] = useState<EntrySource>("web");
-
-  useEffect(() => {
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as StandaloneNavigator).standalone === true;
-
-    setEntrySource(isStandalone ? "pwa" : "web");
-  }, []);
+  const isStandalone = useSyncExternalStore(
+    subscribeToDisplayMode,
+    getStandaloneSnapshot,
+    getServerStandaloneSnapshot,
+  );
+  const entrySource = isStandalone ? "pwa" : "web";
 
   return (
     <main>

@@ -59,7 +59,7 @@ async function sendDiscordDebugMessage(
   data?: Record<string, unknown>,
 ) {
   const webhookUrl = process.env.DISCORD_DEBUG_WEBHOOK_URL;
-  const mentionUserId = process.env.DISCORD_DEBUG_MENTION_USER_ID;
+  const mentionUserId = process.env.DISCORD_MENTION_USER_ID;
 
   if (!webhookUrl || !mentionUserId) {
     return;
