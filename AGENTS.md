@@ -12,4 +12,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - One Build / Single Core / Multi-Entrance
 - All shared instructions for AI agents must be consolidated in the `AGENTS.md` file located in the project root directory.
-- AI agents must always follow the instructions in `AGENTS.md`.
+
+
