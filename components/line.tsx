@@ -13,6 +13,9 @@ import {
 type LineIdentity = {
   displayName: string;
   pictureUrl: string | null;
+  role: string;
+  tier: string;
+  destination: string;
 };
 
 type LineContextValue = {
@@ -62,6 +65,13 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
 
     const result = (await response.json()) as LineIdentity;
     setIdentity(result);
+
+    if (
+      result.role === "admin" &&
+      window.location.pathname !== result.destination
+    ) {
+      window.location.replace(result.destination);
+    }
   }, []);
 
   const login = useCallback(async () => {

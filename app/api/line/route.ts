@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
-import { identityDispatcher } from "@/lib/identity";
+import {
+  identityDispatcher,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE,
+} from "@/lib/identity";
 import { notifyDispatcher } from "@/lib/notify";
 
 type LineIdentityBody = {
@@ -26,6 +30,20 @@ export async function POST(request: NextRequest) {
       visitorUuid,
       idToken: body.idToken,
     });
+    const existingSessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    const existingSession = existingSessionToken
+      ? await identityDispatcher({
+          action: "resolve_session",
+          sessionToken: existingSessionToken,
+        })
+      : null;
+    const session =
+      existingSession?.userUuid === identity.userUuid
+        ? null
+        : await identityDispatcher({
+            action: "create_session",
+            userUuid: identity.userUuid,
+          });
 
     await notifyDispatcher({
       level: "info",
@@ -39,11 +57,49 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    if (session) {
+      await debugDispatcher({
+        event: "identity_session_created",
+        data: {
+          role: identity.role,
+          tier: identity.tier,
+        },
+      });
+    }
+
+    const isLocalDevelopment =
+      request.nextUrl.hostname === "localhost" ||
+      request.nextUrl.hostname === "127.0.0.1";
+    const response = NextResponse.json({
       ok: true,
       displayName: identity.displayName,
       pictureUrl: identity.pictureUrl,
+      role: identity.role,
+      tier: identity.tier,
+      destination:
+        identity.role === "admin"
+          ? isLocalDevelopment
+            ? "/main/admin"
+            : "/admin"
+          : isLocalDevelopment
+            ? "/main"
+            : "/",
     });
+
+    if (session) {
+      response.cookies.set({
+        name: SESSION_COOKIE_NAME,
+        value: session.sessionToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE,
+        expires: new Date(session.expiresAt),
+      });
+    }
+
+    return response;
   } catch (error) {
     await notifyDispatcher({
       level: "error",

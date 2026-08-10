@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Globe2, UserRound } from "lucide-react";
+import { Bell, Globe2, MessageCircle, UserRound } from "lucide-react";
 import Image from "next/image";
 
 import { useLineIdentity } from "@/components/line";
@@ -19,14 +19,21 @@ export function AppHeader() {
         <div className="headerAccount">
           <nav className="headerActions" aria-label="Account navigation">
             <button
-              className="headerIconButton headerLoginButton"
+              className={`headerIconButton headerLoginButton${
+                identity ? " headerLineConnected" : ""
+              }`}
               type="button"
-              aria-label="Log in with LINE"
+              aria-label={identity ? "Connected with LINE" : "Log in with LINE"}
               onClick={() => void login()}
             >
-              <span className="japaneseText">
-                {identity ? "LINE" : "ログイン"}
-              </span>
+              {identity ? (
+                <>
+                  <MessageCircle aria-hidden="true" />
+                  <span>LINE</span>
+                </>
+              ) : (
+                <span className="japaneseText">ログイン</span>
+              )}
             </button>
             <button
               className="headerIconButton"

@@ -4,6 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 
 type EntrySource = "liff" | "web" | "pwa";
 
+export const SESSION_COOKIE_NAME = "session_token";
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
 export type IdentityRequest =
   | {
       action: "register_visitor";
@@ -29,6 +32,14 @@ export type IdentityRequest =
       action: "link_visitor";
       visitorUuid: string;
       userUuid: string;
+    }
+  | {
+      action: "create_session";
+      userUuid: string;
+    }
+  | {
+      action: "resolve_session";
+      sessionToken: string;
     };
 
 function getSupabaseAdmin() {
@@ -53,6 +64,15 @@ type LineIdentityResult = {
   displayName: string;
   pictureUrl: string | null;
   status: "existing" | "created";
+  role: string;
+  tier: string;
+};
+
+type SessionResult = {
+  userUuid: string;
+  displayName: string;
+  role: string;
+  tier: string;
 };
 
 export function identityDispatcher(
@@ -61,6 +81,12 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "resolve_line_user" }>,
 ): Promise<LineIdentityResult>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "create_session" }>,
+): Promise<{ sessionToken: string; expiresAt: string }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "resolve_session" }>,
+): Promise<SessionResult | null>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -95,6 +121,12 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "link_visitor":
       throw new Error("Visitor linking is not implemented.");
+
+    case "create_session":
+      return createSession(request.userUuid);
+
+    case "resolve_session":
+      return resolveSession(request.sessionToken);
 
     default: {
       const exhaustiveCheck: never = request;
@@ -193,10 +225,89 @@ async function resolveLineUser(
     throw new Error(`Visitor linking failed: ${visitorError.message}`);
   }
 
+  const { data: user, error: userLookupError } = await supabase
+    .from("users")
+    .select("display_name, role, tier")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (userLookupError) {
+    throw new Error(`User role lookup failed: ${userLookupError.message}`);
+  }
+
   return {
     userUuid,
-    displayName: profile.name ?? "LINE User",
+    displayName: user.display_name ?? profile.name ?? "LINE User",
     pictureUrl: profile.picture ?? null,
     status,
+    role: user.role,
+    tier: user.tier,
   };
+}
+
+async function hashSessionToken(sessionToken: string) {
+  const data = new TextEncoder().encode(sessionToken);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+
+  return Array.from(new Uint8Array(hash))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function createSession(userUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const sessionToken = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
+  const { error } = await supabase.from("sessions").insert({
+    session_uuid: crypto.randomUUID(),
+    user_uuid: userUuid,
+    session_token_hash: sessionTokenHash,
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    throw new Error(`Session creation failed: ${error.message}`);
+  }
+
+  return { sessionToken, expiresAt };
+}
+
+async function resolveSession(sessionToken: string) {
+  const supabase = getSupabaseAdmin();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("user_uuid")
+    .eq("session_token_hash", sessionTokenHash)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(`Session lookup failed: ${sessionError.message}`);
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  const { data: user, error: userError } = await supabase
+    .from("users")
+    .select("user_uuid, display_name, role, tier")
+    .eq("user_uuid", session.user_uuid)
+    .maybeSingle();
+
+  if (userError) {
+    throw new Error(`Session user lookup failed: ${userError.message}`);
+  }
+
+  return user
+    ? {
+        userUuid: user.user_uuid,
+        displayName: user.display_name,
+        role: user.role,
+        tier: user.tier,
+      }
+    : null;
 }

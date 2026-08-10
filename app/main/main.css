@@ -157,6 +157,25 @@
   transform: translateY(-4px);
 }
 
+.headerLineConnected {
+  gap: 4px;
+  color: #06c755;
+}
+
+.headerLineConnected svg {
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
+  stroke-width: 1.6;
+}
+
+.headerLineConnected span {
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
 .headerLanguage {
   min-width: 104px;
   gap: 5px;
@@ -247,6 +266,19 @@
     min-width: 68px;
     padding: 0 5px;
     font-size: 18px;
+  }
+
+  .headerLineConnected {
+    gap: 2px;
+  }
+
+  .headerLineConnected svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .headerLineConnected span {
+    font-size: 14px;
   }
 
   .headerLanguage {
