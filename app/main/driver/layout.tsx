@@ -1,0 +1,26 @@
+import { PortalToolbar, RobotNotice } from "@/components/robot";
+import { getCopyright } from "@/lib/content";
+import "@/app/main/common.css";
+import "@/app/main/driver/driver.css";
+
+export default function DriverLayout({
+  children,
+}: LayoutProps<"/main/driver">) {
+  return (
+    <div className="adminApp driverApp">
+      <header className="adminHeader">
+        <PortalToolbar displayName="Driver" chatMode="icon" />
+        <nav className="adminBreadcrumb" aria-label="Breadcrumb">
+          <strong>Home</strong>
+        </nav>
+      </header>
+
+      <main className="adminMain driverMain">{children}</main>
+
+      <footer className="adminFooter">
+        <RobotNotice message="You have a new driver notification." />
+        <small>{getCopyright()}</small>
+      </footer>
+    </div>
+  );
+}

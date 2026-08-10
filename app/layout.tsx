@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Hachi_Maru_Pop, Klee_One } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const kleeOne = Klee_One({
+  variable: "--font-klee-one",
+  weight: ["400", "600"],
+  display: "swap",
+  preload: false,
+});
+
+const hachiMaruPop = Hachi_Maru_Pop({
+  variable: "--font-hachi-maru-pop",
+  weight: "400",
+  display: "swap",
+  preload: false,
 });
 
 const geistMono = Geist_Mono({
@@ -20,8 +29,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="ja"
+      className={`${kleeOne.variable} ${hachiMaruPop.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

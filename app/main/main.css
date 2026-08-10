@@ -1,0 +1,737 @@
+.mainApp {
+  display: grid;
+  width: 100%;
+  max-width: 430px;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #f8ead3;
+  color: #24150c;
+  container-name: mainapp;
+  container-type: inline-size;
+}
+
+.mainContent {
+  width: 100%;
+  min-height: 320px;
+}
+
+.routePage {
+  margin: 0 auto;
+  width: min(100% - 40px, 960px);
+  padding: 32px 0;
+}
+
+.routePage h1 {
+  font-size: clamp(28px, 5vw, 44px);
+}
+
+.routePage p {
+  margin-top: 12px;
+  font-size: 18px;
+}
+
+.appHeader {
+  position: relative;
+  min-height: 76px;
+  background: #ead7c0;
+  box-shadow: 0 0 0 100vmax #ead7c0;
+  clip-path: inset(0 -100vmax);
+  color: #24150c;
+}
+
+.headerWave {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 100vw;
+  height: 82px;
+  transform: translateX(-50%);
+  fill: #f8ead3;
+  pointer-events: none;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 24px;
+  align-items: start;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 24px clamp(20px, 6vw, 64px) 4px;
+  padding-right: 12px;
+}
+
+.headerBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 165px;
+}
+
+.headerAccount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-self: end;
+}
+
+.headerLogo {
+  font-size: clamp(27px, 4vw, 39px);
+  font-weight: 600;
+  -webkit-text-stroke: 0.85px currentColor;
+  letter-spacing: -1.6px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerPageName {
+  color: #654a32;
+  font-size: 20px;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: center;
+  justify-content: flex-end;
+  transform: translateY(-8px);
+}
+
+.headerPill,
+.headerIconButton {
+  display: inline-flex;
+  height: 58px;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #dfc9aa;
+  border-radius: 999px;
+  background: #fffdfa;
+  color: #905415;
+  box-shadow: 0 1px 2px rgb(82 49 18 / 6%);
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.headerPill {
+  min-width: 112px;
+  padding: 0 22px;
+}
+
+.headerIconButton {
+  width: 44px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.headerIconButton svg,
+.headerLanguage svg {
+  display: block;
+  width: 31px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.headerLoginButton {
+  width: auto;
+  min-width: 78px;
+  padding: 0 8px;
+  color: #905415;
+  font-size: 21px;
+  white-space: nowrap;
+}
+
+.headerLoginButton .japaneseText {
+  display: block;
+  line-height: 1;
+  transform: translateY(-4px);
+}
+
+.headerLanguage {
+  min-width: 104px;
+  gap: 5px;
+}
+
+.headerProfile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transform: translateY(-28px);
+  color: #654a32;
+  font-size: 23px;
+}
+
+.headerAvatar {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid rgb(255 255 255 / 65%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #302a25, #86715c);
+  color: #f8ead3;
+}
+
+.headerAvatar svg {
+  width: 38px;
+  height: 38px;
+  stroke-width: 1.7;
+}
+
+@container mainapp (max-width: 760px) {
+  .appHeader {
+    min-height: 74px;
+  }
+
+  .headerWave {
+    height: 62px;
+  }
+
+  .headerContent {
+    grid-template-columns: auto 1fr;
+    gap: 8px 6px;
+    padding: 22px 14px 4px;
+  }
+
+  .headerBrand {
+    min-width: 0;
+  }
+
+  .headerLogo {
+    font-size: 27px;
+    letter-spacing: -1px;
+  }
+
+  .headerActions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+
+  .headerActions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .headerPill,
+  .headerIconButton {
+    height: 46px;
+    min-height: 46px;
+    flex: 0 0 auto;
+    font-size: 16px;
+  }
+
+  .headerPill {
+    min-width: auto;
+    padding: 0 12px;
+  }
+
+  .headerIconButton {
+    width: 38px;
+  }
+
+  .headerLoginButton {
+    width: auto;
+    min-width: 68px;
+    padding: 0 5px;
+    font-size: 18px;
+  }
+
+  .headerLanguage {
+    min-width: auto;
+  }
+
+  .headerLanguage svg {
+    width: 24px;
+  }
+
+  .headerProfile {
+    gap: 8px;
+    transform: translateY(-20px);
+    font-size: 15px;
+  }
+
+  .headerAvatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .headerAvatar svg {
+    width: 29px;
+    height: 29px;
+  }
+
+  .headerPageName {
+    font-size: 16px;
+  }
+}
+
+.appFooter {
+  position: relative;
+  min-height: 112px;
+  background: #ead7c0;
+  box-shadow: 0 0 0 100vmax #ead7c0;
+  clip-path: inset(-100px -100vmax 0);
+  color: #654a32;
+}
+
+.footerWave {
+  position: absolute;
+  top: -81px;
+  left: 50%;
+  width: 100vw;
+  height: 82px;
+  transform: translateX(-50%) scaleX(-1);
+  fill: #ead7c0;
+  pointer-events: none;
+}
+
+.footerScene {
+  min-height: 112px;
+  perspective: 1000px;
+}
+
+.footerCard {
+  position: relative;
+  min-height: 112px;
+  transform-style: preserve-3d;
+  transition: transform 650ms cubic-bezier(.2, .75, .25, 1);
+}
+
+.footerCardFlipped {
+  transform: rotateY(180deg);
+}
+
+.footerFace {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.footerBack {
+  transform: rotateY(180deg);
+}
+
+.footerContent {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 7px clamp(20px, 6vw, 64px) 4px;
+}
+
+.footerAssistantButton {
+  position: relative;
+  display: grid;
+  width: 90px;
+  height: 90px;
+  place-items: center;
+  border: 3px solid #dfc9aa;
+  border-radius: 50%;
+  background: #fffdfa;
+  box-shadow: 0 9px 24px rgb(101 64 25 / 12%);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.footerFixedAssistant {
+  position: absolute;
+  z-index: 4;
+  top: 7px;
+  left: clamp(20px, 6vw, 64px);
+}
+
+.footerMenuHint {
+  position: absolute;
+  z-index: 5;
+  top: -10px;
+  left: calc(clamp(20px, 6vw, 64px) + 45px);
+  transform: translateX(-50%);
+  color: #704a27;
+  font-family: var(--font-hachi-maru-pop), sans-serif;
+  font-size: 13px;
+  white-space: nowrap;
+  animation: footerHintBounce 1.4s ease-in-out infinite;
+}
+
+@keyframes footerHintBounce {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+
+.footerAssistantSpace {
+  width: 90px;
+  height: 90px;
+}
+
+.footerAssistantIcon {
+  width: 70px;
+  height: 70px;
+  transform: rotate(-22deg);
+  object-fit: contain;
+}
+
+.footerRefresh {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid #dfc9aa;
+  border-radius: 50%;
+  background: #fffdfa;
+  color: #9b5e1a;
+}
+
+.footerRefresh svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.3;
+}
+
+.footerMessageArea {
+  position: relative;
+  min-width: 0;
+}
+
+.footerResponderStatus {
+  position: absolute;
+  top: -28px;
+  right: 26px;
+  left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #704a27;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.footerResponderStatus svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.8;
+}
+
+.footerMessageBar {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 82px;
+  border: 0;
+  border-radius: 999px;
+  background: #fffdfa;
+  padding: 0 44px;
+  color: #705238;
+  font: inherit;
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: 600;
+  outline: none;
+}
+
+.footerMessageBar::placeholder {
+  color: #80674f;
+  opacity: 1;
+}
+
+.footerMessageBar:focus {
+  box-shadow: 0 0 0 3px rgb(143 90 32 / 38%);
+}
+
+.footerPawButton {
+  position: relative;
+  display: grid;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.footerDecorativePaw {
+  width: 74px;
+  height: 74px;
+  transform: rotate(-30deg);
+  color: #9b621f;
+  fill: #9b621f;
+  stroke-width: 3;
+}
+
+.footerAssistantButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 11px 25px rgb(101 64 25 / 20%);
+}
+
+.footerPawButton:not(:disabled):hover {
+  transform: translateY(-3px) scale(1.08);
+}
+
+.footerAssistantButton:active,
+.footerPawButton:not(:disabled):active {
+  transform: translateY(1px) scale(.96);
+  opacity: .72;
+}
+
+.footerPawButton:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+
+.footerPawButton:disabled .footerDecorativePaw {
+  color: #9f876b;
+  fill: #9f876b;
+}
+
+.footerAssistantButton:focus-visible,
+.footerPawButton:focus-visible {
+  outline: 3px solid #8f5a20;
+  outline-offset: 4px;
+}
+
+.footerContent small {
+  grid-column: 1 / -1;
+  justify-self: center;
+  transform: translateY(-8px);
+  color: #806143;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footerMenuContent {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin: 0 auto;
+  max-width: 1200px;
+  min-height: 112px;
+  padding: 7px clamp(20px, 6vw, 64px) 4px;
+}
+
+.footerMenuPanel {
+  display: grid;
+  gap: 8px;
+}
+
+.footerModeSwitch {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  width: min(600px, 72vw);
+  min-height: 50px;
+  transform: translateX(-50%);
+  border: 2px solid #d2b48c;
+  border-radius: 999px;
+  background: #fffaf2;
+  box-shadow: 0 7px 18px rgb(101 64 25 / 14%);
+  font-size: 21px;
+}
+
+.footerModeSwitch button,
+.footerMenuNav button {
+  border: 0;
+  background: transparent;
+  color: #60432c;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.footerModeSwitch .footerModeActive {
+  margin: 2px;
+  border-radius: 999px;
+  background: #ad691c;
+  color: white;
+  box-shadow: 0 3px 8px rgb(101 64 25 / 18%);
+}
+
+.footerMenuNav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  transform: translateY(8px);
+}
+
+.footerMenuNav button {
+  display: grid;
+  min-height: 52px;
+  gap: 3px;
+  place-items: center;
+  font-size: 16px;
+}
+
+.footerMenuNav svg {
+  width: 46px;
+  height: 46px;
+  stroke-width: 1.4;
+}
+
+.footerBotIcon {
+  width: 34px;
+  height: 34px;
+  color: #9b621f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footerCard {
+    transition: none;
+  }
+
+  .footerMenuHint {
+    animation: none;
+  }
+}
+
+@container mainapp (max-width: 640px) {
+  .appFooter {
+    min-height: 104px;
+  }
+
+  .footerScene,
+  .footerCard {
+    min-height: 104px;
+  }
+
+  .footerWave {
+    top: -61px;
+    height: 62px;
+  }
+
+  .footerContent {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px;
+    padding: 6px 8px 4px;
+  }
+
+  .footerAssistantButton {
+    width: 66px;
+    height: 66px;
+  }
+
+  .footerFixedAssistant {
+    top: 6px;
+    left: 8px;
+  }
+
+  .footerMenuHint {
+    top: -9px;
+    left: 41px;
+    font-size: 11px;
+  }
+
+  .footerAssistantSpace {
+    width: 66px;
+    height: 66px;
+  }
+
+  .footerAssistantIcon {
+    width: 54px;
+    height: 54px;
+  }
+
+  .footerRefresh {
+    width: 27px;
+    height: 27px;
+  }
+
+  .footerRefresh svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .footerMessageBar {
+    min-height: 60px;
+    padding: 0 22px;
+    font-size: 18px;
+  }
+
+  .footerResponderStatus {
+    top: -23px;
+    right: 16px;
+    left: auto;
+    gap: 5px;
+    font-size: 12px;
+  }
+
+  .footerResponderStatus svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .footerPawButton {
+    width: 68px;
+    height: 68px;
+  }
+
+  .footerDecorativePaw {
+    width: 58px;
+    height: 58px;
+    transform: rotate(-30deg);
+  }
+
+  .footerContent small {
+    font-size: 12px;
+  }
+
+  .footerMenuContent {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5px;
+    min-height: 104px;
+    padding: 5px 8px 3px;
+  }
+
+  .footerMenuPanel {
+    gap: 4px;
+  }
+
+  .footerModeSwitch {
+    top: -39px;
+    width: min(360px, 78vw);
+    min-height: 43px;
+    font-size: 18px;
+  }
+
+  .footerMenuNav button {
+    min-height: 58px;
+    font-size: 14px;
+  }
+
+  .footerMenuNav svg {
+    width: 39px;
+    height: 39px;
+  }
+
+  .footerBotIcon {
+    display: none;
+  }
+}

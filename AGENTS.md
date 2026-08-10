@@ -13,4 +13,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - One Build / Single Core / Multi-Entrance
 - All shared instructions for AI agents must be consolidated in the `AGENTS.md` file located in the project root directory.
 
+## Naming Rules
 
+- Use short, clear, single-word names for custom files whenever possible.
+- Do not use hyphens in custom file names.
+- Do not use compound file names separated by dots.
+- Name shared UI component files by their role, such as `header.tsx` and `footer.tsx`.
+- Do not use CSS Modules. Use a single-extension stylesheet name such as `main.css`.
+- Use dots only for required file extensions, such as `.tsx` and `.css`.
+- Do not create a separate stylesheet for every small component.
+- Consolidate related page, header, and footer styles into one shared stylesheet for that entrance.
+
+## Design Rules
+
+- Keep the existing warm color palette for user-facing pages.
+- Use white, black, and gray as the primary color palette for all pages intended for roles other than users, including admin and partner pages.
+- On non-user pages, use additional colors only when they communicate status, warnings, errors, or required actions.
