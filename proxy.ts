@@ -106,7 +106,10 @@ export const proxy: NextProxy = async (request, event) => {
       },
     });
   } else if (isLiffEntrance) {
-    const liffPath = pathname.slice("/liff".length);
+    const liffPath =
+      pathname === "/liff" || pathname.startsWith("/liff/")
+        ? pathname.slice("/liff".length)
+        : pathname;
 
     url.pathname = `/main${liffPath}`;
     response = NextResponse.rewrite(url, {

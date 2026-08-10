@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Globe2, MessageCircle, UserRound } from "lucide-react";
+import { Bell, Globe2, UserRound } from "lucide-react";
 import Image from "next/image";
 
 import { useLineIdentity } from "@/components/line";
@@ -27,10 +27,9 @@ export function AppHeader() {
               onClick={() => void login()}
             >
               {identity ? (
-                <>
-                  <MessageCircle aria-hidden="true" />
+                <span className="lineAppIcon" aria-hidden="true">
                   <span>LINE</span>
-                </>
+                </span>
               ) : (
                 <span className="japaneseText">ログイン</span>
               )}
