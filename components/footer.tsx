@@ -52,6 +52,7 @@ export function AppFooter() {
           width={58}
           height={58}
           priority
+          unoptimized
         />
         <span className="footerRefresh">
           <RefreshCw aria-hidden="true" />

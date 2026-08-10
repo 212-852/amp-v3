@@ -1,6 +1,13 @@
+"use client";
+
 import { Bell, Globe2, UserRound } from "lucide-react";
+import Image from "next/image";
+
+import { useLineIdentity } from "@/components/line";
 
 export function AppHeader() {
+  const { identity, login } = useLineIdentity();
+
   return (
     <header className="appHeader">
       <div className="headerContent">
@@ -15,8 +22,11 @@ export function AppHeader() {
               className="headerIconButton headerLoginButton"
               type="button"
               aria-label="Log in with LINE"
+              onClick={() => void login()}
             >
-              <span className="japaneseText">ログイン</span>
+              <span className="japaneseText">
+                {identity ? "LINE" : "ログイン"}
+              </span>
             </button>
             <button
               className="headerIconButton"
@@ -32,10 +42,20 @@ export function AppHeader() {
           </nav>
 
           <div className="headerProfile">
-            <div className="headerAvatar" aria-label="Guest avatar">
-              <UserRound aria-hidden="true" />
+            <div className="headerAvatar" aria-label="User avatar">
+              {identity?.pictureUrl ? (
+                <Image
+                  src={identity.pictureUrl}
+                  alt=""
+                  width={52}
+                  height={52}
+                  unoptimized
+                />
+              ) : (
+                <UserRound aria-hidden="true" />
+              )}
             </div>
-            <strong>Guest</strong>
+            <strong>{identity?.displayName ?? "Guest"}</strong>
           </div>
         </div>
       </div>
