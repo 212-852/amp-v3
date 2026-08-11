@@ -184,8 +184,8 @@ export async function POST(request: NextRequest) {
       const response = NextResponse.json({
         status: "completed",
         identity: {
-          displayName: identity.displayName,
-          pictureUrl: null,
+          displayName: claimed.displayName ?? identity.displayName,
+          pictureUrl: claimed.pictureUrl ?? identity.pictureUrl,
           role: identity.role,
           tier: identity.tier,
           destination,
@@ -318,6 +318,8 @@ export async function GET(request: NextRequest) {
       action: "complete_auth_token",
       tokenUuid,
       userUuid: identity.userUuid,
+      displayName: identity.displayName,
+      pictureUrl: identity.pictureUrl,
     });
 
     if (!completed.completed) throw new Error("line_auth_token_completion_failed");

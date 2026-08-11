@@ -647,13 +647,13 @@ export function AppHeader() {
                   }
                 }}
               >
-                {identity ? (
+                {loginProvider === "line" ? (
                   <span className="lineAppIcon" aria-hidden="true">
                     <span>LINE</span>
                   </span>
-                ) : supabaseIdentity?.loginProvider === "google" ? (
+                ) : loginProvider === "google" ? (
                   <span className="googleAppIcon" aria-hidden="true">G</span>
-                ) : supabaseIdentity?.loginProvider === "email" ? (
+                ) : loginProvider === "email" ? (
                   <span className="headerEmailIcon" aria-hidden="true">
                     <Mail />
                   </span>

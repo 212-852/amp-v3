@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       identity: identity
         ? {
             displayName: identity.displayName,
-            pictureUrl: null,
+            pictureUrl: identity.pictureUrl,
             role: identity.role,
             tier: identity.tier,
             destination: identity.role === "admin" ? "/admin" : "/",

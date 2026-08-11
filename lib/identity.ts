@@ -68,6 +68,8 @@ export type IdentityRequest =
       action: "complete_auth_token";
       tokenUuid: string;
       userUuid: string;
+      displayName: string;
+      pictureUrl: string | null;
     }
   | {
       action: "consume_auth_token";
@@ -107,6 +109,7 @@ type EmailIdentityResult = LineIdentityResult;
 type SessionResult = {
   userUuid: string;
   displayName: string;
+  pictureUrl: string | null;
   role: string;
   tier: string;
 };
@@ -150,7 +153,11 @@ export function identityDispatcher(
 ): Promise<{ completed: boolean }>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "consume_auth_token" }>,
-): Promise<{ userUuid: string } | null>;
+): Promise<{
+  userUuid: string;
+  displayName: string | null;
+  pictureUrl: string | null;
+} | null>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -280,6 +287,10 @@ async function completeAuthToken(
       user_uuid: request.userUuid,
       status: "completed",
       completed_at: new Date().toISOString(),
+      metadata: {
+        displayName: request.displayName,
+        pictureUrl: request.pictureUrl,
+      },
     })
     .eq("token_uuid", request.tokenUuid)
     .eq("token_type", "line_login")
@@ -310,14 +321,27 @@ async function consumeAuthToken(
     .eq("token_hash", request.tokenHash)
     .eq("status", "completed")
     .gt("expires_at", new Date().toISOString())
-    .select("user_uuid")
+    .select("user_uuid, metadata")
     .maybeSingle();
 
   if (error) {
     throw new Error(`Authentication token consumption failed: ${error.message}`);
   }
 
-  return data?.user_uuid ? { userUuid: data.user_uuid as string } : null;
+  if (!data?.user_uuid) return null;
+
+  const metadata = data.metadata as {
+    displayName?: unknown;
+    pictureUrl?: unknown;
+  } | null;
+
+  return {
+    userUuid: data.user_uuid as string,
+    displayName:
+      typeof metadata?.displayName === "string" ? metadata.displayName : null,
+    pictureUrl:
+      typeof metadata?.pictureUrl === "string" ? metadata.pictureUrl : null,
+  };
 }
 
 async function resolveGoogleUser(
@@ -592,6 +616,21 @@ async function resolveLineUser(
     status = "created";
   }
 
+  if (profile.picture) {
+    const { error: pictureError } = await supabase
+      .from("users")
+      .update({ picture_url: profile.picture })
+      .eq("user_uuid", userUuid);
+
+    if (
+      pictureError &&
+      pictureError.code !== "42703" &&
+      pictureError.code !== "PGRST204"
+    ) {
+      throw new Error(`LINE profile update failed: ${pictureError.message}`);
+    }
+  }
+
   const { error: visitorError } = await supabase
     .from("visitors")
     .update({ user_uuid: userUuid })
@@ -678,10 +717,18 @@ async function resolveSession(sessionToken: string) {
     throw new Error(`Session user lookup failed: ${userError.message}`);
   }
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("picture_url")
+    .eq("user_uuid", session.user_uuid)
+    .maybeSingle();
+
   return user
     ? {
         userUuid: user.user_uuid,
         displayName: user.display_name,
+        pictureUrl:
+          typeof profile?.picture_url === "string" ? profile.picture_url : null,
         role: user.role,
         tier: user.tier,
       }
@@ -700,9 +747,17 @@ async function resolveSessionUser(userUuid: string) {
     throw new Error(`Session user lookup failed: ${error.message}`);
   }
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("picture_url")
+    .eq("user_uuid", userUuid)
+    .maybeSingle();
+
   return {
     userUuid: user.user_uuid,
     displayName: user.display_name,
+    pictureUrl:
+      typeof profile?.picture_url === "string" ? profile.picture_url : null,
     role: user.role,
     tier: user.tier,
   };
