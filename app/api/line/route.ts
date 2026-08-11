@@ -226,11 +226,20 @@ export async function GET(request: NextRequest) {
     await debugDispatcher({
       level: "error",
       event: "line_login_failed",
-      data: { reason: "invalid_callback_state_or_configuration" },
+      data: {
+        reason: "invalid_callback_state_or_configuration",
+        hasCode: Boolean(code),
+        hasState: Boolean(state),
+        hasExpectedState: Boolean(expectedState),
+        stateMatched: Boolean(state && expectedState && state === expectedState),
+        hasNonce: Boolean(nonce),
+        hasVisitor: Boolean(visitorUuid),
+        hasChannelId: Boolean(channelId),
+        hasChannelSecret: Boolean(channelSecret),
+      },
     });
-    return Response.json(
-      { error: "The LINE login callback is missing required parameters." },
-      { status: 400 },
+    return NextResponse.redirect(
+      new URL("/?line_error=session_changed", request.url),
     );
   }
 
