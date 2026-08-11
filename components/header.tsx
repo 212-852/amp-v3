@@ -19,6 +19,89 @@ type SupabaseIdentity = {
   greeting: "welcome" | "welcome_back" | "hello";
 };
 
+type GoogleCredentialResponse = {
+  credential?: string;
+};
+
+type GoogleIdentity = {
+  accounts: {
+    id: {
+      initialize: (options: {
+        client_id: string;
+        callback: (response: GoogleCredentialResponse) => void;
+        nonce: string;
+        use_fedcm_for_prompt?: boolean;
+      }) => void;
+      prompt: (callback?: (notification: {
+        isNotDisplayed: () => boolean;
+        isSkippedMoment: () => boolean;
+        getNotDisplayedReason: () => string;
+        getSkippedReason: () => string;
+      }) => void) => void;
+    };
+  };
+};
+
+declare global {
+  interface Window {
+    google?: GoogleIdentity;
+  }
+}
+
+let googleScriptPromise: Promise<GoogleIdentity> | null = null;
+
+function loadGoogleIdentity(): Promise<GoogleIdentity> {
+  if (window.google) return Promise.resolve(window.google);
+  if (googleScriptPromise) return googleScriptPromise;
+
+  googleScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://accounts.google.com/gsi/client"]',
+    );
+    const script = existingScript ?? document.createElement("script");
+
+    const handleLoad = () => {
+      if (window.google) {
+        resolve(window.google);
+      } else {
+        googleScriptPromise = null;
+        reject(new Error("google_identity_unavailable"));
+      }
+    };
+    const handleError = () => {
+      googleScriptPromise = null;
+      reject(new Error("google_identity_script_failed"));
+    };
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+
+    if (!existingScript) {
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+  });
+
+  return googleScriptPromise;
+}
+
+function createNonce() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashNonce(nonce: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(nonce),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 export function AppHeader() {
   const { identity, login, logout: logoutLine } = useLineIdentity();
   const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
@@ -32,6 +115,7 @@ export function AppHeader() {
   const [isPwa, setIsPwa] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
   const supabaseResolved = useRef(false);
   const greetedIdentity = useRef<string | null>(null);
@@ -146,12 +230,18 @@ export function AppHeader() {
   }, [activeIdentity]);
 
   const loginWithGoogle = useCallback(async () => {
-    closeLogin();
-
     if (!supabase) {
       await reportGoogleFailure("supabase_client_configuration_missing");
       return;
     }
+
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      await reportGoogleFailure("google_client_id_missing");
+      return;
+    }
+
+    setIsGoogleLoading(true);
 
     await fetch("/api/google", {
       method: "POST",
@@ -159,17 +249,71 @@ export function AppHeader() {
       body: JSON.stringify({ action: "start" }),
     }).catch(() => undefined);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
-    });
+    try {
+      const google = await loadGoogleIdentity();
+      const nonce = createNonce();
+      const hashedNonce = await hashNonce(nonce);
 
-    if (error) {
-      await reportGoogleFailure(error.code ?? "oauth_start_failed");
+      google.accounts.id.initialize({
+        client_id: clientId,
+        nonce: hashedNonce,
+        use_fedcm_for_prompt: true,
+        callback: (response) => {
+          void (async () => {
+            if (!response.credential) {
+              await reportGoogleFailure("google_credential_missing");
+              setIsGoogleLoading(false);
+              return;
+            }
+
+            const { data, error } = await supabase.auth.signInWithIdToken({
+              provider: "google",
+              token: response.credential,
+              nonce,
+            });
+
+            if (error || !data.session?.access_token) {
+              await reportGoogleFailure(error?.code ?? "google_id_token_failed");
+              setIsGoogleLoading(false);
+              return;
+            }
+
+            try {
+              await resolveSupabaseIdentity(data.session.access_token, "google");
+              closeLogin();
+            } catch (reason) {
+              await reportGoogleFailure(
+                reason instanceof Error
+                  ? reason.message
+                  : "google_identity_resolution_failed",
+              );
+            } finally {
+              setIsGoogleLoading(false);
+            }
+          })();
+        },
+      });
+
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          void reportGoogleFailure(
+            `google_prompt_not_displayed:${notification.getNotDisplayedReason()}`,
+          );
+          setIsGoogleLoading(false);
+        } else if (notification.isSkippedMoment()) {
+          void reportGoogleFailure(
+            `google_prompt_skipped:${notification.getSkippedReason()}`,
+          );
+          setIsGoogleLoading(false);
+        }
+      });
+    } catch (error) {
+      await reportGoogleFailure(
+        error instanceof Error ? error.message : "google_identity_start_failed",
+      );
+      setIsGoogleLoading(false);
     }
-  }, [closeLogin, reportGoogleFailure, supabase]);
+  }, [closeLogin, reportGoogleFailure, resolveSupabaseIdentity, supabase]);
 
   const loginWithEmail = useCallback(async () => {
     if (!supabase || !email.trim()) return;
@@ -283,10 +427,11 @@ export function AppHeader() {
     <button
       className="loginProviderButton loginGoogleButton"
       type="button"
+      disabled={isGoogleLoading}
       onClick={() => void loginWithGoogle()}
     >
       <span className="loginGoogleIcon" aria-hidden="true">G</span>
-      <strong>Googleでログイン</strong>
+      <strong>{isGoogleLoading ? "Googleを開いています…" : "Googleでログイン"}</strong>
       <span className="loginSimple">{isPwa ? "補助" : "かんたん"}</span>
     </button>
   );
