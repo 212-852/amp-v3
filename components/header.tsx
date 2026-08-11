@@ -275,7 +275,7 @@ export function AppHeader() {
         <span>LINE</span>
       </span>
       <strong>LINEでログイン</strong>
-      <span className="loginRecommended">{isPwa ? "補助" : "おすすめ"}</span>
+      <span className="loginRecommended">おすすめ</span>
     </button>
   );
 
@@ -299,7 +299,7 @@ export function AppHeader() {
     >
       <Mail aria-hidden="true" />
       <strong>Eメールでログイン</strong>
-      <span className="loginPasswordless">{isPwa ? "おすすめ" : "コード認証"}</span>
+      <span className="loginPasswordless">コード認証</span>
     </button>
   ) : (
     <form
@@ -452,14 +452,14 @@ export function AppHeader() {
 
       <Modal open={isLoginOpen} label="ログイン方法" onClose={closeLogin}>
         <p className="loginModalText">
-          {isPwa ? "PWAでは画面を移動しないメール認証がおすすめです" : "ログイン方法を選択してください"}
+          ログイン方法を選択してください
         </p>
         {isPwa ? (
           <>
+            {lineLoginOption}
             {emailLoginOption}
             <div className="loginSecondaryOptions">
               {googleLoginOption}
-              {lineLoginOption}
             </div>
             <button className="guestContinueButton" type="button" onClick={closeLogin}>
               ゲストのまま利用する
