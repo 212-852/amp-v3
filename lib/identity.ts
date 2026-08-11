@@ -41,6 +41,7 @@ export type IdentityRequest =
   | {
       action: "resolve_session";
       sessionToken: string;
+      loginType?: "line" | "google" | "email";
     }
   | {
       action: "resolve_session_user";
@@ -112,6 +113,7 @@ type SessionResult = {
   pictureUrl: string | null;
   role: string;
   tier: string;
+  expiresAt: string;
 };
 
 export function identityDispatcher(
@@ -197,7 +199,7 @@ export async function identityDispatcher(request: IdentityRequest) {
       return createSession(request.userUuid);
 
     case "resolve_session":
-      return resolveSession(request.sessionToken);
+      return resolveSession(request.sessionToken, request.loginType);
 
     case "resolve_session_user":
       return resolveSessionUser(request.userUuid);
@@ -415,6 +417,25 @@ async function resolveGoogleUser(
     status = "created";
   }
 
+  if (displayName || pictureUrl) {
+    const { error: pictureError } = await supabase
+      .from("accounts")
+      .update({
+        provider_display_name: displayName,
+        picture_url: pictureUrl,
+      })
+      .eq("login_type", "google")
+      .eq("external_user_id", externalUserId);
+
+    if (
+      pictureError &&
+      pictureError.code !== "42703" &&
+      pictureError.code !== "PGRST204"
+    ) {
+      throw new Error(`Google profile update failed: ${pictureError.message}`);
+    }
+  }
+
   const { error: visitorError } = await supabase
     .from("visitors")
     .update({ user_uuid: userUuid })
@@ -616,11 +637,19 @@ async function resolveLineUser(
     status = "created";
   }
 
-  if (profile.picture) {
+  if (profile.name || profile.picture) {
+    const profileUpdate: {
+      provider_display_name?: string;
+      picture_url?: string;
+    } = {};
+    if (profile.name) profileUpdate.provider_display_name = profile.name;
+    if (profile.picture) profileUpdate.picture_url = profile.picture;
+
     const { error: pictureError } = await supabase
-      .from("users")
-      .update({ picture_url: profile.picture })
-      .eq("user_uuid", userUuid);
+      .from("accounts")
+      .update(profileUpdate)
+      .eq("login_type", "line")
+      .eq("external_user_id", profile.sub);
 
     if (
       pictureError &&
@@ -688,7 +717,10 @@ async function createSession(userUuid: string) {
   return { sessionToken, expiresAt };
 }
 
-async function resolveSession(sessionToken: string) {
+async function resolveSession(
+  sessionToken: string,
+  loginType?: "line" | "google" | "email",
+) {
   const supabase = getSupabaseAdmin();
   const sessionTokenHash = await hashSessionToken(sessionToken);
   const { data: session, error: sessionError } = await supabase
@@ -707,6 +739,17 @@ async function resolveSession(sessionToken: string) {
     return null;
   }
 
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
+  const { error: renewalError } = await supabase
+    .from("sessions")
+    .update({ expires_at: expiresAt })
+    .eq("session_token_hash", sessionTokenHash)
+    .is("revoked_at", null);
+
+  if (renewalError) {
+    throw new Error(`Session renewal failed: ${renewalError.message}`);
+  }
+
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("user_uuid, display_name, role, tier")
@@ -717,20 +760,26 @@ async function resolveSession(sessionToken: string) {
     throw new Error(`Session user lookup failed: ${userError.message}`);
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("picture_url")
-    .eq("user_uuid", session.user_uuid)
-    .maybeSingle();
+  const { data: accountProfile } = loginType
+    ? await supabase
+        .from("accounts")
+        .select("picture_url")
+        .eq("user_uuid", session.user_uuid)
+        .eq("login_type", loginType)
+        .maybeSingle()
+    : { data: null };
 
   return user
     ? {
         userUuid: user.user_uuid,
         displayName: user.display_name,
         pictureUrl:
-          typeof profile?.picture_url === "string" ? profile.picture_url : null,
+          typeof accountProfile?.picture_url === "string"
+            ? accountProfile.picture_url
+            : null,
         role: user.role,
         tier: user.tier,
+        expiresAt,
       }
     : null;
 }
@@ -747,19 +796,13 @@ async function resolveSessionUser(userUuid: string) {
     throw new Error(`Session user lookup failed: ${error.message}`);
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("picture_url")
-    .eq("user_uuid", userUuid)
-    .maybeSingle();
-
   return {
     userUuid: user.user_uuid,
     displayName: user.display_name,
-    pictureUrl:
-      typeof profile?.picture_url === "string" ? profile.picture_url : null,
+    pictureUrl: null,
     role: user.role,
     tier: user.tier,
+    expiresAt: new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString(),
   };
 }
 

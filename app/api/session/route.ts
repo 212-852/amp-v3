@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
-import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
+import {
+  identityDispatcher,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE,
+} from "@/lib/identity";
 
 export async function GET(request: NextRequest) {
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -16,9 +20,10 @@ export async function GET(request: NextRequest) {
     const identity = await identityDispatcher({
       action: "resolve_session",
       sessionToken,
+      loginType: "line",
     });
 
-    return Response.json({
+    const response = NextResponse.json({
       identity: identity
         ? {
             displayName: identity.displayName,
@@ -31,6 +36,30 @@ export async function GET(request: NextRequest) {
           }
         : null,
     });
+
+    if (identity) {
+      response.cookies.set({
+        name: SESSION_COOKIE_NAME,
+        value: sessionToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE,
+        expires: new Date(identity.expiresAt),
+      });
+      response.cookies.set({
+        name: "login_provider",
+        value: "line",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE,
+      });
+    }
+
+    return response;
   } catch {
     return Response.json({ identity: null }, { status: 401 });
   }

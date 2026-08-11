@@ -68,16 +68,19 @@ export async function POST(request: NextRequest) {
           sessionToken: existingSessionToken,
         })
       : null;
-    const session =
-      existingSession?.userUuid === identity.userUuid
-        ? null
-        : await identityDispatcher({
+    const reusedSession = existingSession?.userUuid === identity.userUuid;
+    const session = reusedSession
+      ? {
+          sessionToken: existingSessionToken as string,
+          expiresAt: existingSession.expiresAt,
+        }
+      : await identityDispatcher({
             action: "create_session",
             userUuid: identity.userUuid,
           });
     const greeting = identity.status === "created"
       ? "welcome"
-      : session
+      : !reusedSession
         ? "welcome_back"
         : "hello";
     const response = NextResponse.json({
@@ -91,18 +94,16 @@ export async function POST(request: NextRequest) {
       greeting,
     });
 
-    if (session) {
-      response.cookies.set({
-        name: SESSION_COOKIE_NAME,
-        value: session.sessionToken,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: SESSION_MAX_AGE,
-        expires: new Date(session.expiresAt),
-      });
-    }
+    response.cookies.set({
+      name: SESSION_COOKIE_NAME,
+      value: session.sessionToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+      expires: new Date(session.expiresAt),
+    });
 
     await debugDispatcher({
       event: "google_login_succeeded",

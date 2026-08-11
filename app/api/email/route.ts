@@ -55,12 +55,16 @@ export async function POST(request: NextRequest) {
     const oldSession = oldToken
       ? await identityDispatcher({ action: "resolve_session", sessionToken: oldToken })
       : null;
-    const session = oldSession?.userUuid === identity.userUuid
-      ? null
+    const reusedSession = oldSession?.userUuid === identity.userUuid;
+    const session = reusedSession
+      ? {
+          sessionToken: oldToken as string,
+          expiresAt: oldSession.expiresAt,
+        }
       : await identityDispatcher({ action: "create_session", userUuid: identity.userUuid });
     const greeting = identity.status === "created"
       ? "welcome"
-      : session
+      : !reusedSession
         ? "welcome_back"
         : "hello";
     const response = NextResponse.json({
@@ -74,18 +78,16 @@ export async function POST(request: NextRequest) {
       greeting,
     });
 
-    if (session) {
-      response.cookies.set({
-        name: SESSION_COOKIE_NAME,
-        value: session.sessionToken,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: SESSION_MAX_AGE,
-        expires: new Date(session.expiresAt),
-      });
-    }
+    response.cookies.set({
+      name: SESSION_COOKIE_NAME,
+      value: session.sessionToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+      expires: new Date(session.expiresAt),
+    });
 
     await debugDispatcher({
       event: "email_login_succeeded",
