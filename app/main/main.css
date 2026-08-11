@@ -533,6 +533,13 @@
   outline: 3px solid rgb(155 98 31 / 14%);
 }
 
+.emailCodeInput {
+  text-align: center;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: .32em;
+}
+
 .emailLoginForm > button {
   min-height: 52px;
   border: 0;
@@ -549,11 +556,44 @@
   opacity: 0.55;
 }
 
+.emailLoginForm > .emailBackButton {
+  min-height: 42px;
+  border: 1px solid #dfc9aa;
+  background: transparent;
+  color: #654a32;
+  font-size: 14px;
+}
+
 .emailLoginForm p {
   margin: 2px 0 0;
   color: #654a32;
   font-size: 13px;
   line-height: 1.7;
+}
+
+.loginSecondaryOptions {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid #ead7c0;
+}
+
+.loginSecondaryOptions .loginProviderButton {
+  min-height: 56px;
+  opacity: .82;
+}
+
+.guestContinueButton {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  border: 0;
+  background: transparent;
+  color: #654a32;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .greetingToast {

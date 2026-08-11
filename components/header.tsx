@@ -25,8 +25,11 @@ export function AppHeader() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailStep, setEmailStep] = useState<"address" | "code">("address");
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isPwa, setIsPwa] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -35,6 +38,8 @@ export function AppHeader() {
   const closeLogin = useCallback(() => {
     setIsLoginOpen(false);
     setShowEmailForm(false);
+    setEmailCode("");
+    setEmailStep("address");
     setEmailStatus(null);
   }, []);
   const closeGreeting = useCallback(() => setGreeting(null), []);
@@ -45,6 +50,19 @@ export function AppHeader() {
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     return url && key ? createClient(url, key) : null;
+  }, []);
+
+  useEffect(() => {
+    const displayMode = window.matchMedia("(display-mode: standalone)");
+    const updateDisplayMode = () => {
+      const iosStandalone = (window.navigator as Navigator & { standalone?: boolean })
+        .standalone === true;
+      setIsPwa(displayMode.matches || iosStandalone);
+    };
+
+    updateDisplayMode();
+    displayMode.addEventListener("change", updateDisplayMode);
+    return () => displayMode.removeEventListener("change", updateDisplayMode);
   }, []);
 
   const reportGoogleFailure = useCallback(async (reason: string) => {
@@ -178,11 +196,41 @@ export function AppHeader() {
         return;
       }
 
-      setEmailStatus("認証メールを送信しました。メール内のリンクを押してください。");
+      setEmailStep("code");
+      setEmailStatus("メールに届いた8桁の認証コードを入力してください。");
     } finally {
       setIsSendingEmail(false);
     }
   }, [email, reportEmailFailure, supabase]);
+
+  const verifyEmailCode = useCallback(async () => {
+    if (!supabase || !email.trim() || emailCode.length !== 8) return;
+    setIsSendingEmail(true);
+    setEmailStatus(null);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: emailCode,
+        type: "email",
+      });
+
+      if (error || !data.session?.access_token) {
+        await reportEmailFailure(error?.code ?? "email_otp_verification_failed");
+        setEmailStatus("認証コードを確認できませんでした。もう一度お試しください。");
+        return;
+      }
+
+      setEmailStatus("認証できました。ログインしています…");
+      await resolveSupabaseIdentity(data.session.access_token, "email");
+      closeLogin();
+    } catch {
+      await reportEmailFailure("email_otp_resolution_failed");
+      setEmailStatus("ログイン処理を完了できませんでした。");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  }, [closeLogin, email, emailCode, reportEmailFailure, resolveSupabaseIdentity, supabase]);
 
   const logout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -213,6 +261,109 @@ export function AppHeader() {
       setIsLoggingOut(false);
     }
   }, [loginProvider, logoutLine, supabase]);
+
+  const lineLoginOption = (
+    <button
+      className="loginProviderButton loginLineButton"
+      type="button"
+      onClick={() => {
+        closeLogin();
+        void login();
+      }}
+    >
+      <span className="lineAppIcon" aria-hidden="true">
+        <span>LINE</span>
+      </span>
+      <strong>LINEでログイン</strong>
+      <span className="loginRecommended">{isPwa ? "補助" : "おすすめ"}</span>
+    </button>
+  );
+
+  const googleLoginOption = (
+    <button
+      className="loginProviderButton loginGoogleButton"
+      type="button"
+      onClick={() => void loginWithGoogle()}
+    >
+      <span className="loginGoogleIcon" aria-hidden="true">G</span>
+      <strong>Googleでログイン</strong>
+      <span className="loginSimple">{isPwa ? "補助" : "かんたん"}</span>
+    </button>
+  );
+
+  const emailLoginOption = !showEmailForm ? (
+    <button
+      className="loginProviderButton loginEmailButton"
+      type="button"
+      onClick={() => setShowEmailForm(true)}
+    >
+      <Mail aria-hidden="true" />
+      <strong>Eメールでログイン</strong>
+      <span className="loginPasswordless">{isPwa ? "おすすめ" : "コード認証"}</span>
+    </button>
+  ) : (
+    <form
+      className="emailLoginForm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (emailStep === "code") {
+          void verifyEmailCode();
+        } else {
+          void loginWithEmail();
+        }
+      }}
+    >
+      {emailStep === "address" ? (
+        <>
+          <label htmlFor="loginEmail">メールアドレス</label>
+          <input
+            id="loginEmail"
+            type="email"
+            value={email}
+            required
+            autoComplete="email"
+            inputMode="email"
+            placeholder="name@example.com"
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <button type="submit" disabled={isSendingEmail || !email.trim()}>
+            {isSendingEmail ? "送信中…" : "認証コードを送信"}
+          </button>
+        </>
+      ) : (
+        <>
+          <label htmlFor="loginEmailCode">8桁の認証コード</label>
+          <input
+            id="loginEmailCode"
+            className="emailCodeInput"
+            type="text"
+            value={emailCode}
+            required
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            maxLength={8}
+            placeholder="00000000"
+            onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, ""))}
+          />
+          <button type="submit" disabled={isSendingEmail || emailCode.length !== 8}>
+            {isSendingEmail ? "確認中…" : "コードを確認してログイン"}
+          </button>
+          <button
+            className="emailBackButton"
+            type="button"
+            onClick={() => {
+              setEmailCode("");
+              setEmailStep("address");
+              setEmailStatus(null);
+            }}
+          >
+            メールアドレスを変更
+          </button>
+        </>
+      )}
+      {emailStatus ? <p role="status">{emailStatus}</p> : null}
+    </form>
+  );
 
   return (
     <>
@@ -300,63 +451,26 @@ export function AppHeader() {
       </header>
 
       <Modal open={isLoginOpen} label="ログイン方法" onClose={closeLogin}>
-        <p className="loginModalText">ログイン方法を選択してください</p>
-        <button
-          className="loginProviderButton loginLineButton"
-          type="button"
-          onClick={() => {
-            closeLogin();
-            void login();
-          }}
-        >
-          <span className="lineAppIcon" aria-hidden="true">
-            <span>LINE</span>
-          </span>
-          <strong>LINEでログイン</strong>
-          <span className="loginRecommended">おすすめ</span>
-        </button>
-        <button
-          className="loginProviderButton loginGoogleButton"
-          type="button"
-          onClick={() => void loginWithGoogle()}
-        >
-          <span className="loginGoogleIcon" aria-hidden="true">G</span>
-          <strong>Googleでログイン</strong>
-          <span className="loginSimple">かんたん</span>
-        </button>
-        {!showEmailForm ? (
-          <button
-            className="loginProviderButton loginEmailButton"
-            type="button"
-            onClick={() => setShowEmailForm(true)}
-          >
-            <Mail aria-hidden="true" />
-            <strong>Eメールでログイン</strong>
-            <span className="loginPasswordless">パスワード不要</span>
-          </button>
-        ) : (
-          <form
-            className="emailLoginForm"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void loginWithEmail();
-            }}
-          >
-            <label htmlFor="loginEmail">メールアドレス</label>
-            <input
-              id="loginEmail"
-              type="email"
-              value={email}
-              required
-              autoComplete="email"
-              placeholder="name@example.com"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            <button type="submit" disabled={isSendingEmail || !email.trim()}>
-              {isSendingEmail ? "送信中…" : "認証メールを送信"}
+        <p className="loginModalText">
+          {isPwa ? "PWAでは画面を移動しないメール認証がおすすめです" : "ログイン方法を選択してください"}
+        </p>
+        {isPwa ? (
+          <>
+            {emailLoginOption}
+            <div className="loginSecondaryOptions">
+              {googleLoginOption}
+              {lineLoginOption}
+            </div>
+            <button className="guestContinueButton" type="button" onClick={closeLogin}>
+              ゲストのまま利用する
             </button>
-            {emailStatus ? <p role="status">{emailStatus}</p> : null}
-          </form>
+          </>
+        ) : (
+          <>
+            {lineLoginOption}
+            {googleLoginOption}
+            {emailLoginOption}
+          </>
         )}
       </Modal>
 
