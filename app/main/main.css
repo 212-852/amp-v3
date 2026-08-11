@@ -3,8 +3,10 @@
   width: 100%;
   max-width: 430px;
   grid-template-rows: auto 1fr auto;
-  min-height: 100dvh;
+  height: 100svh;
+  min-height: 100svh;
   margin: 0 auto;
+  overflow: hidden;
   background: #f8ead3;
   color: #24150c;
   container-name: mainapp;
@@ -14,6 +16,8 @@
 .mainContent {
   width: 100%;
   min-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .routePage {
@@ -38,6 +42,7 @@
   box-shadow: 0 0 0 100vmax #ead7c0;
   clip-path: inset(0 -100vmax);
   color: #24150c;
+  padding-top: env(safe-area-inset-top);
 }
 
 .headerWave {
@@ -806,6 +811,7 @@
   min-height: 112px;
   background: #ead7c0;
   color: #654a32;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .appFooter::before {

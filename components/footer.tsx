@@ -47,7 +47,7 @@ export function AppFooter() {
       >
         <Image
           className="footerAssistantIcon"
-          src="/icons/icon.svg?v=3"
+          src="/icons/icon.svg?v=4"
           alt=""
           width={58}
           height={58}
