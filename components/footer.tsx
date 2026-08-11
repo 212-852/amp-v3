@@ -14,7 +14,7 @@ import { useState } from "react";
 import { getCopyright } from "@/lib/content";
 
 export function AppFooter() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [showMenuHint, setShowMenuHint] = useState(true);
   const [assistantMode, setAssistantMode] = useState<"bot" | "concierge">(
@@ -40,14 +40,14 @@ export function AppFooter() {
       <button
         className="footerAssistantButton footerFixedAssistant"
         type="button"
-        aria-label={isMenuOpen ? "Close footer menu" : "Open footer menu"}
+        aria-label={isMenuOpen ? "Show message input" : "Show footer menu"}
         aria-expanded={isMenuOpen}
         aria-describedby={showMenuHint ? "footerMenuHint" : undefined}
         onClick={handleMenuToggle}
       >
         <Image
           className="footerAssistantIcon"
-          src="/icons/icon.svg"
+          src="/icons/icon.svg?v=3"
           alt=""
           width={58}
           height={58}

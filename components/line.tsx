@@ -16,11 +16,14 @@ type LineIdentity = {
   role: string;
   tier: string;
   destination: string;
+  loginProvider: "line";
+  greeting: "welcome" | "welcome_back" | "hello";
 };
 
 type LineContextValue = {
   identity: LineIdentity | null;
   login: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 const LineContext = createContext<LineContextValue | null>(null);
@@ -29,6 +32,10 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
   const [identity, setIdentity] = useState<LineIdentity | null>(null);
 
   const connect = useCallback(async () => {
+    if (window.sessionStorage.getItem("line_logout") === "1") {
+      return;
+    }
+
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
     if (!liffId) {
@@ -81,6 +88,7 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    window.sessionStorage.removeItem("line_logout");
     await liff.init({ liffId });
 
     if (!liff.isLoggedIn()) {
@@ -91,6 +99,16 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     await connect();
   }, [connect]);
 
+  const logout = useCallback(async () => {
+    window.sessionStorage.setItem("line_logout", "1");
+
+    if (liff.id && liff.isLoggedIn()) {
+      liff.logout();
+    }
+
+    setIdentity(null);
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void connect().catch(() => undefined);
@@ -99,7 +117,10 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [connect]);
 
-  const value = useMemo(() => ({ identity, login }), [identity, login]);
+  const value = useMemo(
+    () => ({ identity, login, logout }),
+    [identity, login, logout],
+  );
 
   return <LineContext value={value}>{children}</LineContext>;
 }

@@ -21,12 +21,12 @@ export type IdentityRequest =
   | {
       action: "resolve_google_user";
       visitorUuid: string;
-      idToken: string;
+      accessToken: string;
     }
   | {
       action: "resolve_email_user";
       visitorUuid: string;
-      email: string;
+      accessToken: string;
     }
   | {
       action: "link_visitor";
@@ -39,6 +39,10 @@ export type IdentityRequest =
     }
   | {
       action: "resolve_session";
+      sessionToken: string;
+    }
+  | {
+      action: "revoke_session";
       sessionToken: string;
     };
 
@@ -68,6 +72,9 @@ type LineIdentityResult = {
   tier: string;
 };
 
+type GoogleIdentityResult = LineIdentityResult;
+type EmailIdentityResult = LineIdentityResult;
+
 type SessionResult = {
   userUuid: string;
   displayName: string;
@@ -82,11 +89,20 @@ export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "resolve_line_user" }>,
 ): Promise<LineIdentityResult>;
 export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "resolve_google_user" }>,
+): Promise<GoogleIdentityResult>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "resolve_email_user" }>,
+): Promise<EmailIdentityResult>;
+export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "create_session" }>,
 ): Promise<{ sessionToken: string; expiresAt: string }>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "resolve_session" }>,
 ): Promise<SessionResult | null>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "revoke_session" }>,
+): Promise<{ revoked: boolean }>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -114,10 +130,10 @@ export async function identityDispatcher(request: IdentityRequest) {
       return resolveLineUser(request);
 
     case "resolve_google_user":
-      throw new Error("Google identity resolution is not implemented.");
+      return resolveGoogleUser(request);
 
     case "resolve_email_user":
-      throw new Error("Email identity resolution is not implemented.");
+      return resolveEmailUser(request);
 
     case "link_visitor":
       throw new Error("Visitor linking is not implemented.");
@@ -128,11 +144,204 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "resolve_session":
       return resolveSession(request.sessionToken);
 
+    case "revoke_session":
+      return revokeSession(request.sessionToken);
+
     default: {
       const exhaustiveCheck: never = request;
       return exhaustiveCheck;
     }
   }
+}
+
+async function resolveGoogleUser(
+  request: Extract<IdentityRequest, { action: "resolve_google_user" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const { data, error: authError } = await supabase.auth.getUser(
+    request.accessToken,
+  );
+
+  if (authError || !data.user) {
+    throw new Error("Google access token verification failed.");
+  }
+
+  const authUser = data.user;
+
+  if (authUser.app_metadata.provider !== "google") {
+    throw new Error("Authenticated provider is not Google.");
+  }
+  const externalUserId = authUser.id;
+  const email = authUser.email ?? null;
+  const displayName =
+    typeof authUser.user_metadata.full_name === "string"
+      ? authUser.user_metadata.full_name
+      : typeof authUser.user_metadata.name === "string"
+        ? authUser.user_metadata.name
+        : "Google User";
+  const pictureUrl =
+    typeof authUser.user_metadata.avatar_url === "string"
+      ? authUser.user_metadata.avatar_url
+      : typeof authUser.user_metadata.picture === "string"
+        ? authUser.user_metadata.picture
+        : null;
+  const { data: existingAccount, error: accountSearchError } = await supabase
+    .from("accounts")
+    .select("user_uuid")
+    .eq("login_type", "google")
+    .eq("external_user_id", externalUserId)
+    .maybeSingle();
+
+  if (accountSearchError) {
+    throw new Error(`Google account lookup failed: ${accountSearchError.message}`);
+  }
+
+  let userUuid = existingAccount?.user_uuid as string | undefined;
+  let status: "existing" | "created" = "existing";
+
+  if (!userUuid) {
+    userUuid = crypto.randomUUID();
+    const { error: userError } = await supabase.from("users").insert({
+      user_uuid: userUuid,
+      display_name: displayName,
+    });
+
+    if (userError) {
+      throw new Error(`Google user creation failed: ${userError.message}`);
+    }
+
+    const { error: accountError } = await supabase.from("accounts").insert({
+      account_uuid: crypto.randomUUID(),
+      user_uuid: userUuid,
+      login_type: "google",
+      external_user_id: externalUserId,
+      email,
+    });
+
+    if (accountError) {
+      throw new Error(`Google account creation failed: ${accountError.message}`);
+    }
+
+    status = "created";
+  }
+
+  const { error: visitorError } = await supabase
+    .from("visitors")
+    .update({ user_uuid: userUuid })
+    .eq("visitor_uuid", request.visitorUuid);
+
+  if (visitorError) {
+    throw new Error(`Visitor linking failed: ${visitorError.message}`);
+  }
+
+  const { data: user, error: userLookupError } = await supabase
+    .from("users")
+    .select("display_name, role, tier")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (userLookupError) {
+    throw new Error(`Google user lookup failed: ${userLookupError.message}`);
+  }
+
+  return {
+    userUuid,
+    displayName: user.display_name ?? displayName,
+    pictureUrl,
+    status,
+    role: user.role,
+    tier: user.tier,
+  };
+}
+
+async function resolveEmailUser(
+  request: Extract<IdentityRequest, { action: "resolve_email_user" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const { data, error: authError } = await supabase.auth.getUser(
+    request.accessToken,
+  );
+
+  if (authError || !data.user) {
+    throw new Error("Email access token verification failed.");
+  }
+
+  const authUser = data.user;
+
+  if (!authUser.email || !authUser.email_confirmed_at) {
+    throw new Error("Email address is not verified.");
+  }
+
+  const externalUserId = authUser.id;
+  const email = authUser.email;
+  const displayName = email.split("@")[0] || "Email User";
+  const { data: existingAccount, error: accountSearchError } = await supabase
+    .from("accounts")
+    .select("user_uuid")
+    .eq("login_type", "email")
+    .eq("external_user_id", externalUserId)
+    .maybeSingle();
+
+  if (accountSearchError) {
+    throw new Error(`Email account lookup failed: ${accountSearchError.message}`);
+  }
+
+  let userUuid = existingAccount?.user_uuid as string | undefined;
+  let status: "existing" | "created" = "existing";
+
+  if (!userUuid) {
+    userUuid = crypto.randomUUID();
+    const { error: userError } = await supabase.from("users").insert({
+      user_uuid: userUuid,
+      display_name: displayName,
+    });
+
+    if (userError) {
+      throw new Error(`Email user creation failed: ${userError.message}`);
+    }
+
+    const { error: accountError } = await supabase.from("accounts").insert({
+      account_uuid: crypto.randomUUID(),
+      user_uuid: userUuid,
+      login_type: "email",
+      external_user_id: externalUserId,
+      email,
+    });
+
+    if (accountError) {
+      throw new Error(`Email account creation failed: ${accountError.message}`);
+    }
+
+    status = "created";
+  }
+
+  const { error: visitorError } = await supabase
+    .from("visitors")
+    .update({ user_uuid: userUuid })
+    .eq("visitor_uuid", request.visitorUuid);
+
+  if (visitorError) {
+    throw new Error(`Visitor linking failed: ${visitorError.message}`);
+  }
+
+  const { data: user, error: userLookupError } = await supabase
+    .from("users")
+    .select("display_name, role, tier")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (userLookupError) {
+    throw new Error(`Email user lookup failed: ${userLookupError.message}`);
+  }
+
+  return {
+    userUuid,
+    displayName: user.display_name ?? displayName,
+    pictureUrl: null,
+    status,
+    role: user.role,
+    tier: user.tier,
+  };
 }
 
 type LineTokenPayload = {
@@ -310,4 +519,20 @@ async function resolveSession(sessionToken: string) {
         tier: user.tier,
       }
     : null;
+}
+
+async function revokeSession(sessionToken: string) {
+  const supabase = getSupabaseAdmin();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  const { error } = await supabase
+    .from("sessions")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("session_token_hash", sessionTokenHash)
+    .is("revoked_at", null);
+
+  if (error) {
+    throw new Error(`Session revocation failed: ${error.message}`);
+  }
+
+  return { revoked: true };
 }

@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
             action: "create_session",
             userUuid: identity.userUuid,
           });
+    const greeting = identity.status === "created"
+      ? "welcome"
+      : session
+        ? "welcome_back"
+        : "hello";
 
     await notifyDispatcher({
       level: "info",
@@ -84,6 +89,8 @@ export async function POST(request: NextRequest) {
           : isLocalDevelopment
             ? "/main"
             : "/",
+      loginProvider: "line",
+      greeting,
     });
 
     if (session) {

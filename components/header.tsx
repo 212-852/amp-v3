@@ -1,79 +1,402 @@
 "use client";
 
-import { Bell, Globe2, UserRound } from "lucide-react";
+import { Bell, Globe2, Mail, UserRound } from "lucide-react";
 import Image from "next/image";
+import { createClient } from "@supabase/supabase-js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLineIdentity } from "@/components/line";
+import { Modal } from "@/components/modal";
+import { Toast } from "@/components/toast";
+
+type SupabaseIdentity = {
+  displayName: string;
+  pictureUrl: string | null;
+  role: string;
+  tier: string;
+  destination: string;
+  loginProvider: "google" | "email";
+  greeting: "welcome" | "welcome_back" | "hello";
+};
 
 export function AppHeader() {
-  const { identity, login } = useLineIdentity();
+  const { identity, login, logout: logoutLine } = useLineIdentity();
+  const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [greeting, setGreeting] = useState<string | null>(null);
+  const supabaseResolved = useRef(false);
+  const greetedIdentity = useRef<string | null>(null);
+  const closeLogin = useCallback(() => {
+    setIsLoginOpen(false);
+    setShowEmailForm(false);
+    setEmailStatus(null);
+  }, []);
+  const closeGreeting = useCallback(() => setGreeting(null), []);
+  const activeIdentity = identity ?? supabaseIdentity;
+  const loginProvider = identity ? "line" : supabaseIdentity?.loginProvider ?? null;
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    return url && key ? createClient(url, key) : null;
+  }, []);
+
+  const reportGoogleFailure = useCallback(async (reason: string) => {
+    await fetch("/api/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "fail", reason }),
+    }).catch(() => undefined);
+  }, []);
+
+  const reportEmailFailure = useCallback(async (reason: string) => {
+    await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "fail", reason }),
+    }).catch(() => undefined);
+  }, []);
+
+  const resolveSupabaseIdentity = useCallback(
+    async (accessToken: string, provider: "google" | "email") => {
+      if (supabaseResolved.current) return;
+      supabaseResolved.current = true;
+
+      const response = await fetch(`/api/${provider}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resolve", accessToken }),
+      });
+
+      if (!response.ok) {
+        supabaseResolved.current = false;
+        throw new Error(`${provider}_identity_resolution_failed`);
+      }
+
+      const result = (await response.json()) as SupabaseIdentity;
+      setSupabaseIdentity(result);
+      window.history.replaceState({}, "", window.location.pathname);
+
+      if (window.location.pathname !== result.destination) {
+        window.location.replace(result.destination);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    const errorCode = new URLSearchParams(window.location.search).get("error");
+    if (errorCode) {
+      void reportGoogleFailure(errorCode);
+    }
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        void reportGoogleFailure("session_read_failed");
+      } else if (data.session?.access_token) {
+        const provider = data.session.user.app_metadata.provider;
+        const loginType = provider === "email" ? "email" : "google";
+        void resolveSupabaseIdentity(data.session.access_token, loginType).catch((reason) => {
+          const report = loginType === "email" ? reportEmailFailure : reportGoogleFailure;
+          void report(
+            reason instanceof Error ? reason.message : "identity_resolution_failed",
+          );
+        });
+      }
+    });
+  }, [reportEmailFailure, reportGoogleFailure, resolveSupabaseIdentity, supabase]);
+
+  useEffect(() => {
+    if (!activeIdentity) return;
+    const key = `${activeIdentity.loginProvider}:${activeIdentity.displayName}:${activeIdentity.greeting}`;
+    if (greetedIdentity.current === key) return;
+    greetedIdentity.current = key;
+    const prefix = activeIdentity.greeting === "welcome"
+      ? "ようこそ"
+      : activeIdentity.greeting === "welcome_back"
+        ? "おかえりなさい"
+        : "こんにちは";
+    setGreeting(`${prefix}、${activeIdentity.displayName}さん`);
+  }, [activeIdentity]);
+
+  const loginWithGoogle = useCallback(async () => {
+    closeLogin();
+
+    if (!supabase) {
+      await reportGoogleFailure("supabase_client_configuration_missing");
+      return;
+    }
+
+    await fetch("/api/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "start" }),
+    }).catch(() => undefined);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}${window.location.pathname}`,
+      },
+    });
+
+    if (error) {
+      await reportGoogleFailure(error.code ?? "oauth_start_failed");
+    }
+  }, [closeLogin, reportGoogleFailure, supabase]);
+
+  const loginWithEmail = useCallback(async () => {
+    if (!supabase || !email.trim()) return;
+    setIsSendingEmail(true);
+    setEmailStatus(null);
+
+    try {
+      await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      }).catch(() => undefined);
+      const { error: sendError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (sendError) {
+        await reportEmailFailure(sendError.code ?? "email_send_failed");
+        setEmailStatus("認証メールを送信できませんでした");
+        return;
+      }
+
+      setEmailStatus("認証メールを送信しました。メール内のリンクを押してください。");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  }, [email, reportEmailFailure, supabase]);
+
+  const logout = useCallback(async () => {
+    setIsLoggingOut(true);
+
+    try {
+      if (loginProvider === "google" && supabase) {
+        await supabase.auth.signOut();
+        setSupabaseIdentity(null);
+        supabaseResolved.current = false;
+      } else if (loginProvider === "email" && supabase) {
+        await supabase.auth.signOut();
+        setSupabaseIdentity(null);
+        supabaseResolved.current = false;
+      } else if (loginProvider === "line") {
+        await logoutLine();
+      }
+
+      const response = await fetch("/api/session", { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("session_logout_failed");
+      }
+
+      setIsAccountOpen(false);
+      window.location.replace(
+        window.location.hostname === "localhost" ? "/main" : "/",
+      );
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [loginProvider, logoutLine, supabase]);
 
   return (
-    <header className="appHeader">
-      <div className="headerContent">
-        <div className="headerBrand">
-          <strong className="headerLogo">PET TAXI</strong>
-          <span className="headerPageName">Home</span>
-        </div>
+    <>
+      <header className="appHeader">
+        <div className="headerContent">
+          <div className="headerBrand">
+            <strong className="headerLogo">PET TAXI</strong>
+            <span className="headerPageName">Home</span>
+          </div>
 
-        <div className="headerAccount">
-          <nav className="headerActions" aria-label="Account navigation">
-            <button
-              className={`headerIconButton headerLoginButton${
-                identity ? " headerLineConnected" : ""
-              }`}
-              type="button"
-              aria-label={identity ? "Connected with LINE" : "Log in with LINE"}
-              onClick={() => void login()}
-            >
-              {identity ? (
-                <span className="lineAppIcon" aria-hidden="true">
-                  <span>LINE</span>
-                </span>
-              ) : (
-                <span className="japaneseText">ログイン</span>
-              )}
-            </button>
-            <button
-              className="headerIconButton"
-              type="button"
-              aria-label="Notifications"
-            >
-              <Bell aria-hidden="true" />
-            </button>
-            <button className="headerPill headerLanguage" type="button">
-              <Globe2 aria-hidden="true" />
-              <span>EN</span>
-            </button>
-          </nav>
+          <div className="headerAccount">
+            <nav className="headerActions" aria-label="Account navigation">
+              <button
+                className={`headerIconButton headerLoginButton${
+                  loginProvider === "line" ? " headerLineConnected" : ""
+                }${
+                  loginProvider === "email" ? " headerEmailConnected" : ""
+                }`}
+                type="button"
+                aria-label={
+                  activeIdentity ? "Account connected" : "Open login options"
+                }
+                onClick={() => {
+                  if (activeIdentity) {
+                    setIsAccountOpen(true);
+                  } else {
+                    setIsLoginOpen(true);
+                  }
+                }}
+              >
+                {identity ? (
+                  <span className="lineAppIcon" aria-hidden="true">
+                    <span>LINE</span>
+                  </span>
+                ) : supabaseIdentity?.loginProvider === "google" ? (
+                  <span className="googleAppIcon" aria-hidden="true">G</span>
+                ) : supabaseIdentity?.loginProvider === "email" ? (
+                  <span className="headerEmailIcon" aria-hidden="true">
+                    <Mail />
+                  </span>
+                ) : (
+                  <span className="japaneseText">ログイン</span>
+                )}
+              </button>
+              <button
+                className="headerIconButton"
+                type="button"
+                aria-label="Notifications"
+              >
+                <Bell aria-hidden="true" />
+              </button>
+              <button className="headerPill headerLanguage" type="button">
+                <Globe2 aria-hidden="true" />
+                <span>EN</span>
+              </button>
+            </nav>
 
-          <div className="headerProfile">
-            <div className="headerAvatar" aria-label="User avatar">
-              {identity?.pictureUrl ? (
-                <Image
-                  src={identity.pictureUrl}
-                  alt=""
-                  width={52}
-                  height={52}
-                  unoptimized
-                />
-              ) : (
-                <UserRound aria-hidden="true" />
-              )}
+            <div className="headerProfile">
+              <div className="headerAvatar" aria-label="User avatar">
+                {activeIdentity?.pictureUrl ? (
+                  <Image
+                    src={activeIdentity.pictureUrl}
+                    alt=""
+                    width={52}
+                    height={52}
+                    unoptimized
+                  />
+                ) : (
+                  <UserRound aria-hidden="true" />
+                )}
+              </div>
+              <strong>{activeIdentity?.displayName ?? "Guest"}</strong>
             </div>
-            <strong>{identity?.displayName ?? "Guest"}</strong>
           </div>
         </div>
-      </div>
 
-      <svg
-        className="headerWave"
-        viewBox="0 0 1440 150"
-        preserveAspectRatio="none"
-        aria-hidden="true"
+        <svg
+          className="headerWave"
+          viewBox="0 0 1440 150"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0 102C195 42 334 13 514 40c199 30 278 101 493 94 161-5 269-43 433-58v74H0Z" />
+        </svg>
+      </header>
+
+      <Modal open={isLoginOpen} label="ログイン方法" onClose={closeLogin}>
+        <p className="loginModalText">ログイン方法を選択してください</p>
+        <button
+          className="loginProviderButton loginLineButton"
+          type="button"
+          onClick={() => {
+            closeLogin();
+            void login();
+          }}
+        >
+          <span className="lineAppIcon" aria-hidden="true">
+            <span>LINE</span>
+          </span>
+          <strong>LINEでログイン</strong>
+          <span className="loginRecommended">おすすめ</span>
+        </button>
+        <button
+          className="loginProviderButton loginGoogleButton"
+          type="button"
+          onClick={() => void loginWithGoogle()}
+        >
+          <span className="loginGoogleIcon" aria-hidden="true">G</span>
+          <strong>Googleでログイン</strong>
+          <span className="loginSimple">かんたん</span>
+        </button>
+        {!showEmailForm ? (
+          <button
+            className="loginProviderButton loginEmailButton"
+            type="button"
+            onClick={() => setShowEmailForm(true)}
+          >
+            <Mail aria-hidden="true" />
+            <strong>Eメールでログイン</strong>
+            <span className="loginPasswordless">パスワード不要</span>
+          </button>
+        ) : (
+          <form
+            className="emailLoginForm"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void loginWithEmail();
+            }}
+          >
+            <label htmlFor="loginEmail">メールアドレス</label>
+            <input
+              id="loginEmail"
+              type="email"
+              value={email}
+              required
+              autoComplete="email"
+              placeholder="name@example.com"
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <button type="submit" disabled={isSendingEmail || !email.trim()}>
+              {isSendingEmail ? "送信中…" : "認証メールを送信"}
+            </button>
+            {emailStatus ? <p role="status">{emailStatus}</p> : null}
+          </form>
+        )}
+      </Modal>
+
+      <Modal
+        open={isAccountOpen}
+        label="アカウント情報"
+        onClose={() => setIsAccountOpen(false)}
       >
-        <path d="M0 102C195 42 334 13 514 40c199 30 278 101 493 94 161-5 269-43 433-58v74H0Z" />
-      </svg>
-    </header>
+        <div className="accountModal">
+          <div className="accountProviderIcon" aria-hidden="true">
+            {loginProvider === "line" ? (
+              <span className="lineAppIcon"><span>LINE</span></span>
+            ) : loginProvider === "google" ? (
+              <span className="googleAppIcon">G</span>
+            ) : (
+              <Mail aria-hidden="true" />
+            )}
+          </div>
+          <strong className="accountProviderName">
+            {loginProvider === "line"
+              ? "LINEでログイン中"
+              : loginProvider === "google"
+                ? "Googleでログイン中"
+                : "Eメールでログイン中"}
+          </strong>
+          <dl className="accountDetails">
+            <div><dt>表示名</dt><dd>{activeIdentity?.displayName}</dd></div>
+          </dl>
+          <button
+            className="accountLogoutButton"
+            type="button"
+            disabled={isLoggingOut}
+            onClick={() => void logout()}
+          >
+            {isLoggingOut ? "ログアウト中…" : "ログアウト"}
+          </button>
+        </div>
+      </Modal>
+
+      <Toast message={greeting} onClose={closeGreeting} />
+    </>
   );
 }
