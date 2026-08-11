@@ -23,6 +23,18 @@ type GoogleCredentialResponse = {
   credential?: string;
 };
 
+type LineLoginStart = {
+  authorizeUrl: string;
+  tokenUuid: string;
+  claimToken: string;
+  expiresAt: string;
+};
+
+type LineLoginClaim = {
+  status: "pending" | "completed" | "failed" | "invalid";
+  identity?: SupabaseIdentity;
+};
+
 type GoogleIdentity = {
   accounts: {
     id: {
@@ -347,15 +359,69 @@ export function AppHeader() {
     }
 
     setIsLineLoading(true);
-    setGreeting("LINEを開いています…");
+    setGreeting("LINEログインを準備しています…");
+    const authWindow = window.open("about:blank", "_blank");
 
-    const returnTo = `${window.location.pathname}${window.location.search}`;
-    window.setTimeout(() => {
-      window.open(
-        `${window.location.origin}/api/line?action=login&returnTo=${encodeURIComponent(returnTo)}`,
-        "_self",
-      );
-    }, 450);
+    try {
+      const response = await fetch("/api/line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start",
+          returnTo: `${window.location.pathname}${window.location.search}`,
+        }),
+      });
+
+      if (!response.ok) throw new Error("line_login_start_failed");
+
+      const started = (await response.json()) as LineLoginStart;
+
+      if (authWindow) {
+        authWindow.location.href = started.authorizeUrl;
+      } else {
+        setGreeting("LINEログイン画面を開けませんでした");
+        setIsLineLoading(false);
+        return;
+      }
+
+      setGreeting("LINEで認証してください…");
+
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+        const claimResponse = await fetch("/api/line", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "claim",
+            tokenUuid: started.tokenUuid,
+            claimToken: started.claimToken,
+          }),
+        });
+        const claimed = (await claimResponse.json()) as LineLoginClaim;
+
+        if (claimed.status === "pending") continue;
+        if (!claimResponse.ok || claimed.status !== "completed" || !claimed.identity) {
+          throw new Error("line_login_claim_failed");
+        }
+
+        setSessionIdentity(claimed.identity);
+        setGreeting(`おかえりなさい、${claimed.identity.displayName}さん`);
+        closeLogin();
+        authWindow.close();
+
+        if (window.location.pathname !== claimed.identity.destination) {
+          window.location.replace(claimed.identity.destination);
+        }
+        return;
+      }
+
+      throw new Error("line_login_timed_out");
+    } catch {
+      authWindow?.close();
+      setGreeting("LINEログインを完了できませんでした");
+    } finally {
+      setIsLineLoading(false);
+    }
   }, [closeLogin, isPwa, login]);
 
   const loginWithEmail = useCallback(async () => {

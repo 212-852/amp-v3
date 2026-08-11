@@ -43,8 +43,36 @@ export type IdentityRequest =
       sessionToken: string;
     }
   | {
+      action: "resolve_session_user";
+      userUuid: string;
+    }
+  | {
       action: "revoke_session";
       sessionToken: string;
+    }
+  | {
+      action: "create_auth_token";
+      visitorUuid: string;
+      tokenHash: string;
+      stateHash: string;
+      nonce: string;
+      returnTo: string;
+      expiresAt: string;
+    }
+  | {
+      action: "resolve_auth_token";
+      tokenUuid: string;
+      stateHash: string;
+    }
+  | {
+      action: "complete_auth_token";
+      tokenUuid: string;
+      userUuid: string;
+    }
+  | {
+      action: "consume_auth_token";
+      tokenUuid: string;
+      tokenHash: string;
     };
 
 function getSupabaseAdmin() {
@@ -102,8 +130,27 @@ export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "resolve_session" }>,
 ): Promise<SessionResult | null>;
 export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "resolve_session_user" }>,
+): Promise<SessionResult>;
+export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "revoke_session" }>,
 ): Promise<{ revoked: boolean }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "create_auth_token" }>,
+): Promise<{ tokenUuid: string }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "resolve_auth_token" }>,
+): Promise<{
+  visitorUuid: string;
+  nonce: string;
+  returnTo: string;
+} | null>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "complete_auth_token" }>,
+): Promise<{ completed: boolean }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "consume_auth_token" }>,
+): Promise<{ userUuid: string } | null>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -145,14 +192,132 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "resolve_session":
       return resolveSession(request.sessionToken);
 
+    case "resolve_session_user":
+      return resolveSessionUser(request.userUuid);
+
     case "revoke_session":
       return revokeSession(request.sessionToken);
+
+    case "create_auth_token":
+      return createAuthToken(request);
+
+    case "resolve_auth_token":
+      return resolveAuthToken(request);
+
+    case "complete_auth_token":
+      return completeAuthToken(request);
+
+    case "consume_auth_token":
+      return consumeAuthToken(request);
 
     default: {
       const exhaustiveCheck: never = request;
       return exhaustiveCheck;
     }
   }
+}
+
+async function createAuthToken(
+  request: Extract<IdentityRequest, { action: "create_auth_token" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const tokenUuid = crypto.randomUUID();
+  const { error } = await supabase.from("auth_tokens").insert({
+    token_uuid: tokenUuid,
+    visitor_uuid: request.visitorUuid,
+    token_type: "line_login",
+    token_hash: request.tokenHash,
+    state_hash: request.stateHash,
+    nonce: request.nonce,
+    status: "pending",
+    metadata: { returnTo: request.returnTo },
+    expires_at: request.expiresAt,
+  });
+
+  if (error) {
+    throw new Error(`Authentication token creation failed: ${error.message}`);
+  }
+
+  return { tokenUuid };
+}
+
+async function resolveAuthToken(
+  request: Extract<IdentityRequest, { action: "resolve_auth_token" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("auth_tokens")
+    .select("visitor_uuid, nonce, metadata")
+    .eq("token_uuid", request.tokenUuid)
+    .eq("token_type", "line_login")
+    .eq("state_hash", request.stateHash)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Authentication token lookup failed: ${error.message}`);
+  }
+
+  if (!data) return null;
+
+  const metadata = data.metadata as { returnTo?: unknown } | null;
+  return {
+    visitorUuid: data.visitor_uuid as string,
+    nonce: data.nonce as string,
+    returnTo:
+      typeof metadata?.returnTo === "string" ? metadata.returnTo : "/",
+  };
+}
+
+async function completeAuthToken(
+  request: Extract<IdentityRequest, { action: "complete_auth_token" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("auth_tokens")
+    .update({
+      user_uuid: request.userUuid,
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    })
+    .eq("token_uuid", request.tokenUuid)
+    .eq("token_type", "line_login")
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .select("token_uuid")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Authentication token completion failed: ${error.message}`);
+  }
+
+  return { completed: Boolean(data) };
+}
+
+async function consumeAuthToken(
+  request: Extract<IdentityRequest, { action: "consume_auth_token" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("auth_tokens")
+    .update({
+      status: "consumed",
+      consumed_at: new Date().toISOString(),
+    })
+    .eq("token_uuid", request.tokenUuid)
+    .eq("token_type", "line_login")
+    .eq("token_hash", request.tokenHash)
+    .eq("status", "completed")
+    .gt("expires_at", new Date().toISOString())
+    .select("user_uuid")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Authentication token consumption failed: ${error.message}`);
+  }
+
+  return data?.user_uuid ? { userUuid: data.user_uuid as string } : null;
 }
 
 async function resolveGoogleUser(
@@ -521,6 +686,26 @@ async function resolveSession(sessionToken: string) {
         tier: user.tier,
       }
     : null;
+}
+
+async function resolveSessionUser(userUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("user_uuid, display_name, role, tier")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (error) {
+    throw new Error(`Session user lookup failed: ${error.message}`);
+  }
+
+  return {
+    userUuid: user.user_uuid,
+    displayName: user.display_name,
+    role: user.role,
+    tier: user.tier,
+  };
 }
 
 async function revokeSession(sessionToken: string) {
