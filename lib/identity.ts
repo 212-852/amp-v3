@@ -17,6 +17,7 @@ export type IdentityRequest =
       action: "resolve_line_user";
       visitorUuid: string;
       idToken: string;
+      nonce?: string;
     }
   | {
       action: "resolve_google_user";
@@ -369,6 +370,7 @@ async function resolveLineUser(
     body: new URLSearchParams({
       id_token: request.idToken,
       client_id: channelId,
+      ...(request.nonce ? { nonce: request.nonce } : {}),
     }),
     cache: "no-store",
   });

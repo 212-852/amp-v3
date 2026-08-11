@@ -15,7 +15,7 @@ type SupabaseIdentity = {
   role: string;
   tier: string;
   destination: string;
-  loginProvider: "google" | "email";
+  loginProvider: "line" | "google" | "email";
   greeting: "welcome" | "welcome_back" | "hello";
 };
 
@@ -105,6 +105,7 @@ async function hashNonce(nonce: string) {
 export function AppHeader() {
   const { identity, login, logout: logoutLine } = useLineIdentity();
   const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
+  const [sessionIdentity, setSessionIdentity] = useState<SupabaseIdentity | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
@@ -116,6 +117,7 @@ export function AppHeader() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLineLoading, setIsLineLoading] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
   const supabaseResolved = useRef(false);
   const greetedIdentity = useRef<string | null>(null);
@@ -127,8 +129,10 @@ export function AppHeader() {
     setEmailStatus(null);
   }, []);
   const closeGreeting = useCallback(() => setGreeting(null), []);
-  const activeIdentity = identity ?? supabaseIdentity;
-  const loginProvider = identity ? "line" : supabaseIdentity?.loginProvider ?? null;
+  const activeIdentity = identity ?? supabaseIdentity ?? sessionIdentity;
+  const loginProvider = identity
+    ? "line"
+    : supabaseIdentity?.loginProvider ?? sessionIdentity?.loginProvider ?? null;
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -147,6 +151,26 @@ export function AppHeader() {
     updateDisplayMode();
     displayMode.addEventListener("change", updateDisplayMode);
     return () => displayMode.removeEventListener("change", updateDisplayMode);
+  }, []);
+
+  useEffect(() => {
+    void fetch("/api/session", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<{ identity: SupabaseIdentity | null }>;
+      })
+      .then((result) => setSessionIdentity(result?.identity ?? null))
+      .catch(() => undefined);
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("line_error")) {
+      window.setTimeout(
+        () => setGreeting("LINEログインを完了できませんでした"),
+        0,
+      );
+      url.searchParams.delete("line_error");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    }
   }, []);
 
   const reportGoogleFailure = useCallback(async (reason: string) => {
@@ -315,6 +339,25 @@ export function AppHeader() {
     }
   }, [closeLogin, reportGoogleFailure, resolveSupabaseIdentity, supabase]);
 
+  const loginWithLine = useCallback(async () => {
+    if (!isPwa) {
+      closeLogin();
+      await login();
+      return;
+    }
+
+    setIsLineLoading(true);
+    setGreeting("LINEを開いています…");
+
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    window.setTimeout(() => {
+      window.open(
+        `${window.location.origin}/api/line?action=login&returnTo=${encodeURIComponent(returnTo)}`,
+        "_self",
+      );
+    }, 450);
+  }, [closeLogin, isPwa, login]);
+
   const loginWithEmail = useCallback(async () => {
     if (!supabase || !email.trim()) return;
     setIsSendingEmail(true);
@@ -390,6 +433,7 @@ export function AppHeader() {
         supabaseResolved.current = false;
       } else if (loginProvider === "line") {
         await logoutLine();
+        setSessionIdentity(null);
       }
 
       const response = await fetch("/api/session", { method: "DELETE" });
@@ -410,15 +454,13 @@ export function AppHeader() {
     <button
       className="loginProviderButton loginLineButton"
       type="button"
-      onClick={() => {
-        closeLogin();
-        void login();
-      }}
+      disabled={isLineLoading}
+      onClick={() => void loginWithLine()}
     >
       <span className="lineAppIcon" aria-hidden="true">
         <span>LINE</span>
       </span>
-      <strong>LINEでログイン</strong>
+      <strong>{isLineLoading ? "LINEを開いています…" : "LINEでログイン"}</strong>
       <span className="loginRecommended">おすすめ</span>
     </button>
   );

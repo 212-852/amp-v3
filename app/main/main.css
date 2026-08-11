@@ -614,11 +614,13 @@
   gap: 12px;
   padding: 12px 12px 12px 18px;
   transform: translateX(-50%);
-  border: 2px solid #dfc9aa;
+  border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 20px;
-  background: #fffaf3;
-  color: #392719;
-  box-shadow: 0 14px 38px rgb(50 35 24 / 24%);
+  background: rgb(24 21 19 / 86%);
+  color: #fff;
+  box-shadow: 0 14px 38px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   font-family: var(--font-hachi-maru-pop), "Hiragino Kaku Gothic ProN", sans-serif;
   font-size: 16px;
   font-weight: 700;
@@ -634,8 +636,8 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #f3e6d4;
-  color: #654a32;
+  background: rgb(255 255 255 / 14%);
+  color: #fff;
   cursor: pointer;
   font-size: 22px;
 }
