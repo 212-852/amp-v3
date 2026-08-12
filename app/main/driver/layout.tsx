@@ -24,7 +24,10 @@ export default function DriverLayout({
       <main className="adminMain driverMain">{children}</main>
 
       <footer className="adminFooter">
-        <RobotNotice message="You have a new driver notification." />
+        <RobotNotice
+          message="You have a new driver notification."
+          role="driver"
+        />
         <small>{getCopyright()}</small>
       </footer>
     </div>

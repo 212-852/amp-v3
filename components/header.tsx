@@ -135,6 +135,7 @@ export function AppHeader() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isLineLoading, setIsLineLoading] = useState(false);
+  const [isAdminRedirecting, setIsAdminRedirecting] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
   const supabaseResolved = useRef(false);
   const greetedIdentity = useRef<string | null>(null);
@@ -225,10 +226,6 @@ export function AppHeader() {
       const result = (await response.json()) as SupabaseIdentity;
       setSupabaseIdentity(result);
       window.history.replaceState({}, "", window.location.pathname);
-
-      if (window.location.pathname !== result.destination) {
-        window.location.replace(result.destination);
-      }
     },
     [],
   );
@@ -265,8 +262,17 @@ export function AppHeader() {
         window.location.hostname === "localhost" ? "/main/admin" : "/admin";
 
       if (window.location.pathname !== destination) {
-        window.location.replace(destination);
-        return;
+        const statusTimer = window.setTimeout(() => {
+          setIsAdminRedirecting(true);
+        }, 0);
+        const redirectTimer = window.setTimeout(() => {
+          window.location.replace(destination);
+        }, 850);
+
+        return () => {
+          window.clearTimeout(statusTimer);
+          window.clearTimeout(redirectTimer);
+        };
       }
     }
 
@@ -425,9 +431,6 @@ export function AppHeader() {
         closeLogin();
         authWindow.close();
 
-        if (window.location.pathname !== claimed.identity.destination) {
-          window.location.replace(claimed.identity.destination);
-        }
         return;
       }
 
@@ -783,10 +786,12 @@ export function AppHeader() {
         message={
           isLineInitializing
             ? "LINEとの接続を確認しています…"
+            : isAdminRedirecting
+              ? "管理画面を準備しています…"
             : greeting
         }
         onClose={closeGreeting}
-        persistent={isLineInitializing}
+        persistent={isLineInitializing || isAdminRedirecting}
       />
     </>
   );

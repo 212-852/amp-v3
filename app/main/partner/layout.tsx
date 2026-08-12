@@ -24,7 +24,10 @@ export default function PartnerLayout({
       <main className="adminMain partnerMain">{children}</main>
 
       <footer className="adminFooter">
-        <RobotNotice message="You have a new partner notification." />
+        <RobotNotice
+          message="You have a new partner notification."
+          role="partner"
+        />
         <small>{getCopyright()}</small>
       </footer>
     </div>

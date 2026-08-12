@@ -7,15 +7,21 @@ import {
   ClipboardList,
   Handshake,
   MessageCircle,
+  Send,
   Route,
   Settings,
   Truck,
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { Modal } from "@/components/modal";
+import {
+  getRobotProfile,
+  robotDispatcher,
+} from "@/lib/robot/dispatcher";
+import type { RobotMenuKey, RobotRole } from "@/lib/robot/common";
 
 type PortalToolbarProps = {
   displayName: string;
@@ -74,22 +80,55 @@ export function PortalToolbar({
 
 type RobotNoticeProps = {
   message: string;
+  role: RobotRole;
 };
 
-export function RobotNotice({ message }: RobotNoticeProps) {
+export function RobotNotice({ message, role }: RobotNoticeProps) {
+  const profile = getRobotProfile(role);
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isTalkOpen, setIsTalkOpen] = useState(false);
+  const [talkMessage, setTalkMessage] = useState("");
+  const [talkMessages, setTalkMessages] = useState<
+    Array<{ sender: "robot" | "admin"; text: string }>
+  >([
+    {
+      sender: "robot",
+      text: profile.greeting,
+    },
+  ]);
 
-  const menuItems = [
-    { label: "予約管理", icon: CalendarDays },
-    { label: "配車管理", icon: Route },
-    { label: "ユーザー管理", icon: Users },
-    { label: "ドライバー管理", icon: Truck },
-    { label: "パートナー管理", icon: Handshake },
-    { label: "トーク・問い合わせ", icon: MessageCircle },
-    { label: "通知", icon: Bell },
-    { label: "設定", icon: Settings },
-  ];
+  const menuIcons: Record<RobotMenuKey, typeof Bell> = {
+    reservations: CalendarDays,
+    dispatch: Route,
+    users: Users,
+    drivers: Truck,
+    partners: Handshake,
+    messages: MessageCircle,
+    notifications: Bell,
+    settings: Settings,
+    schedule: CalendarDays,
+    reports: ClipboardList,
+  };
+
+  function handleTalkSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = talkMessage.trim();
+
+    if (!text) {
+      return;
+    }
+
+    setTalkMessages((current) => [
+      ...current,
+      { sender: "admin", text },
+      {
+        sender: "robot",
+        text: robotDispatcher(role, text),
+      },
+    ]);
+    setTalkMessage("");
+  }
 
   return (
     <div className={`adminRobotCall${isOpen ? " adminRobotCallOpen" : ""}`}>
@@ -120,14 +159,24 @@ export function RobotNotice({ message }: RobotNoticeProps) {
         <div className="adminNoticeText">
           <strong>New notification</strong>
           <span>{message}</span>
-          <button
-            className="adminMenuOpen"
-            type="button"
-            onClick={() => setIsMenuOpen(true)}
-          >
-            <ClipboardList aria-hidden="true" />
-            管理メニュー
-          </button>
+          <div className="adminNoticeActions">
+            <button
+              className="adminMenuOpen"
+              type="button"
+              onClick={() => setIsMenuOpen(true)}
+            >
+              <ClipboardList aria-hidden="true" />
+              管理メニュー
+            </button>
+            <button
+              className="adminMenuOpen"
+              type="button"
+              onClick={() => setIsTalkOpen(true)}
+            >
+              <MessageCircle aria-hidden="true" />
+              ロボ猫を呼び出す
+            </button>
+          </div>
         </div>
         <div className="adminNoticeMeta">
           <time>Now</time>
@@ -151,13 +200,59 @@ export function RobotNotice({ message }: RobotNoticeProps) {
       >
         <p className="adminMenuLead">行いたい管理を選択してください</p>
         <div className="adminMenuGrid">
-          {menuItems.map(({ label, icon: Icon }) => (
-            <button key={label} type="button">
+          {profile.menu.map(({ key, label }) => {
+            const Icon = menuIcons[key];
+
+            return <button key={key} type="button">
               <Icon aria-hidden="true" />
               <span>{label}</span>
-            </button>
+            </button>;
+          })}
+        </div>
+      </Modal>
+
+      <Modal
+        label="ロボ猫とのトーク"
+        open={isTalkOpen}
+        overlayClassName="adminTalkOverlay"
+        panelClassName="adminTalkPanel"
+        title="ロボ猫と話す"
+        onClose={() => setIsTalkOpen(false)}
+      >
+        <div className="adminTalkRobot" aria-hidden="true">
+          <span className="adminRobot" />
+        </div>
+
+        <div className="adminTalkMessages" aria-live="polite">
+          {talkMessages.map((item, index) => (
+            <p
+              className={`adminTalkMessage adminTalkMessage${
+                item.sender === "robot" ? "Robot" : "Admin"
+              }`}
+              key={`${item.sender}-${index}`}
+            >
+              {item.text}
+            </p>
           ))}
         </div>
+
+        <form className="adminTalkForm" onSubmit={handleTalkSubmit}>
+          <input
+            type="text"
+            value={talkMessage}
+            aria-label="ロボ猫へのメッセージ"
+            placeholder="ロボ猫に相談する"
+            autoComplete="off"
+            onChange={(event) => setTalkMessage(event.target.value)}
+          />
+          <button
+            type="submit"
+            aria-label="メッセージを送信"
+            disabled={!talkMessage.trim()}
+          >
+            <Send aria-hidden="true" />
+          </button>
+        </form>
       </Modal>
     </div>
   );

@@ -47,11 +47,12 @@ export function AppFooter() {
       >
         <Image
           className="footerAssistantIcon"
-          src="/icons/icon.svg"
+          src="/icons/icon.svg?v=20260812"
           width={72}
           height={72}
           alt=""
           aria-hidden="true"
+          unoptimized
         />
         <span className="footerRefresh">
           <RefreshCw aria-hidden="true" />

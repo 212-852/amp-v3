@@ -88,12 +88,6 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
       setIdentity(result);
       setIsInitializing(false);
 
-      if (
-        result.role === "admin" &&
-        window.location.pathname !== result.destination
-      ) {
-        window.location.replace(result.destination);
-      }
     } catch (error) {
       setIsInitializing(false);
       throw error;

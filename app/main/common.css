@@ -4,7 +4,10 @@
   min-height: 100dvh;
   background: var(--portal-background, #f4f4f4);
   color: #151515;
-  font-family: Arial, "Hiragino Kaku Gothic ProN", sans-serif;
+  font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
+    "Hiragino Kaku Gothic ProN", sans-serif;
+  font-weight: 500;
+  letter-spacing: .01em;
 }
 
 .adminHeader {
@@ -146,6 +149,7 @@
   margin: 0;
   font-size: clamp(30px, 4vw, 46px);
   letter-spacing: -.04em;
+  font-weight: 700;
 }
 
 .adminMain p {
@@ -288,7 +292,7 @@
   display: block;
   width: 116px;
   aspect-ratio: 83 / 99;
-  background-image: url("/images/robotcat.svg");
+  background-image: url("/images/robotcat.svg?v=20260812");
   background-position: 0 0;
   background-repeat: no-repeat;
   background-size: 400% 100%;
@@ -331,6 +335,12 @@
 .adminMenuOpen svg {
   width: 16px;
   height: 16px;
+}
+
+.adminNoticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 18px;
 }
 
 .adminModalOverlay {
@@ -424,6 +434,165 @@
   stroke-width: 1.8;
 }
 
+.adminTalkOverlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 48%);
+  padding: 0;
+  backdrop-filter: blur(4px);
+}
+
+.adminTalkOverlay .modalPanel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: min(100%, 760px);
+  height: min(760px, calc(100dvh - 120px));
+  overflow: hidden;
+  border: 1px solid #d6d6d6;
+  border-bottom: 0;
+  border-radius: 30px 30px 0 0;
+  background: #f6f6f6;
+  padding: 24px 24px max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 -20px 70px rgb(0 0 0 / 22%);
+  animation: adminTalkRise 460ms cubic-bezier(.2, .85, .25, 1.08) both;
+}
+
+.adminTalkOverlay .modalClose {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #e4e4e4;
+  color: #222;
+  cursor: pointer;
+}
+
+.adminTalkPanel h2 {
+  margin: 0;
+  padding-right: 52px;
+  color: #191919;
+  font-size: clamp(23px, 5vw, 32px);
+}
+
+.adminTalkPanel .modalBody {
+  display: contents;
+}
+
+.adminTalkRobot {
+  display: grid;
+  height: 116px;
+  place-items: end center;
+  overflow: hidden;
+  border-bottom: 1px solid #ddd;
+}
+
+.adminTalkRobot .adminRobot {
+  width: 104px;
+}
+
+.adminTalkMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 20px 4px;
+}
+
+.adminTalkMessage {
+  width: fit-content;
+  max-width: 82%;
+  margin: 0;
+  border-radius: 18px;
+  padding: 12px 15px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.adminTalkMessageRobot {
+  align-self: flex-start;
+  border: 1px solid #d8d8d8;
+  border-top-left-radius: 5px;
+  background: #fff;
+  color: #222;
+}
+
+.adminTalkMessageAdmin {
+  align-self: flex-end;
+  border-top-right-radius: 5px;
+  background: #292929;
+  color: #fff;
+}
+
+.adminTalkForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+  padding-top: 16px;
+}
+
+.adminTalkForm input {
+  min-width: 0;
+  height: 48px;
+  border: 1px solid #cfcfcf;
+  border-radius: 16px;
+  background: #fff;
+  padding: 0 16px;
+  color: #222;
+  font: inherit;
+  font-size: 16px;
+}
+
+.adminTalkForm button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 0;
+  border-radius: 16px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+}
+
+.adminTalkForm button:disabled {
+  background: #bdbdbd;
+  cursor: default;
+}
+
+.adminTalkForm svg {
+  width: 21px;
+  height: 21px;
+}
+
+@keyframes adminTalkRise {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  76% {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes adminMenuBounce {
   0% {
     opacity: 0;
@@ -473,6 +642,16 @@
 }
 
 @media (max-width: 760px) {
+
+  .adminTalkOverlay .modalPanel {
+    height: calc(100dvh - 112px);
+    border-radius: 26px 26px 0 0;
+    padding: 20px 16px max(16px, env(safe-area-inset-bottom));
+  }
+
+  .adminTalkRobot {
+    height: 104px;
+  }
 
   .adminModalOverlay .modalPanel {
     border-radius: 24px;

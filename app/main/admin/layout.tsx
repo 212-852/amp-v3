@@ -43,7 +43,10 @@ export default async function AdminLayout({
       <main className="adminMain">{children}</main>
 
       <footer className="adminFooter">
-        <RobotNotice message="There are items requiring administrator review." />
+        <RobotNotice
+          message="There are items requiring administrator review."
+          role="admin"
+        />
         <small>{getCopyright()}</small>
       </footer>
     </div>
