@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -6,6 +7,10 @@ import { getCopyright } from "@/lib/content";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 import "@/app/main/common.css";
 import "@/app/main/admin/admin.css";
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
 
 export default async function AdminLayout({
   children,

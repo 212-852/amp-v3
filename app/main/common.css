@@ -270,6 +270,18 @@
   visibility: visible;
   opacity: 1;
   transform: translateX(0) scale(1);
+  animation: adminNoticeFloat 4.2s ease-in-out 180ms infinite;
+}
+
+@keyframes adminNoticeFloat {
+  0%,
+  100% {
+    transform: translateX(0) translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateX(0) translateY(-3px) scale(1);
+  }
 }
 
 .adminRobot {
@@ -297,6 +309,140 @@
 .adminFooter small {
   color: #666;
   font-size: 13px;
+}
+
+.adminMenuOpen {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  width: fit-content;
+  margin-top: 7px;
+  border: 0;
+  border-bottom: 1px solid #222;
+  background: transparent;
+  padding: 3px 0;
+  color: #222;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.adminMenuOpen svg {
+  width: 16px;
+  height: 16px;
+}
+
+.adminModalOverlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 42%);
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.adminModalOverlay .modalPanel {
+  position: relative;
+  width: min(100%, 620px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  border: 1px solid #d8d8d8;
+  border-radius: 28px;
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+}
+
+.adminModalOverlay .modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #ededed;
+  color: #222;
+  cursor: pointer;
+}
+
+.adminMenuModal {
+  animation: adminMenuBounce 520ms cubic-bezier(.2, .9, .28, 1.2) both;
+}
+
+.adminMenuModal h2 {
+  margin: 0;
+  padding-right: 48px;
+  color: #171717;
+  font-size: clamp(25px, 5vw, 34px);
+}
+
+.adminMenuLead {
+  margin: 8px 0 22px;
+  color: #666;
+  font-size: 14px;
+}
+
+.adminMenuGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminMenuGrid button {
+  display: grid;
+  gap: 9px;
+  min-height: 106px;
+  place-items: center;
+  border: 1px solid #dedede;
+  border-radius: 20px;
+  background: #f7f7f7;
+  color: #222;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.adminMenuGrid button:hover {
+  background: #ededed;
+  transform: translateY(-2px);
+}
+
+.adminMenuGrid button:active {
+  transform: scale(.97);
+}
+
+.adminMenuGrid svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.8;
+}
+
+@keyframes adminMenuBounce {
+  0% {
+    opacity: 0;
+    transform: scale(.62);
+  }
+
+  68% {
+    opacity: 1;
+    transform: scale(1.045);
+  }
+
+  84% {
+    transform: scale(.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .adminNotice time {
@@ -327,6 +473,21 @@
 }
 
 @media (max-width: 760px) {
+
+  .adminModalOverlay .modalPanel {
+    border-radius: 24px;
+    padding: 24px 18px 20px;
+  }
+
+  .adminMenuGrid {
+    gap: 9px;
+  }
+
+  .adminMenuGrid button {
+    min-height: 92px;
+    border-radius: 17px;
+    font-size: 13px;
+  }
   .adminHeader {
     grid-template-columns: 1fr auto;
     gap: 8px;
@@ -408,7 +569,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adminRobot {
+  .adminRobot,
+  .adminRobotCallOpen .adminNotice,
+  .adminMenuModal {
     animation: none;
   }
 }

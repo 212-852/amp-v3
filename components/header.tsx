@@ -115,7 +115,12 @@ async function hashNonce(nonce: string) {
 }
 
 export function AppHeader() {
-  const { identity, login, logout: logoutLine } = useLineIdentity();
+  const {
+    identity,
+    isInitializing: isLineInitializing,
+    login,
+    logout: logoutLine,
+  } = useLineIdentity();
   const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
   const [sessionIdentity, setSessionIdentity] = useState<SupabaseIdentity | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -254,6 +259,17 @@ export function AppHeader() {
 
   useEffect(() => {
     if (!activeIdentity) return;
+
+    if (activeIdentity.role === "admin") {
+      const destination =
+        window.location.hostname === "localhost" ? "/main/admin" : "/admin";
+
+      if (window.location.pathname !== destination) {
+        window.location.replace(destination);
+        return;
+      }
+    }
+
     const key = `${activeIdentity.loginProvider}:${activeIdentity.displayName}:${activeIdentity.greeting}`;
     if (greetedIdentity.current === key) return;
     greetedIdentity.current = key;
@@ -763,7 +779,15 @@ export function AppHeader() {
         </div>
       </Modal>
 
-      <Toast message={greeting} onClose={closeGreeting} />
+      <Toast
+        message={
+          isLineInitializing
+            ? "LINEとの接続を確認しています…"
+            : greeting
+        }
+        onClose={closeGreeting}
+        persistent={isLineInitializing}
+      />
     </>
   );
 }

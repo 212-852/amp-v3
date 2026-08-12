@@ -27,5 +27,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Design Rules
 
 - Keep the existing warm color palette for user-facing pages.
+- Treat the user-facing header and footer as locked components.
+- Do not modify the user-facing header, footer, or their related styles unless the user explicitly requests that specific change.
+- Changes to other pages or shared functionality must preserve the current user-facing header and footer design, layout, dimensions, positioning, and behavior.
 - Use white, black, and gray as the primary color palette for all pages intended for roles other than users, including admin and partner pages.
 - On non-user pages, use additional colors only when they communicate status, warnings, errors, or required actions.

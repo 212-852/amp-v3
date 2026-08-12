@@ -22,6 +22,7 @@ type LineIdentity = {
 
 type LineContextValue = {
   identity: LineIdentity | null;
+  isInitializing: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -30,54 +31,72 @@ const LineContext = createContext<LineContextValue | null>(null);
 
 export function LineProvider({ children }: { children: React.ReactNode }) {
   const [identity, setIdentity] = useState<LineIdentity | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const connect = useCallback(async () => {
+    const isLineBrowser = /Line\//i.test(window.navigator.userAgent);
+
+    if (isLineBrowser) {
+      setIsInitializing(true);
+    }
+
     if (window.sessionStorage.getItem("line_logout") === "1") {
+      setIsInitializing(false);
       return;
     }
 
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
     if (!liffId) {
+      setIsInitializing(false);
       return;
     }
 
-    await liff.init({ liffId });
+    try {
+      await liff.init({ liffId });
 
-    if (!liff.isLoggedIn()) {
-      if (/Line\//i.test(window.navigator.userAgent)) {
-        liff.login({ redirectUri: window.location.href });
+      if (!liff.isLoggedIn()) {
+        if (isLineBrowser) {
+          liff.login({ redirectUri: window.location.href });
+          return;
+        }
+
+        setIsInitializing(false);
+        return;
       }
 
-      return;
-    }
+      const idToken = liff.getIDToken();
 
-    const idToken = liff.getIDToken();
+      if (!idToken) {
+        setIsInitializing(false);
+        return;
+      }
 
-    if (!idToken) {
-      return;
-    }
+      const response = await fetch("/api/line", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
 
-    const response = await fetch("/api/line", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ idToken }),
-    });
+      if (!response.ok) {
+        throw new Error("LINE identity connection failed.");
+      }
 
-    if (!response.ok) {
-      throw new Error("LINE identity connection failed.");
-    }
+      const result = (await response.json()) as LineIdentity;
+      setIdentity(result);
+      setIsInitializing(false);
 
-    const result = (await response.json()) as LineIdentity;
-    setIdentity(result);
-
-    if (
-      result.role === "admin" &&
-      window.location.pathname !== result.destination
-    ) {
-      window.location.replace(result.destination);
+      if (
+        result.role === "admin" &&
+        window.location.pathname !== result.destination
+      ) {
+        window.location.replace(result.destination);
+      }
+    } catch (error) {
+      setIsInitializing(false);
+      throw error;
     }
   }, []);
 
@@ -118,8 +137,8 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
   }, [connect]);
 
   const value = useMemo(
-    () => ({ identity, login, logout }),
-    [identity, login, logout],
+    () => ({ identity, isInitializing, login, logout }),
+    [identity, isInitializing, login, logout],
   );
 
   return <LineContext value={value}>{children}</LineContext>;

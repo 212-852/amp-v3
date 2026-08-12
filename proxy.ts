@@ -1,7 +1,6 @@
 import type { NextProxy } from "next/server";
 import { NextResponse } from "next/server";
 
-import { debugDispatcher } from "@/lib/debug";
 import { identityDispatcher } from "@/lib/identity";
 import { notifyDispatcher } from "@/lib/notify";
 
@@ -153,8 +152,6 @@ export const proxy: NextProxy = async (request, event) => {
   const isVisitorDatabaseSynced =
     request.cookies.get(VISITOR_DATABASE_SYNC_COOKIE_NAME)?.value === "1";
   const visitorUuid = existingVisitorUuid ?? crypto.randomUUID();
-  const visitorCookieStatus = existingVisitorUuid ? "existing" : "created";
-
   if (!existingVisitorUuid) {
     response.cookies.set({
       name: VISITOR_COOKIE_NAME,
@@ -229,21 +226,6 @@ export const proxy: NextProxy = async (request, event) => {
           hostname,
           pathname,
           entrySource,
-        },
-      }),
-    );
-  } else {
-    event.waitUntil(
-      debugDispatcher({
-        event: "visitor_cookie_checked",
-        data: {
-          visitorCookieStatus,
-          visitorReference,
-          visitorDatabaseStatus,
-          hostname,
-          pathname,
-          entrySource,
-          isLineInAppBrowser,
         },
       }),
     );

@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 
 type ModalProps = {
   children: React.ReactNode;
+  overlayClassName?: string;
+  panelClassName?: string;
   label: string;
   open: boolean;
   title?: string;
@@ -16,7 +18,15 @@ function subscribeToBrowser() {
   return () => undefined;
 }
 
-export function Modal({ children, label, open, title, onClose }: ModalProps) {
+export function Modal({
+  children,
+  overlayClassName,
+  panelClassName,
+  label,
+  open,
+  title,
+  onClose,
+}: ModalProps) {
   const mounted = useSyncExternalStore(
     subscribeToBrowser,
     () => true,
@@ -52,7 +62,7 @@ export function Modal({ children, label, open, title, onClose }: ModalProps) {
 
   return createPortal(
     <div
-      className="modalOverlay"
+      className={`modalOverlay${overlayClassName ? ` ${overlayClassName}` : ""}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -60,7 +70,7 @@ export function Modal({ children, label, open, title, onClose }: ModalProps) {
       }}
     >
       <section
-        className="modalPanel"
+        className={`modalPanel${panelClassName ? ` ${panelClassName}` : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={title ? undefined : label}

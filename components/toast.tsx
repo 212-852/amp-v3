@@ -6,20 +6,21 @@ import { createPortal } from "react-dom";
 type ToastProps = {
   message: string | null;
   onClose: () => void;
+  persistent?: boolean;
 };
 
 function subscribe() {
   return () => undefined;
 }
 
-export function Toast({ message, onClose }: ToastProps) {
+export function Toast({ message, onClose, persistent = false }: ToastProps) {
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
 
   useEffect(() => {
-    if (!message) return;
+    if (!message || persistent) return;
     const timer = window.setTimeout(onClose, 4200);
     return () => window.clearTimeout(timer);
-  }, [message, onClose]);
+  }, [message, onClose, persistent]);
 
   if (!mounted || !message) return null;
 

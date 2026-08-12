@@ -1,7 +1,13 @@
+import type { Viewport } from "next";
+
 import { PortalToolbar, RobotNotice } from "@/components/robot";
 import { getCopyright } from "@/lib/content";
 import "@/app/main/common.css";
 import "@/app/main/partner/partner.css";
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
 
 export default function PartnerLayout({
   children,
