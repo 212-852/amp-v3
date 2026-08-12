@@ -14,4 +14,18 @@ export const adminNavigation: NavigationGroup[] = [
     { id: "drivers", label: "ドライバー", description: "ドライバー情報を確認します。" },
     { id: "partners", label: "パートナー", description: "提携先情報を確認します。" },
   ] },
+  {
+    id: "webapp",
+    label: "ウェブアプリの管理",
+    icon: "settings",
+    allowedTiers: ["owner", "core"],
+    pages: [
+      {
+        id: "languages",
+        label: "対応言語",
+        description: "ウェブアプリで使用する言語を管理します。",
+        allowedTiers: ["owner", "core"],
+      },
+    ],
+  },
 ];

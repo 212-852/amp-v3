@@ -2,26 +2,23 @@
 
 import {
   Bell,
-  CalendarDays,
   CircleUserRound,
   ClipboardList,
-  Handshake,
   MessageCircle,
   Send,
-  Route,
   Settings,
-  Truck,
-  Users,
   X,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
+import { Workspace } from "@/components/workspace";
+import { navigationDispatcher } from "@/lib/navigation/dispatcher";
 import {
   getRobotProfile,
   robotDispatcher,
 } from "@/lib/robot/dispatcher";
-import type { RobotMenuKey, RobotRole } from "@/lib/robot/common";
+import type { RobotRole } from "@/lib/robot/common";
 
 type PortalToolbarProps = {
   displayName: string;
@@ -81,10 +78,15 @@ export function PortalToolbar({
 type RobotNoticeProps = {
   message: string;
   role: RobotRole;
+  tier?: string;
 };
 
-export function RobotNotice({ message, role }: RobotNoticeProps) {
+export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
   const profile = getRobotProfile(role);
+  const managementGroups = useMemo(
+    () => navigationDispatcher(role).filter((item) => item.id !== "home"),
+    [role],
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTalkOpen, setIsTalkOpen] = useState(false);
@@ -97,19 +99,6 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
       text: profile.greeting,
     },
   ]);
-
-  const menuIcons: Record<RobotMenuKey, typeof Bell> = {
-    reservations: CalendarDays,
-    dispatch: Route,
-    users: Users,
-    drivers: Truck,
-    partners: Handshake,
-    messages: MessageCircle,
-    notifications: Bell,
-    settings: Settings,
-    schedule: CalendarDays,
-    reports: ClipboardList,
-  };
 
   function handleTalkSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,17 +187,13 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
         title="管理メニュー"
         onClose={() => setIsMenuOpen(false)}
       >
-        <p className="adminMenuLead">行いたい管理を選択してください</p>
-        <div className="adminMenuGrid">
-          {profile.menu.map(({ key, label }) => {
-            const Icon = menuIcons[key];
-
-            return <button key={key} type="button">
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-            </button>;
-          })}
-        </div>
+        <p className="adminMenuLead">大きいメニューから管理項目を選択してください</p>
+        <Workspace
+          compact
+          groups={managementGroups}
+          role={role}
+          tier={tier}
+        />
       </Modal>
 
       <Modal

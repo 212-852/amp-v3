@@ -1,13 +1,31 @@
 export type PortalRole = "admin" | "partner" | "driver";
 
-export type NavigationPage = { id: string; label: string; description: string };
+export type NavigationPage = {
+  id: string;
+  label: string;
+  description: string;
+  allowedTiers?: readonly string[];
+};
 
 export type NavigationGroup = {
   id: string;
   label: string;
   icon: "home" | "chat" | "bell" | "settings" | "calendar" | "truck" | "users" | "building" | "clipboard";
+  allowedTiers?: readonly string[];
   pages: NavigationPage[];
 };
+
+export function canAccessNavigation(
+  allowedTiers: readonly string[] | undefined,
+  tier: string | undefined,
+) {
+  const normalizedTier = tier?.trim().toLowerCase();
+
+  return (
+    !allowedTiers ||
+    (normalizedTier ? allowedTiers.includes(normalizedTier) : false)
+  );
+}
 
 export const commonNavigation: NavigationGroup[] = [
   { id: "home", label: "ホーム", icon: "home", pages: [

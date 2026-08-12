@@ -782,9 +782,12 @@ body:has(.driverApp) {
 .workspaceHeading { margin:0 8px 8px; color:#777; font-size:12px; font-weight:800; letter-spacing:.08em; }
 .workspaceGroups > button, .workspacePages > button:not(.workspaceBack) { display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; border:0; border-radius:10px; background:transparent; color:#444; text-align:left; cursor:pointer; }
 .workspaceGroups > button svg { width:20px; height:20px; flex:0 0 auto; }
-.workspaceGroups > button:hover, .workspacePages > button:not(.workspaceBack):hover, .workspaceGroups > button.isActive, .workspacePages > button.isActive { background:#dedede; color:#111; }
+.workspaceGroups > button:not(:disabled):hover, .workspacePages > button:not(.workspaceBack):not(:disabled):hover, .workspaceGroups > button.isActive, .workspacePages > button.isActive { background:#dedede; color:#111; }
+.workspaceGroups > button:disabled, .workspacePages > button:not(.workspaceBack):disabled { opacity:.58; cursor:not-allowed; }
 .workspacePages > button:not(.workspaceBack) { align-items:flex-start; flex-direction:column; gap:3px; }
 .workspacePages small { color:#777; font-size:11px; line-height:1.45; }
+.workspaceAccess { display:inline-flex; align-items:center; gap:4px; margin-left:auto; color:#555 !important; font-size:10px !important; font-weight:800; }
+.workspaceAccess svg { width:13px !important; height:13px !important; }
 .workspaceBack { display:none; align-items:center; gap:4px; align-self:flex-start; margin-bottom:4px; padding:6px; border:0; background:transparent; color:#555; font:inherit; font-weight:700; }
 .workspaceBack svg { width:18px; height:18px; }
 .workspaceDetail { padding:28px; background:#f7f7f7; }
@@ -792,6 +795,17 @@ body:has(.driverApp) {
 .workspacePlaceholder > span, .workspacePlaceholder small { color:#777; font-size:13px; font-weight:700; }
 .workspacePlaceholder h1 { margin:8px 0 12px; color:#111; }
 .workspacePlaceholder p { margin:0 0 24px; color:#555; }
+
+.portalWorkspaceCompact { overflow:hidden; border:1px solid #dedede; border-radius:18px; background:#fff; }
+.portalWorkspaceCompact .workspaceTrail { padding-inline:18px; }
+.portalWorkspaceCompact .workspaceTrack { width:300%; min-height:min(420px,52dvh); grid-template-columns:repeat(3,minmax(0,1fr)); transition:transform 320ms cubic-bezier(.2,.75,.25,1); }
+.portalWorkspaceCompact[data-level="0"] .workspaceTrack { transform:translateX(0); }
+.portalWorkspaceCompact[data-level="1"] .workspaceTrack { transform:translateX(-33.333333%); }
+.portalWorkspaceCompact[data-level="2"] .workspaceTrack { transform:translateX(-66.666667%); }
+.portalWorkspaceCompact .workspaceGroups, .portalWorkspaceCompact .workspacePages { border-right:0; }
+.portalWorkspaceCompact .workspaceBack { display:inline-flex; }
+.portalWorkspaceCompact .workspaceDetail { padding:20px 18px; }
+.portalWorkspaceCompact .workspacePlaceholder { padding:22px; }
 
 @media (max-width:760px) {
   .workspaceTrail { padding-inline:18px; }

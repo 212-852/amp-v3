@@ -2,15 +2,23 @@
 
 import {
   Bot,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CircleUserRound,
+  HelpCircle,
   Headset,
+  Home,
   Menu,
   MessageCircle,
   PawPrint,
   RefreshCw,
+  Settings,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getCopyright } from "@/lib/content";
 
 export function AppFooter() {
@@ -20,6 +28,74 @@ export function AppFooter() {
   const [assistantMode, setAssistantMode] = useState<"bot" | "concierge">(
     "bot",
   );
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [workspaceCategory, setWorkspaceCategory] = useState("home");
+
+  const workspaceCategories = [
+    {
+      id: "home",
+      label: "ホーム",
+      icon: Home,
+      pages: [
+        { label: "トップ", description: "現在の状況を確認" },
+        { label: "マイページ", description: "登録情報を確認・変更" },
+      ],
+    },
+    {
+      id: "reservation",
+      label: "予約",
+      icon: CalendarDays,
+      pages: [
+        { label: "新しく予約", description: "送迎を新しく依頼" },
+        { label: "予約一覧", description: "予約内容と履歴を確認" },
+      ],
+    },
+    {
+      id: "support",
+      label: "サポート",
+      icon: HelpCircle,
+      pages: [
+        { label: "クイックメニュー", description: "よく使う操作を表示" },
+        { label: "お問い合わせ", description: "スタッフへ相談" },
+      ],
+    },
+    {
+      id: "settings",
+      label: "設定",
+      icon: Settings,
+      pages: [
+        { label: "アカウント", description: "ログイン情報を確認" },
+        { label: "プライバシー", description: "安全と公開範囲を設定" },
+      ],
+    },
+  ];
+
+  const activeWorkspaceCategory =
+    workspaceCategories.find((item) => item.id === workspaceCategory) ??
+    workspaceCategories[0];
+  const ActiveWorkspaceIcon = activeWorkspaceCategory.icon;
+
+  useEffect(() => {
+    if (!isWorkspaceOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsWorkspaceOpen(false);
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isWorkspaceOpen]);
 
   function handleMenuToggle() {
     setIsMenuOpen((current) => !current);
@@ -147,7 +223,12 @@ export function AppFooter() {
                     <MessageCircle aria-hidden="true" />
                     <span>Quick Menu</span>
                   </button>
-                  <button type="button">
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={isWorkspaceOpen}
+                    onClick={() => setIsWorkspaceOpen(true)}
+                  >
                     <Menu aria-hidden="true" />
                     <span>Menu</span>
                   </button>
@@ -158,6 +239,97 @@ export function AppFooter() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        className={`userWorkspaceOverlay${isWorkspaceOpen ? " isOpen" : ""}`}
+        aria-hidden={!isWorkspaceOpen}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            setIsWorkspaceOpen(false);
+          }
+        }}
+      >
+        <aside
+          className="userWorkspaceDrawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="ユーザーメニュー"
+        >
+          <header className="userWorkspaceHeader">
+            <div>
+              <span>MENU</span>
+              <strong>サービスメニュー</strong>
+            </div>
+            <button
+              type="button"
+              aria-label="メニューを閉じる"
+              onClick={() => setIsWorkspaceOpen(false)}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </header>
+
+          <div className="userWorkspaceTrail" aria-label="現在位置">
+            <span>メニュー</span>
+            <ChevronRight aria-hidden="true" />
+            <strong>{activeWorkspaceCategory.label}</strong>
+          </div>
+
+          <div className="userWorkspaceBody">
+            <nav className="userWorkspaceCategories" aria-label="カテゴリー">
+              <p>カテゴリー</p>
+              {workspaceCategories.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    className={item.id === workspaceCategory ? "isActive" : ""}
+                    key={item.id}
+                    type="button"
+                    onClick={() => setWorkspaceCategory(item.id)}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span>{item.label}</span>
+                    <ChevronRight aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </nav>
+
+            <section className="userWorkspacePages">
+              <button
+                className="userWorkspaceBack"
+                type="button"
+                onClick={() => setWorkspaceCategory("home")}
+              >
+                <ChevronLeft aria-hidden="true" />
+                カテゴリー
+              </button>
+              <div className="userWorkspaceTitle">
+                <ActiveWorkspaceIcon aria-hidden="true" />
+                <div>
+                  <span>選択中</span>
+                  <h2>{activeWorkspaceCategory.label}</h2>
+                </div>
+              </div>
+              <div className="userWorkspacePageList">
+                {activeWorkspaceCategory.pages.map((page) => (
+                  <button key={page.label} type="button">
+                    <span>
+                      <strong>{page.label}</strong>
+                      <small>{page.description}</small>
+                    </span>
+                    <ChevronRight aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+              <div className="userWorkspaceSafety">
+                <ShieldCheck aria-hidden="true" />
+                <span>安全にご利用いただけます</span>
+              </div>
+            </section>
+          </div>
+        </aside>
       </div>
     </footer>
   );

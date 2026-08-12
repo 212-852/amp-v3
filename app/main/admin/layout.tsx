@@ -46,6 +46,7 @@ export default async function AdminLayout({
         <RobotNotice
           message="There are items requiring administrator review."
           role="admin"
+          tier={session.tier}
         />
         <small>{getCopyright()}</small>
       </footer>
