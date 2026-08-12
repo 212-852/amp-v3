@@ -1,12 +1,13 @@
 import type { Viewport } from "next";
 
 import { PortalToolbar, RobotNotice } from "@/components/robot";
+import { Workspace } from "@/components/workspace";
 import { getCopyright } from "@/lib/content";
 import "@/app/main/common.css";
 import "@/app/main/partner/partner.css";
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#f7f7f7",
 };
 
 export default function PartnerLayout({
@@ -21,7 +22,7 @@ export default function PartnerLayout({
         </nav>
       </header>
 
-      <main className="adminMain partnerMain">{children}</main>
+      <main className="adminMain partnerMain"><Workspace role="partner">{children}</Workspace></main>
 
       <footer className="adminFooter">
         <RobotNotice
