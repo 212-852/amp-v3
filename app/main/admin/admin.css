@@ -1,3 +1,67 @@
 .adminApp {
   --portal-background: #f4f4f4;
 }
+
+.workspaceLanguages {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 28px 24px;
+  color: #1f1f1f;
+}
+
+.workspaceLanguages header {
+  margin-bottom: 20px;
+}
+
+.workspaceLanguages h1,
+.workspaceLanguages p {
+  margin: 0;
+}
+
+.workspaceLanguages h1 {
+  font-size: 24px;
+}
+
+.workspaceLanguages p {
+  margin-top: 6px;
+  color: #717171;
+  font-size: 14px;
+}
+
+.workspaceLanguages ul {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #e5e5e5;
+  list-style: none;
+}
+
+.workspaceLanguages li {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.workspaceLanguages li > span {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.workspaceLanguages strong {
+  font-size: 15px;
+}
+
+.workspaceLanguages code {
+  color: #777;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+}
+
+.workspaceLanguages li > small {
+  color: #555;
+  font-size: 12px;
+}

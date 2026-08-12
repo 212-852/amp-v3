@@ -14,6 +14,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { Modal } from "@/components/modal";
 import { Workspace } from "@/components/workspace";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
+import { getNavigationAccessTags } from "@/lib/navigation/common";
 import {
   getRobotProfile,
   robotDispatcher,
@@ -90,7 +91,13 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTalkOpen, setIsTalkOpen] = useState(false);
+  const [managementGroupId, setManagementGroupId] = useState(
+    managementGroups[0]?.id ?? "",
+  );
   const [talkMessage, setTalkMessage] = useState("");
+  const managementGroup =
+    managementGroups.find((item) => item.id === managementGroupId) ??
+    managementGroups[0];
   const [talkMessages, setTalkMessages] = useState<
     Array<{ sender: "robot" | "admin"; text: string }>
   >([
@@ -187,10 +194,25 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
         title="管理メニュー"
         onClose={() => setIsMenuOpen(false)}
       >
-        <p className="adminMenuLead">大きいメニューから管理項目を選択してください</p>
+        <div className="adminMenuIntro">
+          <p className="adminMenuLead">大きいメニューから管理項目を選択してください</p>
+          {managementGroup ? (
+            <div
+              className="adminAccessTags"
+              aria-label={`${managementGroup.label}のアクセス対象`}
+            >
+              {getNavigationAccessTags(managementGroup.allowedTiers).map(
+                (access) => (
+                  <span key={access}>{access}</span>
+                ),
+              )}
+            </div>
+          ) : null}
+        </div>
         <Workspace
           compact
           groups={managementGroups}
+          onGroupChange={(group) => setManagementGroupId(group.id)}
           role={role}
           tier={tier}
         />

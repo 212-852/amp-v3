@@ -16,6 +16,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Before proposing a new file, first determine whether the change can be implemented in an existing shared file.
 - If a new file is genuinely necessary and was not explicitly requested, explain why and obtain the user's approval before creating it.
 
+## Internationalization Rules
+
+- Use the shared i18n foundation for all multilingual display text across the web application.
+- Do not create component-specific language state or language management.
+- Do not create page-specific language detection.
+- Structure translations so they can be extended through language keys such as `ja`, `en`, and `es`.
+- Adding a new supported language must not require changes to existing component logic in principle.
+- All new screens and features must follow these internationalization rules.
+- Maintain a structure that can use the language saved for a user as the display language.
+
 ## Naming Rules
 
 - Use short, clear, single-word names for custom files whenever possible.

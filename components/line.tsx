@@ -10,6 +10,8 @@ import {
   useState,
 } from "react";
 
+import type { Language } from "@/lib/i18n";
+
 type LineIdentity = {
   displayName: string;
   pictureUrl: string | null;
@@ -18,6 +20,7 @@ type LineIdentity = {
   destination: string;
   loginProvider: "line";
   greeting: "welcome" | "welcome_back" | "hello";
+  language: Language;
 };
 
 type LineContextValue = {

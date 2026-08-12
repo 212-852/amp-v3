@@ -2,8 +2,6 @@
 
 import {
   Bot,
-  CalendarDays,
-  ChevronLeft,
   ChevronRight,
   CircleUserRound,
   HelpCircle,
@@ -14,7 +12,6 @@ import {
   PawPrint,
   RefreshCw,
   Settings,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -29,34 +26,31 @@ export function AppFooter() {
     "bot",
   );
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
-  const [workspaceCategory, setWorkspaceCategory] = useState("home");
+  const [workspaceCategory, setWorkspaceCategory] = useState("support");
 
   const workspaceCategories = [
     {
       id: "home",
       label: "ホーム",
       icon: Home,
-      pages: [
-        { label: "トップ", description: "現在の状況を確認" },
-        { label: "マイページ", description: "登録情報を確認・変更" },
-      ],
-    },
-    {
-      id: "reservation",
-      label: "予約",
-      icon: CalendarDays,
-      pages: [
-        { label: "新しく予約", description: "送迎を新しく依頼" },
-        { label: "予約一覧", description: "予約内容と履歴を確認" },
-      ],
+      pages: [],
     },
     {
       id: "support",
       label: "サポート",
       icon: HelpCircle,
       pages: [
-        { label: "クイックメニュー", description: "よく使う操作を表示" },
-        { label: "お問い合わせ", description: "スタッフへ相談" },
+        {
+          label: "海外渡航サポート",
+          description: "海外渡航やペット輸送について相談",
+        },
+        { label: "お問い合わせ", description: "Contact Us・スタッフへ相談" },
+        { label: "よくある質問", description: "サービスに関する回答を確認" },
+        { label: "利用規約", description: "サービスの利用条件を確認" },
+        {
+          label: "プライバシーポリシー",
+          description: "個人情報の取り扱いを確認",
+        },
       ],
     },
     {
@@ -73,7 +67,6 @@ export function AppFooter() {
   const activeWorkspaceCategory =
     workspaceCategories.find((item) => item.id === workspaceCategory) ??
     workspaceCategories[0];
-  const ActiveWorkspaceIcon = activeWorkspaceCategory.icon;
 
   useEffect(() => {
     if (!isWorkspaceOpen) {
@@ -257,9 +250,11 @@ export function AppFooter() {
           aria-label="ユーザーメニュー"
         >
           <header className="userWorkspaceHeader">
-            <div>
-              <span>MENU</span>
-              <strong>サービスメニュー</strong>
+            <div className="userWorkspaceHeading">
+              <span className="userWorkspaceHeadingPaw" aria-hidden="true">
+                <PawPrint />
+              </span>
+              <strong>MENU</strong>
             </div>
             <button
               type="button"
@@ -278,7 +273,6 @@ export function AppFooter() {
 
           <div className="userWorkspaceBody">
             <nav className="userWorkspaceCategories" aria-label="カテゴリー">
-              <p>カテゴリー</p>
               {workspaceCategories.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -286,7 +280,14 @@ export function AppFooter() {
                     className={item.id === workspaceCategory ? "isActive" : ""}
                     key={item.id}
                     type="button"
-                    onClick={() => setWorkspaceCategory(item.id)}
+                    onClick={() => {
+                      if (item.id === "home") {
+                        setIsWorkspaceOpen(false);
+                        return;
+                      }
+
+                      setWorkspaceCategory(item.id);
+                    }}
                   >
                     <Icon aria-hidden="true" />
                     <span>{item.label}</span>
@@ -297,21 +298,6 @@ export function AppFooter() {
             </nav>
 
             <section className="userWorkspacePages">
-              <button
-                className="userWorkspaceBack"
-                type="button"
-                onClick={() => setWorkspaceCategory("home")}
-              >
-                <ChevronLeft aria-hidden="true" />
-                カテゴリー
-              </button>
-              <div className="userWorkspaceTitle">
-                <ActiveWorkspaceIcon aria-hidden="true" />
-                <div>
-                  <span>選択中</span>
-                  <h2>{activeWorkspaceCategory.label}</h2>
-                </div>
-              </div>
               <div className="userWorkspacePageList">
                 {activeWorkspaceCategory.pages.map((page) => (
                   <button key={page.label} type="button">
@@ -322,10 +308,6 @@ export function AppFooter() {
                     <ChevronRight aria-hidden="true" />
                   </button>
                 ))}
-              </div>
-              <div className="userWorkspaceSafety">
-                <ShieldCheck aria-hidden="true" />
-                <span>安全にご利用いただけます</span>
               </div>
             </section>
           </div>

@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
       pictureUrl: identity.pictureUrl,
       role: identity.role,
       tier: identity.tier,
+      language: identity.language,
       destination: getDestination(identity.role, request),
       loginProvider: "google",
       greeting,
@@ -103,6 +104,15 @@ export async function POST(request: NextRequest) {
       path: "/",
       maxAge: SESSION_MAX_AGE,
       expires: new Date(session.expiresAt),
+    });
+    response.cookies.set({
+      name: "login_provider",
+      value: "google",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
     });
 
     await debugDispatcher({

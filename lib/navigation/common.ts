@@ -1,30 +1,40 @@
 export type PortalRole = "admin" | "partner" | "driver";
+export type NavigationAccessTag = "owner" | "core" | "all";
+export type NavigationTier = Exclude<NavigationAccessTag, "all">;
 
 export type NavigationPage = {
   id: string;
   label: string;
   description: string;
-  allowedTiers?: readonly string[];
+  allowedTiers?: readonly NavigationTier[];
 };
 
 export type NavigationGroup = {
   id: string;
   label: string;
-  icon: "home" | "chat" | "bell" | "settings" | "calendar" | "truck" | "users" | "building" | "clipboard";
-  allowedTiers?: readonly string[];
+  icon: "home" | "chat" | "bell" | "settings" | "wrench" | "calendar" | "truck" | "users" | "building" | "clipboard";
+  allowedTiers?: readonly NavigationTier[];
   pages: NavigationPage[];
 };
 
 export function canAccessNavigation(
-  allowedTiers: readonly string[] | undefined,
+  allowedTiers: readonly NavigationTier[] | undefined,
   tier: string | undefined,
 ) {
   const normalizedTier = tier?.trim().toLowerCase();
 
   return (
     !allowedTiers ||
-    (normalizedTier ? allowedTiers.includes(normalizedTier) : false)
+    (normalizedTier
+      ? allowedTiers.some((allowedTier) => allowedTier === normalizedTier)
+      : false)
   );
+}
+
+export function getNavigationAccessTags(
+  allowedTiers: readonly NavigationTier[] | undefined,
+): readonly NavigationAccessTag[] {
+  return allowedTiers?.length ? allowedTiers : ["all"];
 }
 
 export const commonNavigation: NavigationGroup[] = [

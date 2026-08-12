@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, LockKeyhole, MessageCircle, Settings, Truck, UsersRound } from "lucide-react";
+import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, LockKeyhole, MessageCircle, Settings, Truck, UsersRound, Wrench } from "lucide-react";
 
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
+import { languageNames, supportedLanguages } from "@/lib/i18n";
 
-const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList };
+const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, wrench: Wrench, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList };
 
 type WorkspaceProps = {
   role: PortalRole;
@@ -15,9 +16,10 @@ type WorkspaceProps = {
   groups?: NavigationGroup[];
   tier?: string;
   compact?: boolean;
+  onGroupChange?: (group: NavigationGroup) => void;
 };
 
-export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false }: WorkspaceProps) {
+export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, onGroupChange }: WorkspaceProps) {
   const groups = useMemo(
     () => suppliedGroups ?? navigationDispatcher(role),
     [role, suppliedGroups],
@@ -30,20 +32,39 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   if (!group || !page) return null;
   const showHome = group.id === "home" && page.id === "overview";
+  const showLanguages =
+    role === "admin" && group.id === "languages" && page.id === "supported";
 
   function selectGroup(item: NavigationGroup) {
     if (!canAccessNavigation(item.allowedTiers, tier)) return;
     setGroupId(item.id);
     setPageId(item.pages[0].id);
     setLevel(1);
+    onGroupChange?.(item);
   }
 
   return (
     <section className={`portalWorkspace${compact ? " portalWorkspaceCompact" : ""}`} data-level={level}>
       <div className="workspaceTrail" aria-label="現在位置">
-        <button type="button" onClick={() => setLevel(0)}>{group.label}</button>
+        <button type="button" onClick={() => setLevel(0)}>
+          {compact ? "管理メニュー" : group.label}
+        </button>
         <span>›</span>
-        <button type="button" onClick={() => setLevel(1)}>{page.label}</button>
+        <button
+          type="button"
+          aria-current={page.label === group.label ? "page" : undefined}
+          onClick={() => setLevel(1)}
+        >
+          {group.label}
+        </button>
+        {page.label !== group.label ? (
+          <>
+            <span>›</span>
+            <button type="button" aria-current="page" onClick={() => setLevel(2)}>
+              {page.label}
+            </button>
+          </>
+        ) : null}
       </div>
       <div className="workspaceViewport">
         <div className="workspaceTrack">
@@ -61,7 +82,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
             })}
           </nav>
           <nav className="workspacePane workspacePages" aria-label="小さいメニュー">
-            <button className="workspaceBack" onClick={() => setLevel(0)} type="button"><ChevronLeft aria-hidden="true" />メニュー</button>
+            <button className="workspaceBack" onClick={() => setLevel(0)} type="button"><ChevronLeft aria-hidden="true" />管理メニューへ戻る</button>
             <p className="workspaceHeading">{group.label}</p>
             {group.pages.map((item) => {
               const allowed = canAccessNavigation(item.allowedTiers, tier);
@@ -74,8 +95,26 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
             })}
           </nav>
           <div className="workspacePane workspaceDetail">
-            <button className="workspaceBack" onClick={() => setLevel(1)} type="button"><ChevronLeft aria-hidden="true" />{group.label}</button>
-            {showHome ? children : (
+            <button className="workspaceBack" onClick={() => setLevel(1)} type="button"><ChevronLeft aria-hidden="true" />一覧へ戻る</button>
+            {showHome ? children : showLanguages ? (
+              <section className="workspaceLanguages">
+                <header>
+                  <h1>対応言語</h1>
+                  <p>ウェブアプリで現在利用できる言語です。</p>
+                </header>
+                <ul>
+                  {supportedLanguages.map((language) => (
+                    <li key={language}>
+                      <span>
+                        <strong>{languageNames[language]}</strong>
+                        <code>{language}</code>
+                      </span>
+                      <small>対応中</small>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
               <div className="workspacePlaceholder">
                 <span>{group.label}</span><h1>{page.label}</h1><p>{page.description}</p><small>このページは準備中です。</small>
               </div>

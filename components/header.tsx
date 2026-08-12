@@ -1,13 +1,21 @@
 "use client";
 
-import { Bell, Globe2, Mail, UserRound } from "lucide-react";
+import { Bell, Check, ChevronDown, Globe2, Mail, UserRound } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
+import { useLanguage } from "@/components/language";
 import { useLineIdentity } from "@/components/line";
 import { Modal } from "@/components/modal";
 import { Toast } from "@/components/toast";
+import {
+  getTranslation,
+  languageNames,
+  type Language,
+  supportedLanguages,
+} from "@/lib/i18n";
 
 type SupabaseIdentity = {
   displayName: string;
@@ -17,6 +25,7 @@ type SupabaseIdentity = {
   destination: string;
   loginProvider: "line" | "google" | "email";
   greeting: "welcome" | "welcome_back" | "hello";
+  language: Language;
 };
 
 type GoogleCredentialResponse = {
@@ -115,6 +124,7 @@ async function hashNonce(nonce: string) {
 }
 
 export function AppHeader() {
+  const { language, setLanguage } = useLanguage();
   const {
     identity,
     isInitializing: isLineInitializing,
@@ -137,8 +147,13 @@ export function AppHeader() {
   const [isLineLoading, setIsLineLoading] = useState(false);
   const [isAdminRedirecting, setIsAdminRedirecting] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isLanguageSaving, setIsLanguageSaving] = useState(false);
+  const [languagePosition, setLanguagePosition] = useState({ top: 0, left: 0 });
   const supabaseResolved = useRef(false);
   const greetedIdentity = useRef<string | null>(null);
+  const languageButtonRef = useRef<HTMLButtonElement | null>(null);
+  const languageMenuRef = useRef<HTMLDivElement | null>(null);
   const closeLogin = useCallback(() => {
     setIsLoginOpen(false);
     setShowEmailForm(false);
@@ -157,6 +172,109 @@ export function AppHeader() {
 
     return url && key ? createClient(url, key) : null;
   }, []);
+
+  useEffect(() => {
+    if (!activeIdentity?.language) return;
+
+    const timer = window.setTimeout(() => {
+      setLanguage(activeIdentity.language);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [activeIdentity?.language, setLanguage]);
+
+  useEffect(() => {
+    if (!isLanguageOpen) return;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      const target = event.target as Node;
+      if (
+        !languageButtonRef.current?.contains(target) &&
+        !languageMenuRef.current?.contains(target)
+      ) {
+        setIsLanguageOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsLanguageOpen(false);
+    }
+
+    function closeOnViewportChange() {
+      setIsLanguageOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", closeOnViewportChange);
+    window.addEventListener("scroll", closeOnViewportChange, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", closeOnViewportChange);
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+    };
+  }, [isLanguageOpen]);
+
+  const toggleLanguageMenu = useCallback(() => {
+    if (!isLanguageOpen && languageButtonRef.current) {
+      const rect = languageButtonRef.current.getBoundingClientRect();
+      const menuWidth = 176;
+      setLanguagePosition({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12)),
+      });
+    }
+
+    setIsLanguageOpen((current) => !current);
+  }, [isLanguageOpen]);
+
+  const selectLanguage = useCallback(
+    async (nextLanguage: Language) => {
+      if (nextLanguage === language) {
+        setIsLanguageOpen(false);
+        return;
+      }
+
+      setIsLanguageSaving(true);
+
+      try {
+        if (activeIdentity) {
+          const response = await fetch("/api/session", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ language: nextLanguage }),
+          });
+
+          if (!response.ok) throw new Error("language_update_failed");
+
+          setSupabaseIdentity((current) =>
+            current ? { ...current, language: nextLanguage } : current,
+          );
+          setSessionIdentity((current) =>
+            current ? { ...current, language: nextLanguage } : current,
+          );
+        }
+
+        setLanguage(nextLanguage);
+        setIsLanguageOpen(false);
+      } catch {
+        setGreeting(
+          getTranslation(
+            {
+              ja: "言語設定を保存できませんでした",
+              en: "Language setting could not be saved",
+            },
+            language,
+          ),
+        );
+      } finally {
+        setIsLanguageSaving(false);
+      }
+    },
+    [activeIdentity, language, setLanguage],
+  );
 
   useEffect(() => {
     const displayMode = window.matchMedia("(display-mode: standalone)");
@@ -687,9 +805,21 @@ export function AppHeader() {
               >
                 <Bell aria-hidden="true" />
               </button>
-              <button className="headerPill headerLanguage" type="button">
+              <button
+                ref={languageButtonRef}
+                className="headerPill headerLanguage"
+                type="button"
+                aria-label={getTranslation(
+                  { ja: "言語を選択", en: "Choose language" },
+                  language,
+                )}
+                aria-haspopup="menu"
+                aria-expanded={isLanguageOpen}
+                onClick={toggleLanguageMenu}
+              >
                 <Globe2 aria-hidden="true" />
-                <span>EN</span>
+                <span>{language.toUpperCase()}</span>
+                <ChevronDown className="headerLanguageChevron" aria-hidden="true" />
               </button>
             </nav>
 
@@ -721,6 +851,37 @@ export function AppHeader() {
           <path d="M0 102C195 42 334 13 514 40c199 30 278 101 493 94 161-5 269-43 433-58v74H0Z" />
         </svg>
       </header>
+
+      {isLanguageOpen
+        ? createPortal(
+            <div
+              ref={languageMenuRef}
+              className="headerLanguageMenu"
+              role="menu"
+              aria-label={getTranslation(
+                { ja: "表示言語", en: "Display language" },
+                language,
+              )}
+              style={languagePosition}
+            >
+              {supportedLanguages.map((option) => (
+                <button
+                  className={option === language ? "isActive" : ""}
+                  key={option}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={option === language}
+                  disabled={isLanguageSaving}
+                  onClick={() => void selectLanguage(option)}
+                >
+                  <span>{languageNames[option]}</span>
+                  {option === language ? <Check aria-hidden="true" /> : null}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
 
       <Modal open={isLoginOpen} label="ログイン方法" onClose={closeLogin}>
         <p className="loginModalText">

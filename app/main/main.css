@@ -230,6 +230,65 @@
   gap: 5px;
 }
 
+.headerLanguage .headerLanguageChevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 160ms ease;
+}
+
+.headerLanguage[aria-expanded="true"] .headerLanguageChevron {
+  transform: rotate(180deg);
+}
+
+.headerLanguageMenu {
+  position: fixed;
+  z-index: 1500;
+  display: grid;
+  width: 176px;
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid #ead9c3;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(73 47 24 / 18%);
+  color: #513721;
+  font-family: var(--font-klee-one), "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+.headerLanguageMenu button {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.headerLanguageMenu button:hover,
+.headerLanguageMenu button.isActive {
+  background: #fff6e9;
+  color: #925716;
+}
+
+.headerLanguageMenu button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.headerLanguageMenu svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
 .headerProfile {
   display: flex;
   align-items: center;
@@ -1176,6 +1235,7 @@
   background: #fff8ed;
   box-shadow: -18px 0 44px rgb(65 42 20 / 20%);
   color: #4b321f;
+  font-family: var(--font-hachi-maru-pop), "Hiragino Maru Gothic ProN", sans-serif;
   transition: transform 340ms cubic-bezier(.2,.8,.2,1);
 }
 
@@ -1193,12 +1253,12 @@
   background: #ead6bc;
 }
 
-.userWorkspaceHeader div {
-  display: grid;
-  gap: 2px;
+.userWorkspaceHeading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
 }
 
-.userWorkspaceHeader span,
 .userWorkspaceTitle span {
   color: #957457;
   font-size: 11px;
@@ -1207,7 +1267,28 @@
 }
 
 .userWorkspaceHeader strong {
-  font-size: 21px;
+  color: #68492f;
+  font-size: 20px;
+  letter-spacing: .1em;
+}
+
+.userWorkspaceHeadingPaw {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  transform: rotate(-10deg);
+  border-radius: 50%;
+  background: #fff8ed;
+  color: #a86924;
+  box-shadow: 0 4px 12px rgb(95 58 19 / 10%);
+}
+
+.userWorkspaceHeadingPaw svg {
+  width: 26px;
+  height: 26px;
+  fill: #dba86e;
+  stroke-width: 1.8;
 }
 
 .userWorkspaceHeader button {
@@ -1268,13 +1349,6 @@
   padding: 20px 12px;
   border-right: 1px solid #ead5b7;
   background: #f5e8d6;
-}
-
-.userWorkspaceCategories p {
-  margin: 0 10px 8px;
-  color: #957457;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .userWorkspaceCategories button {
@@ -1344,7 +1418,7 @@
 
 .userWorkspacePageList {
   display: grid;
-  gap: 10px;
+  gap: 0;
 }
 
 .userWorkspacePageList button {
@@ -1352,11 +1426,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 70px;
-  padding: 13px 14px;
-  border: 1px solid #ead5b7;
-  border-radius: 15px;
-  background: #fffdf9;
+  min-height: 72px;
+  padding: 15px 6px;
+  border: 0;
+  border-bottom: 1px solid #e7d3b6;
+  border-radius: 0;
+  background: transparent;
   color: #513721;
   cursor: pointer;
   font: inherit;
@@ -1364,8 +1439,8 @@
 }
 
 .userWorkspacePageList button:hover {
-  border-color: #c7975c;
-  box-shadow: 0 6px 18px rgb(85 51 18 / 9%);
+  background: rgb(234 214 188 / 28%);
+  color: #925716;
 }
 
 .userWorkspacePageList button span {

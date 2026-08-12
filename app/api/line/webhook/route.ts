@@ -1,12 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { debugDispatcher } from "@/lib/debug";
 import { notifyDispatcher } from "@/lib/notify";
-
-type LineWebhookBody = {
-  destination?: string;
-  events?: unknown[];
-};
 
 function isValidSignature(body: string, signature: string, secret: string) {
   const expected = createHmac("sha256", secret).update(body).digest();
@@ -51,20 +45,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid signature." }, { status: 401 });
   }
 
-  let body: LineWebhookBody;
-
   try {
-    body = JSON.parse(rawBody) as LineWebhookBody;
+    JSON.parse(rawBody);
   } catch {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-
-  await debugDispatcher({
-    event: "line_webhook_received",
-    data: {
-      eventCount: Array.isArray(body.events) ? body.events.length : 0,
-    },
-  });
 
   return Response.json({ ok: true });
 }

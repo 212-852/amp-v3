@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
+import { isSupportedLanguage } from "@/lib/i18n";
 import {
   identityDispatcher,
   SESSION_COOKIE_NAME,
@@ -12,7 +13,12 @@ export async function GET(request: NextRequest) {
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const loginProvider = request.cookies.get("login_provider")?.value;
 
-  if (!sessionToken || loginProvider !== "line") {
+  if (
+    !sessionToken ||
+    (loginProvider !== "line" &&
+      loginProvider !== "google" &&
+      loginProvider !== "email")
+  ) {
     return Response.json({ identity: null });
   }
 
@@ -20,7 +26,7 @@ export async function GET(request: NextRequest) {
     const identity = await identityDispatcher({
       action: "resolve_session",
       sessionToken,
-      loginType: "line",
+      loginType: loginProvider,
     });
 
     const response = NextResponse.json({
@@ -30,8 +36,9 @@ export async function GET(request: NextRequest) {
             pictureUrl: identity.pictureUrl,
             role: identity.role,
             tier: identity.tier,
+            language: identity.language,
             destination: identity.role === "admin" ? "/admin" : "/",
-            loginProvider: "line",
+            loginProvider,
             greeting: "hello",
           }
         : null,
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
       });
       response.cookies.set({
         name: "login_provider",
-        value: "line",
+        value: loginProvider,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -62,6 +69,33 @@ export async function GET(request: NextRequest) {
     return response;
   } catch {
     return Response.json({ identity: null }, { status: 401 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const body = (await request.json().catch(() => null)) as {
+    language?: unknown;
+  } | null;
+
+  if (!sessionToken) {
+    return Response.json({ error: "Authentication is required." }, { status: 401 });
+  }
+
+  if (!isSupportedLanguage(body?.language)) {
+    return Response.json({ error: "Unsupported language." }, { status: 400 });
+  }
+
+  try {
+    const result = await identityDispatcher({
+      action: "update_session_language",
+      sessionToken,
+      language: body.language,
+    });
+
+    return Response.json(result);
+  } catch {
+    return Response.json({ error: "Language update failed." }, { status: 401 });
   }
 }
 

@@ -2,6 +2,12 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  DEFAULT_LANGUAGE,
+  isSupportedLanguage,
+  type Language,
+} from "@/lib/i18n";
+
 type EntrySource = "liff" | "web" | "pwa";
 
 export const SESSION_COOKIE_NAME = "session_token";
@@ -50,6 +56,11 @@ export type IdentityRequest =
   | {
       action: "revoke_session";
       sessionToken: string;
+    }
+  | {
+      action: "update_session_language";
+      sessionToken: string;
+      language: Language;
     }
   | {
       action: "create_auth_token";
@@ -102,6 +113,7 @@ type LineIdentityResult = {
   status: "existing" | "created";
   role: string;
   tier: string;
+  language: Language;
 };
 
 type GoogleIdentityResult = LineIdentityResult;
@@ -113,8 +125,13 @@ type SessionResult = {
   pictureUrl: string | null;
   role: string;
   tier: string;
+  language: Language;
   expiresAt: string;
 };
+
+function normalizeLanguage(language: unknown): Language {
+  return isSupportedLanguage(language) ? language : DEFAULT_LANGUAGE;
+}
 
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "register_visitor" }>,
@@ -140,6 +157,9 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "revoke_session" }>,
 ): Promise<{ revoked: boolean }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_session_language" }>,
+): Promise<{ language: Language }>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "create_auth_token" }>,
 ): Promise<{ tokenUuid: string }>;
@@ -206,6 +226,9 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "revoke_session":
       return revokeSession(request.sessionToken);
+
+    case "update_session_language":
+      return updateSessionLanguage(request.sessionToken, request.language);
 
     case "create_auth_token":
       return createAuthToken(request);
@@ -447,7 +470,7 @@ async function resolveGoogleUser(
 
   const { data: user, error: userLookupError } = await supabase
     .from("users")
-    .select("display_name, role, tier")
+    .select("display_name, role, tier, language")
     .eq("user_uuid", userUuid)
     .single();
 
@@ -462,6 +485,7 @@ async function resolveGoogleUser(
     status,
     role: user.role,
     tier: user.tier,
+    language: normalizeLanguage(user.language),
   };
 }
 
@@ -537,7 +561,7 @@ async function resolveEmailUser(
 
   const { data: user, error: userLookupError } = await supabase
     .from("users")
-    .select("display_name, role, tier")
+    .select("display_name, role, tier, language")
     .eq("user_uuid", userUuid)
     .single();
 
@@ -552,6 +576,7 @@ async function resolveEmailUser(
     status,
     role: user.role,
     tier: user.tier,
+    language: normalizeLanguage(user.language),
   };
 }
 
@@ -671,7 +696,7 @@ async function resolveLineUser(
 
   const { data: user, error: userLookupError } = await supabase
     .from("users")
-    .select("display_name, role, tier")
+    .select("display_name, role, tier, language")
     .eq("user_uuid", userUuid)
     .single();
 
@@ -686,6 +711,7 @@ async function resolveLineUser(
     status,
     role: user.role,
     tier: user.tier,
+    language: normalizeLanguage(user.language),
   };
 }
 
@@ -752,7 +778,7 @@ async function resolveSession(
 
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("user_uuid, display_name, role, tier")
+    .select("user_uuid, display_name, role, tier, language")
     .eq("user_uuid", session.user_uuid)
     .maybeSingle();
 
@@ -779,6 +805,7 @@ async function resolveSession(
             : null,
         role: user.role,
         tier: user.tier,
+        language: normalizeLanguage(user.language),
         expiresAt,
       }
     : null;
@@ -788,7 +815,7 @@ async function resolveSessionUser(userUuid: string) {
   const supabase = getSupabaseAdmin();
   const { data: user, error } = await supabase
     .from("users")
-    .select("user_uuid, display_name, role, tier")
+    .select("user_uuid, display_name, role, tier, language")
     .eq("user_uuid", userUuid)
     .single();
 
@@ -802,6 +829,7 @@ async function resolveSessionUser(userUuid: string) {
     pictureUrl: null,
     role: user.role,
     tier: user.tier,
+    language: normalizeLanguage(user.language),
     expiresAt: new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString(),
   };
 }
@@ -820,4 +848,38 @@ async function revokeSession(sessionToken: string) {
   }
 
   return { revoked: true };
+}
+
+async function updateSessionLanguage(
+  sessionToken: string,
+  language: Language,
+) {
+  const supabase = getSupabaseAdmin();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("user_uuid")
+    .eq("session_token_hash", sessionTokenHash)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(`Session lookup failed: ${sessionError.message}`);
+  }
+
+  if (!session) {
+    throw new Error("Active session was not found.");
+  }
+
+  const { error: userError } = await supabase
+    .from("users")
+    .update({ language })
+    .eq("user_uuid", session.user_uuid);
+
+  if (userError) {
+    throw new Error(`Language update failed: ${userError.message}`);
+  }
+
+  return { language };
 }
