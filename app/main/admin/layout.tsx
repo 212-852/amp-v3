@@ -3,7 +3,6 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { PortalToolbar, RobotNotice } from "@/components/robot";
-import { Workspace } from "@/components/workspace";
 import { getCopyright } from "@/lib/content";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 import "@/app/main/common.css";
@@ -41,7 +40,7 @@ export default async function AdminLayout({
         </nav>
       </header>
 
-      <main className="adminMain"><Workspace role="admin">{children}</Workspace></main>
+      <main className="adminMain">{children}</main>
 
       <footer className="adminFooter">
         <RobotNotice
