@@ -1478,6 +1478,95 @@
   height: 17px;
 }
 
+.appBreadcrumb {
+  border-bottom: 1px solid #ead5b7;
+  background: #fffdf8;
+}
+
+.appBreadcrumb ol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 940px);
+  min-height: 48px;
+  margin: 0 auto;
+  padding: 0 24px;
+  list-style: none;
+}
+
+.appBreadcrumb li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8d7159;
+  font-size: 14px;
+}
+
+.appBreadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.appBreadcrumb a:hover {
+  color: #925716;
+}
+
+.appBreadcrumb svg {
+  width: 15px;
+  height: 15px;
+}
+
+.appBreadcrumb [aria-current="page"] {
+  color: #4b321f;
+  font-weight: 700;
+}
+
+.companyPage {
+  min-height: 52dvh;
+  background: #fff8ed;
+}
+
+.companyPageContent {
+  width: min(100%, 940px);
+  margin: 0 auto;
+  padding: 48px 24px 72px;
+}
+
+.companyPageContent h1 {
+  margin: 0 0 30px;
+  color: #4b321f;
+  font-size: clamp(28px, 5vw, 42px);
+}
+
+.companyPageContent dl {
+  margin: 0;
+  border-top: 1px solid #e7d3b6;
+}
+
+.companyPageContent dl > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr;
+  gap: 24px;
+  padding: 22px 4px;
+  border-bottom: 1px solid #e7d3b6;
+}
+
+.companyPageContent dt {
+  color: #8f6d50;
+}
+
+.companyPageContent dd {
+  margin: 0;
+  color: #4b321f;
+}
+
+@media (max-width: 560px) {
+  .companyPageContent dl > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .footerCard {
     transition: none;

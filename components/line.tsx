@@ -28,6 +28,7 @@ type LineContextValue = {
   isInitializing: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  setIdentityLanguage: (language: Language) => void;
 };
 
 const LineContext = createContext<LineContextValue | null>(null);
@@ -125,6 +126,10 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
     setIdentity(null);
   }, []);
 
+  const setIdentityLanguage = useCallback((language: Language) => {
+    setIdentity((current) => (current ? { ...current, language } : current));
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void connect().catch(() => undefined);
@@ -134,8 +139,8 @@ export function LineProvider({ children }: { children: React.ReactNode }) {
   }, [connect]);
 
   const value = useMemo(
-    () => ({ identity, isInitializing, login, logout }),
-    [identity, isInitializing, login, logout],
+    () => ({ identity, isInitializing, login, logout, setIdentityLanguage }),
+    [identity, isInitializing, login, logout, setIdentityLanguage],
   );
 
   return <LineContext value={value}>{children}</LineContext>;

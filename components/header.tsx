@@ -128,6 +128,7 @@ export function AppHeader() {
     isInitializing: isLineInitializing,
     login,
     logout: logoutLine,
+    setIdentityLanguage,
   } = useLineIdentity();
   const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
   const [sessionIdentity, setSessionIdentity] = useState<SupabaseIdentity | null>(null);
@@ -253,6 +254,7 @@ export function AppHeader() {
           setSessionIdentity((current) =>
             current ? { ...current, language: nextLanguage } : current,
           );
+          setIdentityLanguage(nextLanguage);
         }
 
         setLanguage(nextLanguage);
@@ -271,7 +273,7 @@ export function AppHeader() {
         setIsLanguageSaving(false);
       }
     },
-    [activeIdentity, language, setLanguage],
+    [activeIdentity, language, setIdentityLanguage, setLanguage],
   );
 
   useEffect(() => {
@@ -661,8 +663,8 @@ export function AppHeader() {
       <span className="lineAppIcon" aria-hidden="true">
         <span>LINE</span>
       </span>
-      <strong>{isLineLoading ? "LINEを開いています…" : "LINEでログイン"}</strong>
-      <span className="loginRecommended">おすすめ</span>
+      <strong>{isLineLoading ? getTranslation({ ja: "LINEを開いています…", en: "Opening LINE…" }, language) : getTranslation({ ja: "LINEでログイン", en: "Continue with LINE" }, language)}</strong>
+      <span className="loginRecommended">{getTranslation({ ja: "おすすめ", en: "Recommended" }, language)}</span>
     </button>
   );
 
@@ -674,8 +676,8 @@ export function AppHeader() {
       onClick={() => void loginWithGoogle()}
     >
       <span className="loginGoogleIcon" aria-hidden="true">G</span>
-      <strong>{isGoogleLoading ? "Googleを開いています…" : "Googleでログイン"}</strong>
-      <span className="loginSimple">{isPwa ? "補助" : "かんたん"}</span>
+      <strong>{isGoogleLoading ? getTranslation({ ja: "Googleを開いています…", en: "Opening Google…" }, language) : getTranslation({ ja: "Googleでログイン", en: "Continue with Google" }, language)}</strong>
+      <span className="loginSimple">{isPwa ? getTranslation({ ja: "補助", en: "Alternative" }, language) : getTranslation({ ja: "かんたん", en: "Easy" }, language)}</span>
     </button>
   );
 
@@ -686,8 +688,8 @@ export function AppHeader() {
       onClick={() => setShowEmailForm(true)}
     >
       <Mail aria-hidden="true" />
-      <strong>Eメールでログイン</strong>
-      <span className="loginPasswordless">コード認証</span>
+      <strong>{getTranslation({ ja: "Eメールでログイン", en: "Continue with email" }, language)}</strong>
+      <span className="loginPasswordless">{getTranslation({ ja: "コード認証", en: "Code verification" }, language)}</span>
     </button>
   ) : (
     <form
@@ -703,7 +705,7 @@ export function AppHeader() {
     >
       {emailStep === "address" ? (
         <>
-          <label htmlFor="loginEmail">メールアドレス</label>
+          <label htmlFor="loginEmail">{getTranslation({ ja: "メールアドレス", en: "Email address" }, language)}</label>
           <input
             id="loginEmail"
             type="email"
@@ -715,12 +717,12 @@ export function AppHeader() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <button type="submit" disabled={isSendingEmail || !email.trim()}>
-            {isSendingEmail ? "送信中…" : "認証コードを送信"}
+            {isSendingEmail ? getTranslation({ ja: "送信中…", en: "Sending…" }, language) : getTranslation({ ja: "認証コードを送信", en: "Send verification code" }, language)}
           </button>
         </>
       ) : (
         <>
-          <label htmlFor="loginEmailCode">8桁の認証コード</label>
+          <label htmlFor="loginEmailCode">{getTranslation({ ja: "8桁の認証コード", en: "8-digit verification code" }, language)}</label>
           <input
             id="loginEmailCode"
             className="emailCodeInput"
@@ -734,7 +736,7 @@ export function AppHeader() {
             onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, ""))}
           />
           <button type="submit" disabled={isSendingEmail || emailCode.length !== 8}>
-            {isSendingEmail ? "確認中…" : "コードを確認してログイン"}
+            {isSendingEmail ? getTranslation({ ja: "確認中…", en: "Verifying…" }, language) : getTranslation({ ja: "コードを確認してログイン", en: "Verify and sign in" }, language)}
           </button>
           <button
             className="emailBackButton"
@@ -745,7 +747,7 @@ export function AppHeader() {
               setEmailStatus(null);
             }}
           >
-            メールアドレスを変更
+            {getTranslation({ ja: "メールアドレスを変更", en: "Change email address" }, language)}
           </button>
         </>
       )}
@@ -759,7 +761,9 @@ export function AppHeader() {
         <div className="headerContent">
           <div className="headerBrand">
             <strong className="headerLogo">PET TAXI</strong>
-            <span className="headerPageName">Home</span>
+            <span className="headerPageName">
+              {getTranslation({ ja: "ホーム", en: "Home" }, language)}
+            </span>
           </div>
 
           <div className="headerAccount">
@@ -772,7 +776,9 @@ export function AppHeader() {
                 }`}
                 type="button"
                 aria-label={
-                  activeIdentity ? "Account connected" : "Open login options"
+                  activeIdentity
+                    ? getTranslation({ ja: "アカウント接続済み", en: "Account connected" }, language)
+                    : getTranslation({ ja: "ログイン方法を開く", en: "Open login options" }, language)
                 }
                 onClick={() => {
                   if (activeIdentity) {
@@ -793,7 +799,9 @@ export function AppHeader() {
                     <Mail />
                   </span>
                 ) : (
-                  <span className="japaneseText">ログイン</span>
+                  <span className="japaneseText">
+                    {getTranslation({ ja: "ログイン", en: "Login" }, language)}
+                  </span>
                 )}
               </button>
               <button
@@ -835,7 +843,9 @@ export function AppHeader() {
                   <UserRound aria-hidden="true" />
                 )}
               </div>
-              <strong>{activeIdentity?.displayName ?? "Guest"}</strong>
+              <strong>
+                {activeIdentity?.displayName ?? getTranslation({ ja: "ゲスト", en: "Guest" }, language)}
+              </strong>
             </div>
           </div>
         </div>
@@ -881,9 +891,9 @@ export function AppHeader() {
           )
         : null}
 
-      <Modal open={isLoginOpen} label="ログイン方法" onClose={closeLogin}>
+      <Modal open={isLoginOpen} label={getTranslation({ ja: "ログイン方法", en: "Sign-in options" }, language)} onClose={closeLogin}>
         <p className="loginModalText">
-          ログイン方法を選択してください
+          {getTranslation({ ja: "ログイン方法を選択してください", en: "Choose how to sign in" }, language)}
         </p>
         {isPwa ? (
           <>
@@ -893,7 +903,7 @@ export function AppHeader() {
               {googleLoginOption}
             </div>
             <button className="guestContinueButton" type="button" onClick={closeLogin}>
-              ゲストのまま利用する
+              {getTranslation({ ja: "ゲストのまま利用する", en: "Continue as guest" }, language)}
             </button>
           </>
         ) : (
@@ -907,7 +917,7 @@ export function AppHeader() {
 
       <Modal
         open={isAccountOpen}
-        label="アカウント情報"
+        label={getTranslation({ ja: "アカウント情報", en: "Account information" }, language)}
         onClose={() => setIsAccountOpen(false)}
       >
         <div className="accountModal">
@@ -922,13 +932,13 @@ export function AppHeader() {
           </div>
           <strong className="accountProviderName">
             {loginProvider === "line"
-              ? "LINEでログイン中"
+              ? getTranslation({ ja: "LINEでログイン中", en: "Signed in with LINE" }, language)
               : loginProvider === "google"
-                ? "Googleでログイン中"
-                : "Eメールでログイン中"}
+                ? getTranslation({ ja: "Googleでログイン中", en: "Signed in with Google" }, language)
+                : getTranslation({ ja: "Eメールでログイン中", en: "Signed in with email" }, language)}
           </strong>
           <dl className="accountDetails">
-            <div><dt>表示名</dt><dd>{activeIdentity?.displayName}</dd></div>
+            <div><dt>{getTranslation({ ja: "表示名", en: "Display name" }, language)}</dt><dd>{activeIdentity?.displayName}</dd></div>
           </dl>
           <button
             className="accountLogoutButton"
@@ -936,7 +946,7 @@ export function AppHeader() {
             disabled={isLoggingOut}
             onClick={() => void logout()}
           >
-            {isLoggingOut ? "ログアウト中…" : "ログアウト"}
+            {isLoggingOut ? getTranslation({ ja: "ログアウト中…", en: "Signing out…" }, language) : getTranslation({ ja: "ログアウト", en: "Sign out" }, language)}
           </button>
         </div>
       </Modal>
@@ -944,9 +954,9 @@ export function AppHeader() {
       <Toast
         message={
           isLineInitializing
-            ? "LINEとの接続を確認しています…"
+            ? getTranslation({ ja: "LINEとの接続を確認しています…", en: "Checking the LINE connection…" }, language)
             : isAdminRedirecting
-              ? "管理画面を準備しています…"
+              ? getTranslation({ ja: "管理画面を準備しています…", en: "Preparing the admin page…" }, language)
             : greeting
         }
         onClose={closeGreeting}

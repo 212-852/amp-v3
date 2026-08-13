@@ -27,6 +27,12 @@ export function isSupportedLanguage(value: unknown): value is Language {
   return supportedLanguages.some((language) => language === value);
 }
 
+export function getSourceLanguage(
+  language: Language,
+): (typeof supportedLanguages)[number] {
+  return language === "ja" ? "ja" : "en";
+}
+
 export function detectLanguage(
   browserLanguages: readonly string[],
 ): Language {

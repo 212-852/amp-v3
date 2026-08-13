@@ -16,10 +16,16 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/language";
 import { getCopyright } from "@/lib/content";
+import { getTranslation, type Translation } from "@/lib/i18n";
 
 export function AppFooter() {
+  const router = useRouter();
+  const { language } = useLanguage();
+  const text = (translation: Translation) => getTranslation(translation, language);
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [showMenuHint, setShowMenuHint] = useState(true);
@@ -32,50 +38,51 @@ export function AppFooter() {
   const workspaceCategories = [
     {
       id: "home",
-      label: "ホーム",
+      label: text({ ja: "ホーム", en: "Home" }),
       icon: Home,
       pages: [],
     },
     {
       id: "support",
-      label: "サポート",
+      label: text({ ja: "サポート", en: "Support" }),
       icon: HelpCircle,
       pages: [
         {
-          label: "海外渡航サポート",
-          description: "海外渡航やペット輸送について相談",
+          label: text({ ja: "海外渡航サポート", en: "International travel support" }),
+          description: text({ ja: "海外渡航やペット輸送について相談", en: "Ask about international travel and pet transport" }),
         },
-        { label: "お問い合わせ", description: "Contact Us・スタッフへ相談" },
-        { label: "よくある質問", description: "サービスに関する回答を確認" },
-        { label: "利用規約", description: "サービスの利用条件を確認" },
+        { label: text({ ja: "お問い合わせ", en: "Contact us" }), description: text({ ja: "スタッフへ相談", en: "Contact our staff" }) },
+        { label: text({ ja: "よくある質問", en: "FAQ" }), description: text({ ja: "サービスに関する回答を確認", en: "Find answers about the service" }) },
+        { label: text({ ja: "利用規約", en: "Terms of service" }), description: text({ ja: "サービスの利用条件を確認", en: "Review the terms of service" }) },
         {
-          label: "プライバシーポリシー",
-          description: "個人情報の取り扱いを確認",
+          label: text({ ja: "プライバシーポリシー", en: "Privacy policy" }),
+          description: text({ ja: "個人情報の取り扱いを確認", en: "Review how personal information is handled" }),
         },
       ],
     },
     {
       id: "company",
-      label: "運営会社",
+      label: text({ ja: "運営会社", en: "Company" }),
       icon: Building2,
       pages: [
         {
-          label: "会社概要",
-          description: "運営会社の基本情報を確認",
+          label: text({ ja: "会社概要", en: "Company profile" }),
+          description: text({ ja: "運営会社の基本情報を確認", en: "View company information" }),
+          href: "/main/company",
         },
         {
-          label: "運営サービス",
-          description: "運営中のサービスを確認",
+          label: text({ ja: "運営サービス", en: "Services" }),
+          description: text({ ja: "運営中のサービスを確認", en: "View our services" }),
         },
       ],
     },
     {
       id: "settings",
-      label: "設定",
+      label: text({ ja: "設定", en: "Settings" }),
       icon: Settings,
       pages: [
-        { label: "アカウント", description: "ログイン情報を確認" },
-        { label: "プライバシー", description: "安全と公開範囲を設定" },
+        { label: text({ ja: "アカウント", en: "Account" }), description: text({ ja: "ログイン情報を確認", en: "Review login information" }) },
+        { label: text({ ja: "プライバシー", en: "Privacy" }), description: text({ ja: "安全と公開範囲を設定", en: "Manage safety and visibility" }) },
       ],
     },
   ];
@@ -146,7 +153,7 @@ export function AppFooter() {
 
       {showMenuHint && !isMenuOpen ? (
         <span id="footerMenuHint" className="footerMenuHint">
-          メニュー切替
+          {text({ ja: "メニュー切替", en: "Switch menu" })}
         </span>
       ) : null}
 
@@ -226,11 +233,11 @@ export function AppFooter() {
                 <nav className="footerMenuNav" aria-label="Footer menu">
                   <button type="button">
                     <CircleUserRound aria-hidden="true" />
-                    <span>My Page</span>
+                    <span>{text({ ja: "マイページ", en: "My Page" })}</span>
                   </button>
                   <button type="button">
                     <MessageCircle aria-hidden="true" />
-                    <span>Quick Menu</span>
+                    <span>{text({ ja: "クイックメニュー", en: "Quick Menu" })}</span>
                   </button>
                   <button
                     type="button"
@@ -239,7 +246,7 @@ export function AppFooter() {
                     onClick={() => setIsWorkspaceOpen(true)}
                   >
                     <Menu aria-hidden="true" />
-                    <span>Menu</span>
+                    <span>{text({ ja: "メニュー", en: "Menu" })}</span>
                   </button>
                 </nav>
               </div>
@@ -270,7 +277,7 @@ export function AppFooter() {
               <span className="userWorkspaceHeadingPaw" aria-hidden="true">
                 <PawPrint />
               </span>
-              <strong>MENU</strong>
+              <strong>{text({ ja: "メニュー", en: "MENU" })}</strong>
             </div>
             <button
               type="button"
@@ -282,7 +289,7 @@ export function AppFooter() {
           </header>
 
           <div className="userWorkspaceTrail" aria-label="現在位置">
-            <span>メニュー</span>
+            <span>{text({ ja: "メニュー", en: "Menu" })}</span>
             <ChevronRight aria-hidden="true" />
             <strong>{activeWorkspaceCategory.label}</strong>
           </div>
@@ -316,7 +323,15 @@ export function AppFooter() {
             <section className="userWorkspacePages">
               <div className="userWorkspacePageList">
                 {activeWorkspaceCategory.pages.map((page) => (
-                  <button key={page.label} type="button">
+                  <button
+                    key={page.label}
+                    type="button"
+                    onClick={() => {
+                      if (!("href" in page) || !page.href) return;
+                      setIsWorkspaceOpen(false);
+                      router.push(page.href);
+                    }}
+                  >
                     <span>
                       <strong>{page.label}</strong>
                       <small>{page.description}</small>
