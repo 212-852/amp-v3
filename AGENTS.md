@@ -44,6 +44,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Design Rules
 
+- Address entry forms must reuse the shared `Address` component with prefecture, city, and address-detail fields. Do not create page-specific address selectors.
+
 - Keep the existing warm color palette for user-facing pages.
 - Treat the user-facing header and footer as locked components.
 - Do not modify the user-facing header, footer, or their related styles unless the user explicitly requests that specific change.

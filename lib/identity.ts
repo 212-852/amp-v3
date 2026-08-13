@@ -78,6 +78,12 @@ export type IdentityRequest =
       company: CompanyConfig;
     }
   | {
+      action: "list_places";
+      placeType: "prefectures" | "cities";
+      language: "ja" | "en";
+      prefectureCode?: string;
+    }
+  | {
       action: "create_auth_token";
       visitorUuid: string;
       tokenHash: string;
@@ -146,7 +152,11 @@ type SessionResult = {
 
 export type CompanyConfig = {
   name: Record<string, string>;
-  address: Record<string, string>;
+  address: {
+    prefectureCode: string;
+    cityCode: string;
+    detail: string;
+  };
 };
 
 function normalizeLanguage(language: unknown): Language {
@@ -195,6 +205,9 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_company_config" }>,
 ): Promise<CompanyConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "list_places" }>,
+): Promise<Array<{ code: string; name: string }>>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "create_auth_token" }>,
 ): Promise<{ tokenUuid: string }>;
@@ -279,6 +292,9 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "update_company_config":
       return updateCompanyConfig(request.company);
+
+    case "list_places":
+      return listPlaces(request);
 
     case "create_auth_token":
       return createAuthToken(request);
@@ -1019,15 +1035,20 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
 
   const company = data?.company;
   if (!company || typeof company !== "object" || Array.isArray(company)) {
-    return { name: { ja: "", en: "" }, address: { ja: "", en: "" } };
+    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: "" } };
   }
 
   const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
     ? Object.fromEntries(Object.entries(company.name).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
     : {};
-  const address = "address" in company && company.address && typeof company.address === "object" && !Array.isArray(company.address)
-    ? Object.fromEntries(Object.entries(company.address).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+  const rawAddress = "address" in company && company.address && typeof company.address === "object" && !Array.isArray(company.address)
+    ? company.address
     : {};
+  const address = {
+    prefectureCode: "prefectureCode" in rawAddress && typeof rawAddress.prefectureCode === "string" ? rawAddress.prefectureCode : "",
+    cityCode: "cityCode" in rawAddress && typeof rawAddress.cityCode === "string" ? rawAddress.cityCode : "",
+    detail: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "",
+  };
 
   return { name, address };
 }
@@ -1042,4 +1063,31 @@ async function updateCompanyConfig(company: CompanyConfig) {
 
   if (error) throw new Error(`Company update failed: ${error.message}`);
   return company;
+}
+
+async function listPlaces(
+  request: Extract<IdentityRequest, { action: "list_places" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const isPrefecture = request.placeType === "prefectures";
+  const codeColumn = isPrefecture ? "prefecture_code" : "city_code";
+  const nameColumn = isPrefecture
+    ? `prefecture_name_${request.language}`
+    : `city_name_${request.language}`;
+  let query = supabase
+    .from(request.placeType)
+    .select(`${codeColumn}, ${nameColumn}`)
+    .order(codeColumn, { ascending: true });
+
+  if (!isPrefecture && request.prefectureCode) {
+    query = query.eq("prefecture_code", request.prefectureCode);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Place lookup failed: ${error.message}`);
+
+  return (data as unknown as Array<Record<string, unknown>>).map((item) => ({
+    code: String(item[codeColumn] ?? ""),
+    name: String(item[nameColumn] ?? ""),
+  }));
 }

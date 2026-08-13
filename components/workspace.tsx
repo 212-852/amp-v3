@@ -4,6 +4,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, LockKeyhole, MessageCircle, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
 
+import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
 import { defaultLanguageOptions, type LanguageOption } from "@/lib/i18n";
@@ -22,7 +23,7 @@ type WorkspaceProps = {
 
 type CompanyConfig = {
   name: Record<string, string>;
-  address: Record<string, string>;
+  address: AddressValue;
 };
 
 export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, direct = false, onGroupChange }: WorkspaceProps) {
@@ -40,7 +41,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [languageError, setLanguageError] = useState("");
   const [company, setCompany] = useState<CompanyConfig>({
     name: { ja: "", en: "" },
-    address: { ja: "", en: "" },
+    address: { prefectureCode: "", cityCode: "", detail: "" },
   });
   const [companyStatus, setCompanyStatus] = useState("");
   const [companyLanguage, setCompanyLanguage] = useState<"ja" | "en">("ja");
@@ -124,14 +125,10 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     setCompanyStatus(response.ok ? "保存しました" : "保存できませんでした");
   }
 
-  function updateCompany(
-    field: keyof CompanyConfig,
-    language: "ja" | "en",
-    value: string,
-  ) {
+  function updateCompanyName(language: "ja" | "en", value: string) {
     setCompany((current) => ({
       ...current,
-      [field]: { ...current[field], [language]: value },
+      name: { ...current.name, [language]: value },
     }));
   }
 
@@ -235,8 +232,12 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                   </div>
                   <fieldset>
                     <legend className="srOnly">{companyLanguage === "ja" ? "日本語" : "English"}</legend>
-                    <label>{companyLanguage === "ja" ? "会社名" : "Company name"}<input required value={company.name[companyLanguage] ?? ""} onChange={(event) => updateCompany("name", companyLanguage, event.target.value)} /></label>
-                    <label>{companyLanguage === "ja" ? "住所" : "Address"}<textarea value={company.address[companyLanguage] ?? ""} onChange={(event) => updateCompany("address", companyLanguage, event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "会社名" : "Company name"}<input required value={company.name[companyLanguage] ?? ""} onChange={(event) => updateCompanyName(companyLanguage, event.target.value)} /></label>
+                    <Address
+                      language={companyLanguage}
+                      value={company.address}
+                      onChange={(address) => setCompany((current) => ({ ...current, address }))}
+                    />
                   </fieldset>
                   <div className="workspaceCompanyActions">
                     <span role="status">{companyStatus}</span>

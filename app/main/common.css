@@ -414,6 +414,26 @@ body:has(.driverApp) {
   padding-top: 54px;
 }
 
+.adminMenuTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  margin: -48px 58px 20px 0;
+  color: #222;
+}
+
+.adminMenuTitle svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2;
+}
+
+.adminMenuTitle strong {
+  font-size: 18px;
+  letter-spacing: .08em;
+}
+
 .adminMenuModal {
   font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
     "Hiragino Kaku Gothic ProN", sans-serif;

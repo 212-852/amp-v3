@@ -29,6 +29,6 @@ insert into public.configs (config_id, languages, company)
 values (
   1,
   '[{"code":"ja","name":"日本語"},{"code":"en","name":"English"}]'::jsonb,
-  '{"name":{"ja":"Wan Da Nya Inc.","en":"Wan Da Nya Inc."},"address":{"ja":"","en":""}}'::jsonb
+  '{"name":{"ja":"Wan Da Nya Inc.","en":"Wan Da Nya Inc."},"address":{"prefectureCode":"","cityCode":"","detail":""}}'::jsonb
 )
 on conflict (config_id) do nothing;

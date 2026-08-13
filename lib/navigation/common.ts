@@ -43,7 +43,7 @@ export const commonNavigation: NavigationGroup[] = [
   ] },
   { id: "chat", label: "チャット", icon: "chat", pages: [
     { id: "inbox", label: "受信トレイ", description: "届いたメッセージを確認します。" },
-    { id: "robot", label: "ロボ猫に相談", description: "ロボ猫と対話しながら操作を進めます。" },
+    { id: "robot", label: "Robo NEKOに相談", description: "Robo NEKOと対話しながら操作を進めます。" },
   ] },
   { id: "notifications", label: "通知", icon: "bell", pages: [
     { id: "all", label: "すべての通知", description: "システムからの通知を確認します。" },

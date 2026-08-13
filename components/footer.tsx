@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  Building2,
   ChevronRight,
   CircleUserRound,
   HelpCircle,
@@ -50,6 +51,21 @@ export function AppFooter() {
         {
           label: "プライバシーポリシー",
           description: "個人情報の取り扱いを確認",
+        },
+      ],
+    },
+    {
+      id: "company",
+      label: "運営会社",
+      icon: Building2,
+      pages: [
+        {
+          label: "会社概要",
+          description: "運営会社の基本情報を確認",
+        },
+        {
+          label: "運営サービス",
+          description: "運営中のサービスを確認",
         },
       ],
     },

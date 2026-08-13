@@ -10,7 +10,31 @@ import {
 } from "@/lib/identity";
 
 export async function GET(request: NextRequest) {
-  if (request.nextUrl.searchParams.get("resource") === "languages") {
+  const resource = request.nextUrl.searchParams.get("resource");
+
+  if (resource === "prefectures" || resource === "cities") {
+    const language = request.nextUrl.searchParams.get("language");
+    const prefectureCode = request.nextUrl.searchParams.get("prefecture") ?? undefined;
+    if (
+      (language !== "ja" && language !== "en") ||
+      (resource === "cities" && !prefectureCode)
+    ) {
+      return Response.json({ error: "Invalid place query." }, { status: 400 });
+    }
+    try {
+      const places = await identityDispatcher({
+        action: "list_places",
+        placeType: resource,
+        language,
+        prefectureCode,
+      });
+      return Response.json({ places });
+    } catch {
+      return Response.json({ error: "Places are unavailable." }, { status: 500 });
+    }
+  }
+
+  if (resource === "languages") {
     try {
       const languages = await identityDispatcher({ action: "list_supported_languages" });
       return Response.json({ languages });
@@ -19,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (request.nextUrl.searchParams.get("resource") === "company") {
+  if (resource === "company") {
     try {
       const company = await identityDispatcher({ action: "get_company_config" });
       return Response.json({ company });
@@ -115,7 +139,15 @@ export async function PATCH(request: NextRequest) {
         (item) => typeof item === "string",
       );
 
-    if (!isLocalizedText(company.name) || !isLocalizedText(company.address)) {
+    const address = company.address as Record<string, unknown> | undefined;
+    const isAddress =
+      Boolean(address) &&
+      !Array.isArray(address) &&
+      typeof address?.prefectureCode === "string" &&
+      typeof address.cityCode === "string" &&
+      typeof address.detail === "string";
+
+    if (!isLocalizedText(company.name) || !isAddress) {
       return Response.json({ error: "Invalid company configuration." }, { status: 400 });
     }
 
@@ -127,7 +159,11 @@ export async function PATCH(request: NextRequest) {
         action: "update_company_config",
         company: {
           name: company.name as Record<string, string>,
-          address: company.address as Record<string, string>,
+          address: {
+            prefectureCode: address!.prefectureCode as string,
+            cityCode: address!.cityCode as string,
+            detail: address!.detail as string,
+          },
         },
       });
       return Response.json({ company: updatedCompany });

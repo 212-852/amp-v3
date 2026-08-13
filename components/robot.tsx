@@ -123,7 +123,7 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
         <span
           className="adminRobot"
           role="img"
-          aria-label="Robot cat blinking"
+          aria-label="Robo NEKO blinking"
         />
         <span className="adminRobotDot" aria-hidden="true" />
       </button>
@@ -155,7 +155,7 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
               onClick={() => setIsTalkOpen(true)}
             >
               <Bot aria-hidden="true" />
-              ロボ猫
+              Robo NEKO
             </button>
           </div>
         </div>
@@ -178,6 +178,10 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
         panelClassName="adminMenuModal"
         onClose={() => setIsMenuOpen(false)}
       >
+        <div className="adminMenuTitle">
+          <Menu aria-hidden="true" />
+          <strong>MENU</strong>
+        </div>
         <Workspace
           compact
           groups={managementGroups}
@@ -187,11 +191,11 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
       </Modal>
 
       <Modal
-        label="ロボ猫とのトーク"
+        label="Robo NEKOとのトーク"
         open={isTalkOpen}
         overlayClassName="adminTalkOverlay"
         panelClassName="adminTalkPanel"
-        title="ロボ猫と話す"
+        title="Robo NEKOと話す"
         onClose={() => setIsTalkOpen(false)}
       >
         <div className="adminTalkRobot" aria-hidden="true">
@@ -215,8 +219,8 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
           <input
             type="text"
             value={talkMessage}
-            aria-label="ロボ猫へのメッセージ"
-            placeholder="ロボ猫に相談する"
+            aria-label="Robo NEKOへのメッセージ"
+            placeholder="Robo NEKOに相談する"
             autoComplete="off"
             onChange={(event) => setTalkMessage(event.target.value)}
           />
