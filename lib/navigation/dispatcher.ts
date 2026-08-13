@@ -10,5 +10,9 @@ const roleNavigation: Record<PortalRole, NavigationGroup[]> = {
 };
 
 export function navigationDispatcher(role: PortalRole): NavigationGroup[] {
+  if (role === "admin") {
+    return adminNavigation;
+  }
+
   return [...commonNavigation, ...roleNavigation[role]];
 }

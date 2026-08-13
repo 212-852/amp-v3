@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bell,
   CircleUserRound,
   ClipboardList,
   MessageCircle,
@@ -63,14 +62,6 @@ export function PortalToolbar({
           <Settings aria-hidden="true" />
         </button>
 
-        <button
-          className="adminToolButton"
-          type="button"
-          aria-label="Notifications"
-        >
-          <Bell aria-hidden="true" />
-          <span className="adminAlertDot" />
-        </button>
       </div>
     </>
   );

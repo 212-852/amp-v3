@@ -86,12 +86,14 @@ export const proxy: NextProxy = async (request, event) => {
       isLineInAppBrowser);
   const entrySource = isLiffEntrance ? "liff" : "web";
   const requestHeaders = new Headers(request.headers);
+  const isPublicAsset =
+    pathname.startsWith("/icons/") || pathname.startsWith("/images/");
 
   requestHeaders.set("x-entry-source", entrySource);
 
   let response: NextResponse;
 
-  if (pathname.startsWith("/api")) {
+  if (pathname.startsWith("/api") || isPublicAsset) {
     response = NextResponse.next({
       request: {
         headers: requestHeaders,
