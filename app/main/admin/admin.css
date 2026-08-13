@@ -9,6 +9,100 @@
   color: #1f1f1f;
 }
 
+.workspaceCompany {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 28px 24px;
+  color: #1f1f1f;
+}
+
+.workspaceCompany header {
+  margin-bottom: 20px;
+}
+
+.workspaceCompany h1,
+.workspaceCompany p {
+  margin: 0;
+}
+
+.workspaceCompany h1 {
+  font-size: 24px;
+}
+
+.workspaceCompany header p {
+  margin-top: 6px;
+  color: #717171;
+  font-size: 14px;
+}
+
+.workspaceCompany form {
+  display: grid;
+  gap: 20px;
+}
+
+.workspaceCompany fieldset {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.workspaceCompany legend {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workspaceCompany label {
+  display: grid;
+  gap: 5px;
+  color: #555;
+  font-size: 12px;
+}
+
+.workspaceCompany input,
+.workspaceCompany textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 10px;
+  color: #222;
+  font: inherit;
+  font-size: 13px;
+}
+
+.workspaceCompany textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.workspaceCompanyActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.workspaceCompanyActions span {
+  color: #666;
+  font-size: 12px;
+}
+
+.workspaceCompanyActions button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #222;
+  padding: 8px 20px;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
 .workspaceLanguages header {
   margin-bottom: 20px;
 }
@@ -64,4 +158,55 @@
 .workspaceLanguages li > small {
   color: #555;
   font-size: 12px;
+}
+
+.workspaceLanguageForm {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.workspaceLanguageForm input,
+.workspaceLanguageForm button {
+  min-height: 40px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #222;
+  font: inherit;
+  font-size: 13px;
+}
+
+.workspaceLanguageForm button {
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+}
+
+.workspaceLanguageError {
+  margin: -8px 0 14px;
+  color: #9a3030;
+  font-size: 12px;
+}
+
+.workspaceLanguages li > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #777;
+  cursor: pointer;
+}
+
+.workspaceLanguages li > button:disabled {
+  visibility: hidden;
+}
+
+.workspaceLanguages li > button svg {
+  width: 17px;
+  height: 17px;
 }

@@ -12,9 +12,7 @@ import { Modal } from "@/components/modal";
 import { Toast } from "@/components/toast";
 import {
   getTranslation,
-  languageNames,
   type Language,
-  supportedLanguages,
 } from "@/lib/i18n";
 
 type SupabaseIdentity = {
@@ -124,7 +122,7 @@ async function hashNonce(nonce: string) {
 }
 
 export function AppHeader() {
-  const { language, setLanguage } = useLanguage();
+  const { language, languages, setLanguage } = useLanguage();
   const {
     identity,
     isInitializing: isLineInitializing,
@@ -864,18 +862,18 @@ export function AppHeader() {
               )}
               style={languagePosition}
             >
-              {supportedLanguages.map((option) => (
+              {languages.map((option) => (
                 <button
-                  className={option === language ? "isActive" : ""}
-                  key={option}
+                  className={option.code === language ? "isActive" : ""}
+                  key={option.code}
                   type="button"
                   role="menuitemradio"
-                  aria-checked={option === language}
+                  aria-checked={option.code === language}
                   disabled={isLanguageSaving}
-                  onClick={() => void selectLanguage(option)}
+                  onClick={() => void selectLanguage(option.code)}
                 >
-                  <span>{languageNames[option]}</span>
-                  {option === language ? <Check aria-hidden="true" /> : null}
+                  <span>{option.name}</span>
+                  {option.code === language ? <Check aria-hidden="true" /> : null}
                 </button>
               ))}
             </div>,

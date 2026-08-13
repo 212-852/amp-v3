@@ -1,19 +1,30 @@
 export const supportedLanguages = ["ja", "en"] as const;
 
-export type Language = (typeof supportedLanguages)[number];
+export type Language = string;
 
-export type Translation = Readonly<Record<Language, string>>;
+export type LanguageOption = {
+  code: Language;
+  name: string;
+};
 
-export const languageNames: Readonly<Record<Language, string>> = {
+export type Translation = Readonly<Record<string, string>>;
+
+export const languageNames: Readonly<Record<string, string>> = {
   ja: "日本語",
   en: "English",
 };
 
 export const DEFAULT_LANGUAGE: Language = "en";
 export const LANGUAGE_STORAGE_KEY = "pet_taxi_language";
+export const defaultLanguageOptions: readonly LanguageOption[] =
+  supportedLanguages.map((code) => ({ code, name: languageNames[code] }));
+
+export function isLanguageCode(value: unknown): value is Language {
+  return typeof value === "string" && /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(value);
+}
 
 export function isSupportedLanguage(value: unknown): value is Language {
-  return supportedLanguages.includes(value as Language);
+  return supportedLanguages.some((language) => language === value);
 }
 
 export function detectLanguage(
@@ -28,7 +39,7 @@ export function resolveLanguage(
   savedLanguage: unknown,
   browserLanguages: readonly string[],
 ): Language {
-  return isSupportedLanguage(savedLanguage)
+  return isLanguageCode(savedLanguage)
     ? savedLanguage
     : detectLanguage(browserLanguages);
 }
@@ -37,11 +48,16 @@ export function getTranslation(
   translation: Translation,
   language: Language,
 ): string {
-  return translation[language];
+  return (
+    translation[language] ??
+    translation[DEFAULT_LANGUAGE] ??
+    translation.ja ??
+    ""
+  );
 }
 
 export function getNextLanguage(language: Language): Language {
-  const currentIndex = supportedLanguages.indexOf(language);
+  const currentIndex = supportedLanguages.findIndex((item) => item === language);
 
   return supportedLanguages[(currentIndex + 1) % supportedLanguages.length];
 }

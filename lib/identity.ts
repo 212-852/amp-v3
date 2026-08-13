@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import {
   DEFAULT_LANGUAGE,
-  isSupportedLanguage,
+  isLanguageCode,
   type Language,
 } from "@/lib/i18n";
 
@@ -61,6 +61,21 @@ export type IdentityRequest =
       action: "update_session_language";
       sessionToken: string;
       language: Language;
+    }
+  | { action: "list_supported_languages" }
+  | {
+      action: "add_supported_language";
+      language: Language;
+      displayName: string;
+    }
+  | {
+      action: "remove_supported_language";
+      language: Language;
+    }
+  | { action: "get_company_config" }
+  | {
+      action: "update_company_config";
+      company: CompanyConfig;
     }
   | {
       action: "create_auth_token";
@@ -129,8 +144,13 @@ type SessionResult = {
   expiresAt: string;
 };
 
+export type CompanyConfig = {
+  name: Record<string, string>;
+  address: Record<string, string>;
+};
+
 function normalizeLanguage(language: unknown): Language {
-  return isSupportedLanguage(language) ? language : DEFAULT_LANGUAGE;
+  return isLanguageCode(language) ? language : DEFAULT_LANGUAGE;
 }
 
 export function identityDispatcher(
@@ -160,6 +180,21 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_session_language" }>,
 ): Promise<{ language: Language }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "list_supported_languages" }>,
+): Promise<Array<{ code: Language; name: string }>>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "add_supported_language" }>,
+): Promise<{ code: Language; name: string }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "remove_supported_language" }>,
+): Promise<{ removed: boolean }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_company_config" }>,
+): Promise<CompanyConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_company_config" }>,
+): Promise<CompanyConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "create_auth_token" }>,
 ): Promise<{ tokenUuid: string }>;
@@ -229,6 +264,21 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "update_session_language":
       return updateSessionLanguage(request.sessionToken, request.language);
+
+    case "list_supported_languages":
+      return listSupportedLanguages();
+
+    case "add_supported_language":
+      return addSupportedLanguage(request.language, request.displayName);
+
+    case "remove_supported_language":
+      return removeSupportedLanguage(request.language);
+
+    case "get_company_config":
+      return getCompanyConfig();
+
+    case "update_company_config":
+      return updateCompanyConfig(request.company);
 
     case "create_auth_token":
       return createAuthToken(request);
@@ -855,6 +905,12 @@ async function updateSessionLanguage(
   language: Language,
 ) {
   const supabase = getSupabaseAdmin();
+  const languages = await listSupportedLanguages();
+
+  if (!languages.some((item) => item.code === language)) {
+    throw new Error("Selected language is not supported.");
+  }
+
   const sessionTokenHash = await hashSessionToken(sessionToken);
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
@@ -882,4 +938,108 @@ async function updateSessionLanguage(
   }
 
   return { language };
+}
+
+async function listSupportedLanguages() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("languages")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Language lookup failed: ${error.message}`);
+
+  if (!Array.isArray(data?.languages)) return [];
+
+  return data.languages.flatMap((item) => {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("code" in item) ||
+      !("name" in item) ||
+      !isLanguageCode(item.code) ||
+      typeof item.name !== "string"
+    ) {
+      return [];
+    }
+
+    return [{ code: item.code, name: item.name }];
+  });
+}
+
+async function addSupportedLanguage(language: Language, displayName: string) {
+  const supabase = getSupabaseAdmin();
+  const languages = await listSupportedLanguages();
+  if (languages.some((item) => item.code === language)) {
+    throw new Error("Language already exists.");
+  }
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    languages: [...languages, { code: language, name: displayName }],
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Language creation failed: ${error.message}`);
+  return { code: language, name: displayName };
+}
+
+async function removeSupportedLanguage(language: Language) {
+  if (language === "ja") throw new Error("The default language cannot be removed.");
+
+  const supabase = getSupabaseAdmin();
+  const { count, error: usageError } = await supabase
+    .from("users")
+    .select("user_uuid", { count: "exact", head: true })
+    .eq("language", language);
+
+  if (usageError) throw new Error(`Language usage lookup failed: ${usageError.message}`);
+  if ((count ?? 0) > 0) throw new Error("The language is currently used by users.");
+
+  const languages = await listSupportedLanguages();
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    languages: languages.filter((item) => item.code !== language),
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Language deletion failed: ${error.message}`);
+  return { removed: true };
+}
+
+async function getCompanyConfig(): Promise<CompanyConfig> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("company")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Company lookup failed: ${error.message}`);
+
+  const company = data?.company;
+  if (!company || typeof company !== "object" || Array.isArray(company)) {
+    return { name: { ja: "", en: "" }, address: { ja: "", en: "" } };
+  }
+
+  const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
+    ? Object.fromEntries(Object.entries(company.name).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : {};
+  const address = "address" in company && company.address && typeof company.address === "object" && !Array.isArray(company.address)
+    ? Object.fromEntries(Object.entries(company.address).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : {};
+
+  return { name, address };
+}
+
+async function updateCompanyConfig(company: CompanyConfig) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    company,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Company update failed: ${error.message}`);
+  return company;
 }

@@ -25,6 +25,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Adding a new supported language must not require changes to existing component logic in principle.
 - All new screens and features must follow these internationalization rules.
 - Maintain a structure that can use the language saved for a user as the display language.
+- Use the language saved on the user record as the key for selecting display text.
+- Store fixed web application copy inline as language-keyed translations such as `{ ja: "こんにちは", en: "Hello", es: "Hola" }` and resolve it through the shared i18n foundation.
+- The supported-language administration UI manages only language codes and display names; translation copy remains defined in code.
+- For non-template text such as future chat messages, use an AI or translation API to translate between the original text and the user's configured language.
+- Preserve the original text for automatically translated content and provide a way for the user to reveal it.
 
 ## Naming Rules
 

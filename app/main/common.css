@@ -322,19 +322,34 @@ body:has(.driverApp) {
 
 .adminMenuOpen {
   display: inline-flex;
-  gap: 6px;
+  gap: 7px;
   align-items: center;
   width: fit-content;
   margin-top: 7px;
-  border: 0;
-  border-bottom: 1px solid #222;
-  background: transparent;
-  padding: 3px 0;
+  border: 1px solid #d7d7d7;
+  border-radius: 10px;
+  background: #f7f7f7;
+  padding: 8px 11px;
   color: #222;
   font: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.adminMenuOpen:hover {
+  border-color: #bdbdbd;
+  background: #ededed;
+}
+
+.adminMenuOpen:active {
+  transform: scale(.97);
+}
+
+.adminMenuOpen:focus-visible {
+  outline: 2px solid #555;
+  outline-offset: 2px;
 }
 
 .adminMenuOpen svg {
@@ -398,41 +413,6 @@ body:has(.driverApp) {
   padding-right: 48px;
   color: #171717;
   font-size: clamp(25px, 5vw, 34px);
-}
-
-.adminMenuLead {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.adminMenuIntro {
-  display: flex;
-  min-height: 34px;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 8px 0 22px;
-}
-
-.adminAccessTags {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.adminAccessTags span {
-  padding: 2px 6px;
-  border: 1px solid #dedede;
-  border-radius: 999px;
-  background: #f7f7f7;
-  color: #777;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .03em;
-  line-height: 1.4;
 }
 
 .adminMenuGrid {
@@ -818,12 +798,18 @@ body:has(.driverApp) {
 .workspacePlaceholder p { margin:0 0 24px; color:#555; }
 
 .portalWorkspaceCompact { overflow:hidden; background:#fff; }
-.portalWorkspaceCompact .workspaceTrail { min-height:38px; padding-inline:4px; background:#fff; font-size:12px; }
+.portalWorkspaceCompact .workspaceTrail,
+.portalWorkspaceCompact .workspaceHeading { display:none; }
+.portalWorkspaceCompact:not(.portalWorkspaceDirect) .workspacePages .workspaceHeading {
+  display:block;
+}
 .portalWorkspaceCompact .workspaceTrail button[aria-current="page"] { color:#222; }
 .portalWorkspaceCompact .workspaceTrack { width:300%; min-height:min(360px,48dvh); grid-template-columns:repeat(3,minmax(0,1fr)); background:#fff; transition:transform 320ms cubic-bezier(.2,.75,.25,1); }
 .portalWorkspaceCompact[data-level="0"] .workspaceTrack { transform:translateX(0); }
 .portalWorkspaceCompact[data-level="1"] .workspaceTrack { transform:translateX(-33.333333%); }
 .portalWorkspaceCompact[data-level="2"] .workspaceTrack { transform:translateX(-66.666667%); }
+.portalWorkspaceCompact.portalWorkspaceDirect .workspaceTrack { width:200%; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.portalWorkspaceCompact.portalWorkspaceDirect[data-level="1"] .workspaceTrack { transform:translateX(-50%); }
 .portalWorkspaceCompact .workspaceGroups, .portalWorkspaceCompact .workspacePages { gap:0; border-right:0; background:#fff; padding:14px 0; }
 .portalWorkspaceCompact .workspaceHeading { margin:0 4px 8px; }
 .portalWorkspaceCompact .workspaceGroups > button,

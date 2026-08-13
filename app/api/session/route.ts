@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { debugDispatcher } from "@/lib/debug";
-import { isSupportedLanguage } from "@/lib/i18n";
+import { defaultLanguageOptions, isLanguageCode } from "@/lib/i18n";
 import {
   identityDispatcher,
   SESSION_COOKIE_NAME,
@@ -10,6 +10,24 @@ import {
 } from "@/lib/identity";
 
 export async function GET(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("resource") === "languages") {
+    try {
+      const languages = await identityDispatcher({ action: "list_supported_languages" });
+      return Response.json({ languages });
+    } catch {
+      return Response.json({ languages: defaultLanguageOptions });
+    }
+  }
+
+  if (request.nextUrl.searchParams.get("resource") === "company") {
+    try {
+      const company = await identityDispatcher({ action: "get_company_config" });
+      return Response.json({ company });
+    } catch {
+      return Response.json({ error: "Company configuration is unavailable." }, { status: 500 });
+    }
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const loginProvider = request.cookies.get("login_provider")?.value;
 
@@ -75,14 +93,54 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const body = (await request.json().catch(() => null)) as {
+    resource?: unknown;
     language?: unknown;
+    company?: unknown;
   } | null;
+
+  if (body?.resource === "company") {
+    if (!body.company || typeof body.company !== "object" || Array.isArray(body.company)) {
+      return Response.json({ error: "Invalid company configuration." }, { status: 400 });
+    }
+
+    const company = body.company as {
+      name?: unknown;
+      address?: unknown;
+    };
+    const isLocalizedText = (value: unknown) =>
+      Boolean(value) &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.values(value as Record<string, unknown>).every(
+        (item) => typeof item === "string",
+      );
+
+    if (!isLocalizedText(company.name) || !isLocalizedText(company.address)) {
+      return Response.json({ error: "Invalid company configuration." }, { status: 400 });
+    }
+
+    try {
+      if (!(await requireLanguageAdministrator(request))) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
+      const updatedCompany = await identityDispatcher({
+        action: "update_company_config",
+        company: {
+          name: company.name as Record<string, string>,
+          address: company.address as Record<string, string>,
+        },
+      });
+      return Response.json({ company: updatedCompany });
+    } catch {
+      return Response.json({ error: "Company configuration could not be saved." }, { status: 500 });
+    }
+  }
 
   if (!sessionToken) {
     return Response.json({ error: "Authentication is required." }, { status: 401 });
   }
 
-  if (!isSupportedLanguage(body?.language)) {
+  if (!isLanguageCode(body?.language)) {
     return Response.json({ error: "Unsupported language." }, { status: 400 });
   }
 
@@ -99,7 +157,58 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+async function requireLanguageAdministrator(request: NextRequest) {
+  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!sessionToken) return null;
+  const identity = await identityDispatcher({ action: "resolve_session", sessionToken });
+  return identity?.role === "admin" && ["owner", "core"].includes(identity.tier)
+    ? identity
+    : null;
+}
+
+export async function PUT(request: NextRequest) {
+  const body = (await request.json().catch(() => null)) as {
+    code?: unknown;
+    name?: unknown;
+  } | null;
+
+  if (!isLanguageCode(body?.code) || typeof body?.name !== "string" || !body.name.trim()) {
+    return Response.json({ error: "Invalid language." }, { status: 400 });
+  }
+
+  try {
+    if (!(await requireLanguageAdministrator(request))) {
+      return Response.json({ error: "Forbidden." }, { status: 403 });
+    }
+    const language = await identityDispatcher({
+      action: "add_supported_language",
+      language: body.code,
+      displayName: body.name.trim(),
+    });
+    return Response.json({ language });
+  } catch {
+    return Response.json({ error: "Language could not be added." }, { status: 409 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("resource") === "language") {
+    const language = request.nextUrl.searchParams.get("code");
+    if (!isLanguageCode(language)) {
+      return Response.json({ error: "Invalid language." }, { status: 400 });
+    }
+    try {
+      if (!(await requireLanguageAdministrator(request))) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
+      return Response.json(
+        await identityDispatcher({ action: "remove_supported_language", language }),
+      );
+    } catch {
+      return Response.json({ error: "Language is in use or cannot be removed." }, { status: 409 });
+    }
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   try {
