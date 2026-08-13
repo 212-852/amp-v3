@@ -388,6 +388,7 @@ body:has(.driverApp) {
 
 .adminModalOverlay .modalClose {
   position: absolute;
+  z-index: 10;
   top: 16px;
   right: 16px;
   display: grid;
@@ -399,6 +400,18 @@ body:has(.driverApp) {
   background: #ededed;
   color: #222;
   cursor: pointer;
+}
+
+.adminModalOverlay .modalClose svg {
+  width: 25px;
+  height: 25px;
+  color: #111;
+  stroke: #111;
+  stroke-width: 2.4;
+}
+
+.adminMenuModal .modalBody {
+  padding-top: 54px;
 }
 
 .adminMenuModal {

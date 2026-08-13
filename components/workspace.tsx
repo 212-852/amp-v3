@@ -43,6 +43,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     address: { ja: "", en: "" },
   });
   const [companyStatus, setCompanyStatus] = useState("");
+  const [companyLanguage, setCompanyLanguage] = useState<"ja" | "en">("ja");
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
@@ -228,15 +229,14 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                   <p>ウェブアプリで共通利用する会社情報です。</p>
                 </header>
                 <form onSubmit={saveCompany}>
+                  <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
+                    <button className={companyLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={companyLanguage === "ja"} onClick={() => setCompanyLanguage("ja")}>日本語</button>
+                    <button className={companyLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={companyLanguage === "en"} onClick={() => setCompanyLanguage("en")}>English</button>
+                  </div>
                   <fieldset>
-                    <legend>日本語</legend>
-                    <label>会社名<input required value={company.name.ja ?? ""} onChange={(event) => updateCompany("name", "ja", event.target.value)} /></label>
-                    <label>住所<textarea value={company.address.ja ?? ""} onChange={(event) => updateCompany("address", "ja", event.target.value)} /></label>
-                  </fieldset>
-                  <fieldset>
-                    <legend>English</legend>
-                    <label>Company name<input required value={company.name.en ?? ""} onChange={(event) => updateCompany("name", "en", event.target.value)} /></label>
-                    <label>Address<textarea value={company.address.en ?? ""} onChange={(event) => updateCompany("address", "en", event.target.value)} /></label>
+                    <legend className="srOnly">{companyLanguage === "ja" ? "日本語" : "English"}</legend>
+                    <label>{companyLanguage === "ja" ? "会社名" : "Company name"}<input required value={company.name[companyLanguage] ?? ""} onChange={(event) => updateCompany("name", companyLanguage, event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "住所" : "Address"}<textarea value={company.address[companyLanguage] ?? ""} onChange={(event) => updateCompany("address", companyLanguage, event.target.value)} /></label>
                   </fieldset>
                   <div className="workspaceCompanyActions">
                     <span role="status">{companyStatus}</span>
