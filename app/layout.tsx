@@ -36,6 +36,34 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PET TAXI",
   description: "PET TAXI Web App",
+  applicationName: "PET TAXI",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PET TAXI",
+  },
+  icons: {
+    icon: [
+      {
+        url: "/icons/icon_192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon_512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/icons/apple_icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export const viewport: Viewport = {

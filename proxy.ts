@@ -87,7 +87,9 @@ export const proxy: NextProxy = async (request, event) => {
   const entrySource = isLiffEntrance ? "liff" : "web";
   const requestHeaders = new Headers(request.headers);
   const isPublicAsset =
-    pathname.startsWith("/icons/") || pathname.startsWith("/images/");
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/images/");
 
   requestHeaders.set("x-entry-source", entrySource);
 
