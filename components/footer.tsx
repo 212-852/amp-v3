@@ -27,6 +27,7 @@ export function AppFooter() {
   const pathname = usePathname();
   const { language, companyName, copyright } = useLanguage();
   const text = (translation: Translation) => getTranslation(translation, language);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [assistantMode, setAssistantMode] = useState<"bot" | "concierge">(
     "bot",
@@ -34,7 +35,6 @@ export function AppFooter() {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [workspaceCategory, setWorkspaceCategory] = useState("support");
   const isHomePage = pathname === "/" || pathname === "/main" || pathname === "/liff";
-  const isMenuOpen = !isHomePage;
   const copyrightText = getCopyright(copyright, companyName, language, "main");
 
   const workspaceCategories = [
@@ -115,6 +115,15 @@ export function AppFooter() {
     };
   }, [isWorkspaceOpen]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsMenuOpen(!isHomePage), 0);
+    return () => window.clearTimeout(timer);
+  }, [isHomePage]);
+
+  function handleFooterFlip() {
+    setIsMenuOpen((current) => !current);
+  }
+
   return (
     <footer className="appFooter">
       <svg
@@ -129,10 +138,11 @@ export function AppFooter() {
       <button
         className="footerAssistantButton footerFixedAssistant"
         type="button"
-        aria-label={text({ ja: "アシスタント", en: "Assistant" })}
+        aria-label={isMenuOpen
+          ? text({ ja: "チャットを表示", en: "Show chat" })
+          : text({ ja: "メニューを表示", en: "Show menu" })}
         aria-expanded={isMenuOpen}
-        aria-disabled="true"
-        disabled
+        onClick={handleFooterFlip}
       >
         <Image
           className="footerAssistantIcon"
