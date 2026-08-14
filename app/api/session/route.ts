@@ -149,7 +149,7 @@ export async function PATCH(request: NextRequest) {
       copyright?.services &&
       typeof copyright.services === "object" &&
       !Array.isArray(copyright.services) &&
-      ["main", "airport", "corporate", "flight"].every((service) => {
+      ["main", "tokyo", "airport", "corporate", "flight"].every((service) => {
         const item = (copyright.services as Record<string, unknown>)[service];
         return Boolean(item) && typeof item === "object" && !Array.isArray(item) &&
           Object.values(item as Record<string, unknown>).every((value) => typeof value === "string");

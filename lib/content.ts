@@ -1,6 +1,6 @@
 import { getTranslation, type Language, type Translation } from "@/lib/i18n";
 
-export type ServiceId = "main" | "airport" | "corporate" | "flight";
+export type ServiceId = "main" | "tokyo" | "airport" | "corporate" | "flight";
 
 export type CopyrightConfig = {
   startYear: number;
@@ -11,6 +11,7 @@ export const defaultCopyright: CopyrightConfig = {
   startYear: 2006,
   services: {
     main: { ja: "PET TAXI", en: "PET TAXI" },
+    tokyo: { ja: "ペットタクシー東京", en: "PET TAXI TOKYO" },
     airport: { ja: "PET TAXI AIRPORT", en: "PET TAXI AIRPORT" },
     corporate: { ja: "PET TAXI", en: "PET TAXI" },
     flight: { ja: "PawsFlight Japan", en: "PawsFlight Japan" },

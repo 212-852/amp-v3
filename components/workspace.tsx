@@ -307,6 +307,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                     <legend className="srOnly">{copyrightLanguage === "ja" ? "日本語" : "English"}</legend>
                     {([
                       ["main", "PET TAXI"],
+                      ["tokyo", "ペットタクシー東京"],
                       ["airport", "PET TAXI AIRPORT"],
                       ["corporate", "コーポレート"],
                       ["flight", "PawsFlight Japan"],
