@@ -7,6 +7,7 @@ import {
   isLanguageCode,
   type Language,
 } from "@/lib/i18n";
+import { defaultCopyright, type CopyrightConfig } from "@/lib/content";
 
 type EntrySource = "liff" | "web" | "pwa";
 
@@ -73,9 +74,15 @@ export type IdentityRequest =
       language: Language;
     }
   | { action: "get_company_config" }
+  | { action: "get_app_config" }
+  | { action: "get_copyright_config" }
   | {
       action: "update_company_config";
       company: CompanyConfig;
+    }
+  | {
+      action: "update_copyright_config";
+      copyright: CopyrightConfig;
     }
   | {
       action: "list_places";
@@ -203,8 +210,17 @@ export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_company_config" }>,
 ): Promise<CompanyConfig>;
 export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_app_config" }>,
+): Promise<{ languages: Array<{ code: Language; name: string }>; company: CompanyConfig; copyright: CopyrightConfig }>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_copyright_config" }>,
+): Promise<CopyrightConfig>;
+export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_company_config" }>,
 ): Promise<CompanyConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_copyright_config" }>,
+): Promise<CopyrightConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "list_places" }>,
 ): Promise<Array<{ code: string; name: string }>>;
@@ -290,8 +306,17 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "get_company_config":
       return getCompanyConfig();
 
+    case "get_app_config":
+      return getAppConfig();
+
+    case "get_copyright_config":
+      return getCopyrightConfig();
+
     case "update_company_config":
       return updateCompanyConfig(request.company);
+
+    case "update_copyright_config":
+      return updateCopyrightConfig(request.copyright);
 
     case "list_places":
       return listPlaces(request);
@@ -1053,6 +1078,86 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
   return { name, address };
 }
 
+function normalizeCompanyConfig(company: unknown): CompanyConfig {
+  if (!company || typeof company !== "object" || Array.isArray(company)) {
+    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: "" } };
+  }
+
+  const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
+    ? Object.fromEntries(Object.entries(company.name).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : {};
+  const rawAddress = "address" in company && company.address && typeof company.address === "object" && !Array.isArray(company.address)
+    ? company.address
+    : {};
+
+  return {
+    name,
+    address: {
+      prefectureCode: "prefectureCode" in rawAddress && typeof rawAddress.prefectureCode === "string" ? rawAddress.prefectureCode : "",
+      cityCode: "cityCode" in rawAddress && typeof rawAddress.cityCode === "string" ? rawAddress.cityCode : "",
+      detail: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "",
+    },
+  };
+}
+
+function normalizeCopyrightConfig(value: unknown): CopyrightConfig {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaultCopyright;
+  const startYear = "startYear" in value && Number.isInteger(value.startYear)
+    ? Number(value.startYear)
+    : defaultCopyright.startYear;
+  const rawServices: Record<string, unknown> = "services" in value && value.services && typeof value.services === "object" && !Array.isArray(value.services)
+    ? value.services as Record<string, unknown>
+    : {};
+  const services = { ...defaultCopyright.services };
+
+  for (const service of Object.keys(services) as Array<keyof typeof services>) {
+    const item = service in rawServices ? rawServices[service] : null;
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      services[service] = Object.fromEntries(
+        Object.entries(item).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+      );
+    }
+  }
+
+  return { startYear, services };
+}
+
+async function getAppConfig() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("languages, company, copyright")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Application configuration lookup failed: ${error.message}`);
+  const languages = Array.isArray(data?.languages)
+    ? data.languages.flatMap((item) =>
+        item && typeof item === "object" && "code" in item && "name" in item && isLanguageCode(item.code) && typeof item.name === "string"
+          ? [{ code: item.code, name: item.name }]
+          : [],
+      )
+    : [];
+
+  return {
+    languages,
+    company: normalizeCompanyConfig(data?.company),
+    copyright: normalizeCopyrightConfig(data?.copyright),
+  };
+}
+
+async function getCopyrightConfig() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("copyright")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Copyright lookup failed: ${error.message}`);
+  return normalizeCopyrightConfig(data?.copyright);
+}
+
 async function updateCompanyConfig(company: CompanyConfig) {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("configs").upsert({
@@ -1063,6 +1168,18 @@ async function updateCompanyConfig(company: CompanyConfig) {
 
   if (error) throw new Error(`Company update failed: ${error.message}`);
   return company;
+}
+
+async function updateCopyrightConfig(copyright: CopyrightConfig) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    copyright,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Copyright update failed: ${error.message}`);
+  return copyright;
 }
 
 async function listPlaces(

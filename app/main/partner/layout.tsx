@@ -2,6 +2,7 @@ import type { Viewport } from "next";
 
 import { PortalToolbar, RobotNotice } from "@/components/robot";
 import { getCopyright } from "@/lib/content";
+import { identityDispatcher } from "@/lib/identity";
 import "@/app/main/common.css";
 import "@/app/main/partner/partner.css";
 
@@ -9,9 +10,10 @@ export const viewport: Viewport = {
   themeColor: "#f7f7f7",
 };
 
-export default function PartnerLayout({
+export default async function PartnerLayout({
   children,
 }: LayoutProps<"/main/partner">) {
+  const appConfig = await identityDispatcher({ action: "get_app_config" });
   return (
     <div className="adminApp partnerApp">
       <header className="adminHeader">
@@ -28,7 +30,7 @@ export default function PartnerLayout({
           message="You have a new partner notification."
           role="partner"
         />
-        <small>{getCopyright()}</small>
+        <small>{getCopyright(appConfig.copyright, appConfig.company.name, "ja", "corporate")}</small>
       </footer>
     </div>
   );

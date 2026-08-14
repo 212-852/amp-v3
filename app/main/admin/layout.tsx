@@ -23,13 +23,13 @@ export default async function AdminLayout({
         sessionToken,
       })
     : null;
-
   if (!session || session.role !== "admin") {
     const hostname = (await headers()).get("host")?.split(":")[0];
     redirect(
       hostname === "localhost" || hostname === "127.0.0.1" ? "/main" : "/",
     );
   }
+  const appConfig = await identityDispatcher({ action: "get_app_config" });
 
   return (
     <div className="adminApp">
@@ -48,7 +48,7 @@ export default async function AdminLayout({
           role="admin"
           tier={session.tier}
         />
-        <small>{getCopyright()}</small>
+        <small>{getCopyright(appConfig.copyright, appConfig.company.name, session.language, "corporate")}</small>
       </footer>
     </div>
   );

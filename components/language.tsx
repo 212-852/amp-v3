@@ -17,10 +17,13 @@ import {
   type LanguageOption,
   resolveLanguage,
 } from "@/lib/i18n";
+import { defaultCopyright, type CopyrightConfig } from "@/lib/content";
 
 type LanguageContextValue = {
   language: Language;
   languages: readonly LanguageOption[];
+  companyName: Record<string, string>;
+  copyright: CopyrightConfig;
   refreshLanguages: () => Promise<void>;
   setLanguage: (language: Language) => void;
 };
@@ -30,12 +33,20 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
   const [languages, setLanguages] = useState<readonly LanguageOption[]>(defaultLanguageOptions);
+  const [companyName, setCompanyName] = useState<Record<string, string>>({ ja: "Wan Da Nya Inc.", en: "Wan Da Nya Inc." });
+  const [copyright, setCopyright] = useState<CopyrightConfig>(defaultCopyright);
 
   const refreshLanguages = useCallback(async () => {
-    const response = await fetch("/api/session?resource=languages", { cache: "no-store" });
+    const response = await fetch("/api/session?resource=config", { cache: "no-store" });
     if (!response.ok) return;
-    const result = (await response.json()) as { languages?: LanguageOption[] };
+    const result = (await response.json()) as {
+      languages?: LanguageOption[];
+      company?: { name?: Record<string, string> };
+      copyright?: CopyrightConfig;
+    };
     if (result.languages?.length) setLanguages(result.languages);
+    if (result.company?.name) setCompanyName(result.company.name);
+    if (result.copyright) setCopyright(result.copyright);
   }, []);
 
   const setLanguage = useCallback((nextLanguage: Language) => {
@@ -67,8 +78,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [setLanguage]);
 
   const value = useMemo(
-    () => ({ language, languages, refreshLanguages, setLanguage }),
-    [language, languages, refreshLanguages, setLanguage],
+    () => ({ language, languages, companyName, copyright, refreshLanguages, setLanguage }),
+    [language, languages, companyName, copyright, refreshLanguages, setLanguage],
   );
 
   return <LanguageContext value={value}>{children}</LanguageContext>;

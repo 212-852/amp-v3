@@ -43,12 +43,29 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (resource === "config") {
+    try {
+      return Response.json(await identityDispatcher({ action: "get_app_config" }));
+    } catch {
+      return Response.json({ error: "Application configuration is unavailable." }, { status: 500 });
+    }
+  }
+
   if (resource === "company") {
     try {
       const company = await identityDispatcher({ action: "get_company_config" });
       return Response.json({ company });
     } catch {
       return Response.json({ error: "Company configuration is unavailable." }, { status: 500 });
+    }
+  }
+
+  if (resource === "copyright") {
+    try {
+      const copyright = await identityDispatcher({ action: "get_copyright_config" });
+      return Response.json({ copyright });
+    } catch {
+      return Response.json({ error: "Copyright configuration is unavailable." }, { status: 500 });
     }
   }
 
@@ -120,7 +137,41 @@ export async function PATCH(request: NextRequest) {
     resource?: unknown;
     language?: unknown;
     company?: unknown;
+    copyright?: unknown;
   } | null;
+
+  if (body?.resource === "copyright") {
+    const copyright = body.copyright as {
+      startYear?: unknown;
+      services?: unknown;
+    } | null;
+    const validServices =
+      copyright?.services &&
+      typeof copyright.services === "object" &&
+      !Array.isArray(copyright.services) &&
+      ["main", "airport", "corporate", "flight"].every((service) => {
+        const item = (copyright.services as Record<string, unknown>)[service];
+        return Boolean(item) && typeof item === "object" && !Array.isArray(item) &&
+          Object.values(item as Record<string, unknown>).every((value) => typeof value === "string");
+      });
+
+    if (!Number.isInteger(copyright?.startYear) || Number(copyright?.startYear) < 1900 || Number(copyright?.startYear) > new Date().getFullYear() || !validServices) {
+      return Response.json({ error: "Invalid copyright configuration." }, { status: 400 });
+    }
+
+    try {
+      if (!(await requireLanguageAdministrator(request))) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
+      const updatedCopyright = await identityDispatcher({
+        action: "update_copyright_config",
+        copyright: copyright as import("@/lib/content").CopyrightConfig,
+      });
+      return Response.json({ copyright: updatedCopyright });
+    } catch {
+      return Response.json({ error: "Copyright configuration could not be saved." }, { status: 500 });
+    }
+  }
 
   if (body?.resource === "company") {
     if (!body.company || typeof body.company !== "object" || Array.isArray(body.company)) {

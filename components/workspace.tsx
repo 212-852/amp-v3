@@ -8,6 +8,7 @@ import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
 import { defaultLanguageOptions, type LanguageOption } from "@/lib/i18n";
+import { defaultCopyright, type CopyrightConfig, type ServiceId } from "@/lib/content";
 
 const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, wrench: Wrench, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList };
 
@@ -45,12 +46,17 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   });
   const [companyStatus, setCompanyStatus] = useState("");
   const [companyLanguage, setCompanyLanguage] = useState<"ja" | "en">("ja");
+  const [copyright, setCopyright] = useState<CopyrightConfig>(defaultCopyright);
+  const [copyrightStatus, setCopyrightStatus] = useState("");
+  const [copyrightLanguage, setCopyrightLanguage] = useState<"ja" | "en">("ja");
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
     role === "admin" && group?.id === "languages" && page?.id === "supported";
   const showCompany =
     role === "admin" && group?.id === "languages" && page?.id === "company";
+  const showCopyright =
+    role === "admin" && group?.id === "languages" && page?.id === "copyright";
 
   const loadLanguages = useCallback(async () => {
     const response = await fetch("/api/session?resource=languages", { cache: "no-store" });
@@ -83,6 +89,25 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       .catch(() => undefined);
     return () => controller.abort();
   }, [showCompany]);
+
+  useEffect(() => {
+    if (!showCopyright) return;
+    const controller = new AbortController();
+    void fetch("/api/session?resource=copyright", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) =>
+        response.ok
+          ? (response.json() as Promise<{ copyright?: CopyrightConfig }>)
+          : null,
+      )
+      .then((result) => {
+        if (result?.copyright) setCopyright(result.copyright);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [showCopyright]);
 
   if (!group || !page) return null;
   const showHome = group.id === "home" && page.id === "overview";
@@ -129,6 +154,27 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     setCompany((current) => ({
       ...current,
       name: { ...current.name, [language]: value },
+    }));
+  }
+
+  async function saveCopyright(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCopyrightStatus("保存中…");
+    const response = await fetch("/api/session", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resource: "copyright", copyright }),
+    });
+    setCopyrightStatus(response.ok ? "保存しました" : "保存できませんでした");
+  }
+
+  function updateServiceName(service: ServiceId, language: "ja" | "en", value: string) {
+    setCopyright((current) => ({
+      ...current,
+      services: {
+        ...current.services,
+        [service]: { ...current.services[service], [language]: value },
+      },
     }));
   }
 
@@ -241,6 +287,35 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                   </fieldset>
                   <div className="workspaceCompanyActions">
                     <span role="status">{companyStatus}</span>
+                    <button type="submit">保存</button>
+                  </div>
+                </form>
+              </section>
+            ) : showCopyright ? (
+              <section className="workspaceCompany">
+                <header>
+                  <h1>コピーライト</h1>
+                  <p>会社名は会社概要の設定を共通利用します。</p>
+                </header>
+                <form onSubmit={saveCopyright}>
+                  <label>開始年<input min="1900" max={new Date().getFullYear()} required type="number" value={copyright.startYear} onChange={(event) => setCopyright((current) => ({ ...current, startYear: Number(event.target.value) }))} /></label>
+                  <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
+                    <button className={copyrightLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={copyrightLanguage === "ja"} onClick={() => setCopyrightLanguage("ja")}>日本語</button>
+                    <button className={copyrightLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={copyrightLanguage === "en"} onClick={() => setCopyrightLanguage("en")}>English</button>
+                  </div>
+                  <fieldset>
+                    <legend className="srOnly">{copyrightLanguage === "ja" ? "日本語" : "English"}</legend>
+                    {([
+                      ["main", "PET TAXI"],
+                      ["airport", "PET TAXI AIRPORT"],
+                      ["corporate", "コーポレート"],
+                      ["flight", "PawsFlight Japan"],
+                    ] as Array<[ServiceId, string]>).map(([service, label]) => (
+                      <label key={service}>{label}<input required value={copyright.services[service][copyrightLanguage] ?? ""} onChange={(event) => updateServiceName(service, copyrightLanguage, event.target.value)} /></label>
+                    ))}
+                  </fieldset>
+                  <div className="workspaceCompanyActions">
+                    <span role="status">{copyrightStatus}</span>
                     <button type="submit">保存</button>
                   </div>
                 </form>

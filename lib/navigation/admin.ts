@@ -14,6 +14,12 @@ export const adminNavigation: NavigationGroup[] = [
         allowedTiers: ["owner", "core"],
       },
       {
+        id: "copyright",
+        label: "コピーライト",
+        description: "開始年とサービス別の表示名を管理します。",
+        allowedTiers: ["owner", "core"],
+      },
+      {
         id: "supported",
         label: "言語",
         description: "ウェブアプリで利用できる言語を確認します。",

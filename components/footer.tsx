@@ -24,7 +24,7 @@ import { getTranslation, type Translation } from "@/lib/i18n";
 
 export function AppFooter() {
   const router = useRouter();
-  const { language } = useLanguage();
+  const { language, companyName, copyright } = useLanguage();
   const text = (translation: Translation) => getTranslation(translation, language);
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [message, setMessage] = useState("");
@@ -200,7 +200,7 @@ export function AppFooter() {
                 <PawPrint className="footerDecorativePaw" aria-hidden="true" />
               </button>
 
-              <small>{getCopyright()}</small>
+              <small>{getCopyright(copyright, companyName, language, "main")}</small>
             </div>
           </div>
 
