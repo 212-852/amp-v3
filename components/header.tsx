@@ -237,6 +237,8 @@ export function AppHeader() {
       }
 
       setIsLanguageSaving(true);
+      setLanguage(nextLanguage);
+      setIsLanguageOpen(false);
 
       try {
         if (activeIdentity) {
@@ -256,10 +258,8 @@ export function AppHeader() {
           );
           setIdentityLanguage(nextLanguage);
         }
-
-        setLanguage(nextLanguage);
-        setIsLanguageOpen(false);
       } catch {
+        setLanguage(language);
         setGreeting(
           getTranslation(
             {
