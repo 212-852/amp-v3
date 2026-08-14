@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/language";
 import { getCopyright } from "@/lib/content";
@@ -24,16 +24,18 @@ import { getTranslation, type Translation } from "@/lib/i18n";
 
 export function AppFooter() {
   const router = useRouter();
+  const pathname = usePathname();
   const { language, companyName, copyright } = useLanguage();
   const text = (translation: Translation) => getTranslation(translation, language);
-  const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [message, setMessage] = useState("");
-  const [showMenuHint, setShowMenuHint] = useState(true);
   const [assistantMode, setAssistantMode] = useState<"bot" | "concierge">(
     "bot",
   );
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [workspaceCategory, setWorkspaceCategory] = useState("support");
+  const isHomePage = pathname === "/" || pathname === "/main" || pathname === "/liff";
+  const isMenuOpen = !isHomePage;
+  const copyrightText = getCopyright(copyright, companyName, language, "main");
 
   const workspaceCategories = [
     {
@@ -113,11 +115,6 @@ export function AppFooter() {
     };
   }, [isWorkspaceOpen]);
 
-  function handleMenuToggle() {
-    setIsMenuOpen((current) => !current);
-    setShowMenuHint(false);
-  }
-
   return (
     <footer className="appFooter">
       <svg
@@ -132,10 +129,10 @@ export function AppFooter() {
       <button
         className="footerAssistantButton footerFixedAssistant"
         type="button"
-        aria-label={isMenuOpen ? "Show message input" : "Show footer menu"}
+        aria-label={text({ ja: "アシスタント", en: "Assistant" })}
         aria-expanded={isMenuOpen}
-        aria-describedby={showMenuHint ? "footerMenuHint" : undefined}
-        onClick={handleMenuToggle}
+        aria-disabled="true"
+        disabled
       >
         <Image
           className="footerAssistantIcon"
@@ -150,12 +147,6 @@ export function AppFooter() {
           <RefreshCw aria-hidden="true" />
         </span>
       </button>
-
-      {showMenuHint && !isMenuOpen ? (
-        <span id="footerMenuHint" className="footerMenuHint">
-          {text({ ja: "メニュー切替", en: "Switch menu" })}
-        </span>
-      ) : null}
 
       <div className="footerScene">
         <div className={`footerCard${isMenuOpen ? " footerCardFlipped" : ""}`}>
@@ -200,7 +191,7 @@ export function AppFooter() {
                 <PawPrint className="footerDecorativePaw" aria-hidden="true" />
               </button>
 
-              <small>{getCopyright(copyright, companyName, language, "main")}</small>
+              <small className="footerCopyright">{copyrightText}</small>
             </div>
           </div>
 
@@ -252,6 +243,7 @@ export function AppFooter() {
               </div>
 
               <Bot className="footerBotIcon" aria-hidden="true" />
+              <small className="footerCopyright">{copyrightText}</small>
             </div>
           </div>
         </div>

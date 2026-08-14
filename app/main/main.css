@@ -872,7 +872,7 @@
 
 .appFooter {
   position: relative;
-  min-height: 112px;
+  min-height: 136px;
   background: #ead7c0;
   color: #654a32;
   padding-bottom: env(safe-area-inset-bottom);
@@ -906,13 +906,13 @@
 .footerScene {
   position: relative;
   z-index: 2;
-  min-height: 112px;
+  min-height: 136px;
   perspective: 1000px;
 }
 
 .footerCard {
   position: relative;
-  min-height: 112px;
+  min-height: 136px;
   transform-style: preserve-3d;
   transition: transform 650ms cubic-bezier(.2, .75, .25, 1);
 }
@@ -1122,7 +1122,7 @@
   outline-offset: 4px;
 }
 
-.footerContent small {
+.footerCopyright {
   grid-column: 1 / -1;
   justify-self: center;
   transform: translateY(-8px);
@@ -1139,8 +1139,13 @@
   align-items: center;
   margin: 0 auto;
   max-width: 1200px;
-  min-height: 112px;
+  min-height: 136px;
   padding: 7px clamp(20px, 6vw, 64px) 4px;
+}
+
+.footerMenuContent .footerCopyright {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .footerMenuPanel {
@@ -1549,6 +1554,12 @@
   font-size: clamp(28px, 5vw, 42px);
 }
 
+.companyPageContent header p {
+  margin: -18px 0 32px;
+  color: #806143;
+  line-height: 1.8;
+}
+
 .companyPageContent dl {
   margin: 0;
   border-top: 1px solid #e7d3b6;
@@ -1595,12 +1606,12 @@
 
 @container mainapp (max-width: 640px) {
   .appFooter {
-    min-height: 104px;
+    min-height: 126px;
   }
 
   .footerScene,
   .footerCard {
-    min-height: 104px;
+    min-height: 126px;
   }
 
   .footerWave {
@@ -1680,14 +1691,14 @@
     transform: rotate(-30deg);
   }
 
-  .footerContent small {
+  .footerCopyright {
     font-size: 12px;
   }
 
   .footerMenuContent {
     grid-template-columns: auto minmax(0, 1fr);
     gap: 5px;
-    min-height: 104px;
+    min-height: 126px;
     padding: 5px 8px 3px;
   }
 

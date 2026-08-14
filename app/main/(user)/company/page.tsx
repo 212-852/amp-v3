@@ -74,7 +74,8 @@ export default function CompanyPage() {
   const text = useMemo(
     () => ({
       home: getTranslation({ ja: "Home", en: "Home" }, language),
-      title: getTranslation({ ja: "会社概要", en: "Company" }, language),
+      title: getTranslation({ ja: "会社概要", en: "Company Profile" }, language),
+      introduction: getTranslation({ ja: "サービスを運営する会社の基本情報です。", en: "Basic information about the company operating this service." }, language),
       name: getTranslation({ ja: "会社名", en: "Company name" }, language),
       address: getTranslation({ ja: "所在地", en: "Address" }, language),
     }),
@@ -89,6 +90,7 @@ export default function CompanyPage() {
       <div className="companyPageContent">
         <header>
           <h1>{text.title}</h1>
+          <p>{text.introduction}</p>
         </header>
         <dl>
           <div>
