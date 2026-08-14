@@ -28,6 +28,11 @@ body {
   font-weight: 600;
 }
 
+html[lang="ja"] body {
+  font-family: var(--font-hachi-maru-pop), "Hiragino Maru Gothic ProN", sans-serif;
+  font-weight: 400;
+}
+
 .japaneseText {
   font-family: var(--font-hachi-maru-pop), "Hiragino Kaku Gothic ProN", sans-serif;
 }
