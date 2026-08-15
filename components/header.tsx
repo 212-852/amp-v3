@@ -44,6 +44,17 @@ type LineLoginClaim = {
   identity?: SupabaseIdentity;
 };
 
+type NotificationItem = {
+  notificationUuid: string;
+  kind: "critical" | "booking" | "message" | "service" | "marketing";
+  importance: "normal" | "important" | "urgent";
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 type GoogleIdentity = {
   accounts: {
     id: {
@@ -136,6 +147,13 @@ export function AppHeader() {
   const [supabaseIdentity, setSupabaseIdentity] = useState<SupabaseIdentity | null>(null);
   const [sessionIdentity, setSessionIdentity] = useState<SupabaseIdentity | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notificationTab, setNotificationTab] = useState<"notices" | "settings">("notices");
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationStatus, setNotificationStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
@@ -163,6 +181,7 @@ export function AppHeader() {
     setEmailStep("address");
     setEmailStatus(null);
   }, []);
+  const closeNotifications = useCallback(() => setIsNotificationOpen(false), []);
   const closeGreeting = useCallback(() => setGreeting(null), []);
   const activeIdentity = identity ?? supabaseIdentity ?? sessionIdentity;
   const loginProvider = identity
@@ -174,6 +193,71 @@ export function AppHeader() {
 
     return url && key ? createClient(url, key) : null;
   }, []);
+
+  const loadNotifications = useCallback(async () => {
+    setNotificationStatus("loading");
+
+    try {
+      const response = await fetch("/api/notifications", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error("notification_load_failed");
+      }
+
+      const result = (await response.json()) as {
+        notifications: NotificationItem[];
+        unreadCount: number;
+      };
+      setNotifications(result.notifications);
+      setUnreadCount(result.unreadCount);
+      setNotificationStatus("ready");
+    } catch {
+      setNotificationStatus("error");
+    }
+  }, []);
+
+  const openNotifications = useCallback(() => {
+    setNotificationTab("notices");
+    setIsNotificationOpen(true);
+
+    if (activeIdentity) {
+      void loadNotifications();
+    }
+  }, [activeIdentity, loadNotifications]);
+
+  const markNotificationAsRead = useCallback(
+    async (notification: NotificationItem) => {
+      if (!notification.readAt) {
+        const readAt = new Date().toISOString();
+        setNotifications((current) =>
+          current.map((item) =>
+            item.notificationUuid === notification.notificationUuid
+              ? { ...item, readAt }
+              : item,
+          ),
+        );
+        setUnreadCount((current) => Math.max(0, current - 1));
+
+        const response = await fetch("/api/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            notificationUuid: notification.notificationUuid,
+          }),
+        }).catch(() => null);
+
+        if (!response?.ok) {
+          void loadNotifications();
+          return;
+        }
+      }
+
+      if (notification.actionUrl) {
+        window.location.assign(notification.actionUrl);
+      }
+    },
+    [loadNotifications],
+  );
 
   useEffect(() => {
     if (!activeIdentity?.language) return;
@@ -291,6 +375,21 @@ export function AppHeader() {
     displayMode.addEventListener("change", updateDisplayMode);
     return () => displayMode.removeEventListener("change", updateDisplayMode);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (activeIdentity) {
+        void loadNotifications();
+        return;
+      }
+
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationStatus("idle");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [activeIdentity, loadNotifications]);
 
   useEffect(() => {
     void fetch("/api/session", { cache: "no-store" })
@@ -818,11 +917,25 @@ export function AppHeader() {
                 )}
               </button>
               <button
-                className="headerIconButton"
+                className="headerIconButton headerNotificationButton"
                 type="button"
-                aria-label="Notifications"
+                aria-label={getTranslation(
+                  { ja: "お知らせを開く", en: "Open notifications" },
+                  language,
+                )}
+                aria-haspopup="dialog"
+                aria-expanded={isNotificationOpen}
+                onClick={openNotifications}
               >
                 <Bell aria-hidden="true" />
+                {unreadCount > 0 ? (
+                  <span className="headerNotificationBadge" aria-label={getTranslation(
+                    { ja: `未読${unreadCount}件`, en: `${unreadCount} unread` },
+                    language,
+                  )}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
               </button>
               <button
                 ref={languageButtonRef}
@@ -926,6 +1039,112 @@ export function AppHeader() {
             {googleLoginOption}
             {emailLoginOption}
           </>
+        )}
+      </Modal>
+
+      <Modal
+        open={isNotificationOpen}
+        label={getTranslation({ ja: "お知らせと通知の設定", en: "Notifications and settings" }, language)}
+        panelClassName="notificationModalPanel"
+        onClose={closeNotifications}
+      >
+        <div className="notificationTabs" role="tablist" aria-label={getTranslation({ ja: "通知メニュー", en: "Notification menu" }, language)}>
+          <button
+            className={notificationTab === "notices" ? "isActive" : ""}
+            type="button"
+            role="tab"
+            aria-selected={notificationTab === "notices"}
+            onClick={() => setNotificationTab("notices")}
+          >
+            {getTranslation({ ja: "お知らせ", en: "Notices" }, language)}
+            {unreadCount > 0 ? <span>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+          </button>
+          <button
+            className={notificationTab === "settings" ? "isActive" : ""}
+            type="button"
+            role="tab"
+            aria-selected={notificationTab === "settings"}
+            onClick={() => setNotificationTab("settings")}
+          >
+            {getTranslation({ ja: "通知の設定", en: "Settings" }, language)}
+          </button>
+        </div>
+
+        {notificationTab === "notices" ? (
+          <div className="notificationPanel" role="tabpanel">
+            {!activeIdentity ? (
+              <div className="notificationEmpty">
+                <Bell aria-hidden="true" />
+                <strong>{getTranslation({ ja: "ログインするとお知らせを確認できます", en: "Sign in to view your notifications" }, language)}</strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeNotifications();
+                    setIsLoginOpen(true);
+                  }}
+                >
+                  {getTranslation({ ja: "ログインする", en: "Sign in" }, language)}
+                </button>
+              </div>
+            ) : notificationStatus === "loading" ? (
+              <p className="notificationMessage" role="status">
+                {getTranslation({ ja: "お知らせを読み込んでいます…", en: "Loading notifications…" }, language)}
+              </p>
+            ) : notificationStatus === "error" ? (
+              <div className="notificationEmpty">
+                <strong>{getTranslation({ ja: "お知らせを読み込めませんでした", en: "Notifications could not be loaded" }, language)}</strong>
+                <button type="button" onClick={() => void loadNotifications()}>
+                  {getTranslation({ ja: "もう一度試す", en: "Try again" }, language)}
+                </button>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="notificationEmpty">
+                <Bell aria-hidden="true" />
+                <strong>{getTranslation({ ja: "新しいお知らせはありません", en: "You are all caught up" }, language)}</strong>
+              </div>
+            ) : (
+              <ul className="notificationList">
+                {notifications.map((notification) => (
+                  <li key={notification.notificationUuid}>
+                    <button
+                      className={notification.readAt ? "" : "isUnread"}
+                      type="button"
+                      onClick={() => void markNotificationAsRead(notification)}
+                    >
+                      <span className="notificationItemTopline">
+                        <strong>{notification.title}</strong>
+                        {!notification.readAt ? <i aria-label={getTranslation({ ja: "未読", en: "Unread" }, language)} /> : null}
+                      </span>
+                      <span>{notification.body}</span>
+                      <time dateTime={notification.createdAt}>
+                        {new Intl.DateTimeFormat(language === "ja" ? "ja-JP" : "en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }).format(new Date(notification.createdAt))}
+                      </time>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <div className="notificationSettings" role="tabpanel">
+            <div className="notificationSettingCard">
+              <span className="notificationSettingIcon"><Bell aria-hidden="true" /></span>
+              <span>
+                <strong>{getTranslation({ ja: "PWAプッシュ通知", en: "PWA push notifications" }, language)}</strong>
+                <small>
+                  {isPwa
+                    ? getTranslation({ ja: "PWAとして使用しています", en: "Currently using the PWA" }, language)
+                    : getTranslation({ ja: "ホーム画面へ追加すると利用できます", en: "Add this app to your Home Screen to use push" }, language)}
+                </small>
+              </span>
+            </div>
+            <p>{getTranslation({ ja: "通知のON・OFFは次の工程で接続します。", en: "Push notification controls will be connected next." }, language)}</p>
+          </div>
         )}
       </Modal>
 

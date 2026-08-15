@@ -167,6 +167,30 @@
   stroke-width: 1.8;
 }
 
+.headerNotificationButton {
+  position: relative;
+  overflow: visible;
+}
+
+.headerNotificationBadge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border: 2px solid #ead7c0;
+  border-radius: 999px;
+  background: #b86d16;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .headerLoginButton {
   width: auto;
   min-width: 78px;
@@ -344,7 +368,10 @@
   z-index: 1000;
   inset: 0;
   display: grid;
-  padding: 24px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100dvh;
+  padding: 16px;
   place-items: center;
   background: rgb(50 35 24 / 42%);
   backdrop-filter: blur(3px);
@@ -353,7 +380,9 @@
 
 .modalPanel {
   position: relative;
-  width: min(100%, 420px);
+  box-sizing: border-box;
+  width: min(420px, calc(100dvw - 32px));
+  max-width: 100%;
   padding: 34px 28px 30px;
   border: 2px solid #dfc9aa;
   border-radius: 30px;
@@ -400,6 +429,214 @@
   color: #654a32;
   font-size: 15px;
   font-weight: 700;
+}
+
+.notificationModalPanel {
+  width: min(460px, calc(100dvw - 32px));
+  padding: 64px 22px 24px;
+  text-align: left;
+}
+
+.notificationTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #dfc9aa;
+  border-radius: 18px;
+  background: #f3e6d4;
+}
+
+.notificationTabs > button {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #76573b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.notificationTabs > button.isActive {
+  background: #fffaf3;
+  color: #9a570d;
+  box-shadow: 0 3px 10px rgb(101 74 50 / 12%);
+}
+
+.notificationTabs > button:focus-visible,
+.notificationEmpty > button:focus-visible,
+.notificationList button:focus-visible {
+  outline: 3px solid rgb(184 109 22 / 38%);
+  outline-offset: 2px;
+}
+
+.notificationTabs > button > span {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: #b86d16;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+}
+
+.notificationPanel,
+.notificationSettings {
+  min-height: 250px;
+  max-height: min(55vh, 480px);
+  margin-top: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notificationMessage {
+  margin: 90px 0 0;
+  color: #806347;
+  text-align: center;
+}
+
+.notificationEmpty {
+  display: grid;
+  min-height: 250px;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  color: #76573b;
+  text-align: center;
+}
+
+.notificationEmpty > svg {
+  width: 46px;
+  height: 46px;
+  color: #b87932;
+  stroke-width: 1.6;
+}
+
+.notificationEmpty > button {
+  min-height: 46px;
+  padding: 8px 24px;
+  border: 2px solid #dfc9aa;
+  border-radius: 999px;
+  background: #fff;
+  color: #76573b;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.notificationList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificationList button {
+  display: grid;
+  width: 100%;
+  gap: 7px;
+  padding: 14px 15px;
+  border: 1px solid #ead7c0;
+  border-radius: 16px;
+  background: #fffdf9;
+  color: #5c402b;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.notificationList button.isUnread {
+  border-color: #d7ae78;
+  background: #fff5e5;
+}
+
+.notificationItemTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notificationItemTopline strong {
+  font-size: 15px;
+}
+
+.notificationItemTopline i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #b86d16;
+}
+
+.notificationList button > span:not(.notificationItemTopline) {
+  color: #806347;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.notificationList time {
+  color: #a38669;
+  font-size: 11px;
+}
+
+.notificationSettings {
+  padding: 8px 2px;
+}
+
+.notificationSettingCard {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #dfc9aa;
+  border-radius: 18px;
+  background: #fffdf9;
+}
+
+.notificationSettingIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3e6d4;
+  color: #a35c0d;
+}
+
+.notificationSettingIcon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.notificationSettingCard > span:last-child {
+  display: grid;
+  gap: 4px;
+}
+
+.notificationSettingCard small,
+.notificationSettings > p {
+  color: #806347;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.notificationSettings > p {
+  margin: 14px 6px 0;
+  text-align: center;
 }
 
 .loginProviderButton {
@@ -790,6 +1027,15 @@
 }
 
 @container mainapp (max-width: 760px) {
+  .modalPanel {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .notificationModalPanel {
+    padding-top: 64px;
+  }
+
   .appHeader {
     min-height: 74px;
   }
@@ -1296,8 +1542,9 @@
 
 .appFooterPage .footerCopyright {
   position: absolute;
+  z-index: 5;
   right: 116px;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  bottom: 3px;
   left: 116px;
   margin: 0;
   transform: none;

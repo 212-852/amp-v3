@@ -1,0 +1,303 @@
+import "server-only";
+
+import { createClient } from "@supabase/supabase-js";
+
+import {
+  getTranslation,
+  isLanguageCode,
+  type Language,
+  type Translation,
+} from "@/lib/i18n";
+import { notifyDispatcher } from "@/lib/notify";
+
+export type NotificationKind =
+  | "critical"
+  | "booking"
+  | "message"
+  | "service"
+  | "marketing";
+
+export type NotificationImportance = "normal" | "important" | "urgent";
+
+export type CreateNotificationRequest = {
+  userUuid: string;
+  kind: NotificationKind;
+  title: Translation;
+  body: Translation;
+  importance?: NotificationImportance;
+  data?: Record<string, unknown>;
+  actionUrl?: string | null;
+  externalRequired?: boolean;
+  expiresAt?: string | null;
+};
+
+export type CreatedNotification = {
+  notificationUuid: string;
+  createdAt: string;
+};
+
+export type NotificationItem = {
+  notificationUuid: string;
+  kind: NotificationKind;
+  importance: NotificationImportance;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  actionUrl: string | null;
+  externalRequired: boolean;
+  readAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const NOTIFICATION_KINDS = new Set<NotificationKind>([
+  "critical",
+  "booking",
+  "message",
+  "service",
+  "marketing",
+]);
+const NOTIFICATION_IMPORTANCE = new Set<NotificationImportance>([
+  "normal",
+  "important",
+  "urgent",
+]);
+
+export function isNotificationUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl || !supabaseSecretKey) {
+    throw new Error("Supabase server configuration is missing.");
+  }
+
+  return createClient(supabaseUrl, supabaseSecretKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
+
+function normalizeTranslation(
+  value: Translation,
+  field: "title" | "body",
+  maximumLength: number,
+) {
+  const entries = Object.entries(value).map(([language, text]) => {
+    const normalizedLanguage = language.toLowerCase();
+    const normalizedText = text.trim();
+
+    if (!isLanguageCode(normalizedLanguage)) {
+      throw new Error(`Notification ${field} has an invalid language code.`);
+    }
+
+    if (!normalizedText || normalizedText.length > maximumLength) {
+      throw new Error(`Notification ${field} has an invalid length.`);
+    }
+
+    return [normalizedLanguage, normalizedText] as const;
+  });
+
+  if (entries.length === 0) {
+    throw new Error(`Notification ${field} is required.`);
+  }
+
+  return Object.fromEntries(entries);
+}
+
+function normalizeActionUrl(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const actionUrl = value.trim();
+
+  if (
+    actionUrl.length > 2_000 ||
+    ((!actionUrl.startsWith("/") || actionUrl.startsWith("//")) &&
+      !actionUrl.startsWith("https://"))
+  ) {
+    throw new Error("Notification action URL is invalid.");
+  }
+
+  return actionUrl;
+}
+
+export async function createNotification({
+  userUuid,
+  kind,
+  title,
+  body,
+  importance = "normal",
+  data = {},
+  actionUrl,
+  externalRequired = false,
+  expiresAt,
+}: CreateNotificationRequest): Promise<CreatedNotification> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  if (!NOTIFICATION_KINDS.has(kind)) {
+    throw new Error("Notification kind is invalid.");
+  }
+
+  if (!NOTIFICATION_IMPORTANCE.has(importance)) {
+    throw new Error("Notification importance is invalid.");
+  }
+
+  if (!data || Array.isArray(data)) {
+    throw new Error("Notification data must be an object.");
+  }
+
+  const normalizedTitle = normalizeTranslation(title, "title", 160);
+  const normalizedBody = normalizeTranslation(body, "body", 2_000);
+  const normalizedActionUrl = normalizeActionUrl(actionUrl);
+  const normalizedExpiresAt = expiresAt ? new Date(expiresAt) : null;
+
+  if (normalizedExpiresAt && Number.isNaN(normalizedExpiresAt.getTime())) {
+    throw new Error("Notification expiration date is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: notification, error } = await supabase
+    .from("notifications")
+    .insert({
+      user_uuid: userUuid,
+      kind,
+      importance,
+      title: normalizedTitle,
+      body: normalizedBody,
+      data,
+      action_url: normalizedActionUrl,
+      external_required: externalRequired,
+      expires_at: normalizedExpiresAt?.toISOString() ?? null,
+    })
+    .select("notification_uuid, created_at")
+    .single();
+
+  if (error || !notification) {
+    await notifyDispatcher({
+      level: "error",
+      event: "customer_notification_create_failed",
+      data: {
+        code: error?.code ?? "unknown",
+        kind,
+        importance,
+      },
+    });
+
+    throw new Error("Failed to create customer notification.");
+  }
+
+  return {
+    notificationUuid: notification.notification_uuid,
+    createdAt: notification.created_at,
+  };
+}
+
+export async function getNotifications({
+  userUuid,
+  language,
+  limit = 20,
+}: {
+  userUuid: string;
+  language: Language;
+  limit?: number;
+}): Promise<NotificationItem[]> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  if (!isLanguageCode(language)) {
+    throw new Error("Notification language is invalid.");
+  }
+
+  const normalizedLimit = Number.isFinite(limit)
+    ? Math.min(Math.max(Math.trunc(limit), 1), 100)
+    : 20;
+  const now = new Date().toISOString();
+  const supabase = getSupabaseAdmin();
+  const { data: notifications, error } = await supabase
+    .from("notifications")
+    .select(
+      "notification_uuid, kind, importance, title, body, data, action_url, external_required, read_at, expires_at, created_at",
+    )
+    .eq("user_uuid", userUuid)
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .order("created_at", { ascending: false })
+    .limit(normalizedLimit);
+
+  if (error) {
+    throw new Error("Failed to load customer notifications.");
+  }
+
+  return (notifications ?? []).map((notification) => ({
+    notificationUuid: notification.notification_uuid,
+    kind: notification.kind as NotificationKind,
+    importance: notification.importance as NotificationImportance,
+    title: getTranslation(notification.title as Translation, language),
+    body: getTranslation(notification.body as Translation, language),
+    data: notification.data as Record<string, unknown>,
+    actionUrl: notification.action_url,
+    externalRequired: notification.external_required,
+    readAt: notification.read_at,
+    expiresAt: notification.expires_at,
+    createdAt: notification.created_at,
+  }));
+}
+
+export async function getUnreadNotificationCount(
+  userUuid: string,
+): Promise<number> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("notification_uuid", { count: "exact", head: true })
+    .eq("user_uuid", userUuid)
+    .is("read_at", null)
+    .or(`expires_at.is.null,expires_at.gt.${now}`);
+
+  if (error) {
+    throw new Error("Failed to count unread customer notifications.");
+  }
+
+  return count ?? 0;
+}
+
+export async function markNotificationRead({
+  userUuid,
+  notificationUuid,
+}: {
+  userUuid: string;
+  notificationUuid: string;
+}): Promise<void> {
+  if (!isNotificationUuid(userUuid) || !isNotificationUuid(notificationUuid)) {
+    throw new Error("Notification UUID is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("notification_uuid", notificationUuid)
+    .eq("user_uuid", userUuid)
+    .is("read_at", null);
+
+  if (error) {
+    throw new Error("Failed to mark customer notification as read.");
+  }
+}
