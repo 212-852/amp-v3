@@ -93,8 +93,28 @@
 }
 
 .headerPageName {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
   color: #654a32;
-  font-size: 20px;
+  font-size: clamp(12px, 3vw, 16px);
+  transform: translateY(5px);
+  white-space: nowrap;
+}
+
+.headerPageName a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.headerPageName svg {
+  width: 15px;
+  height: 15px;
+}
+
+.headerPageName span:last-child:not(:first-child) {
+  font-weight: 600;
 }
 
 .headerActions {
@@ -866,7 +886,7 @@
   }
 
   .headerPageName {
-    font-size: 16px;
+    font-size: 12px;
   }
 }
 
@@ -1146,6 +1166,144 @@
 .footerMenuContent .footerCopyright {
   grid-column: 1 / -1;
   margin: 0;
+}
+
+.appFooterHome .footerContent {
+  min-height: 136px;
+}
+
+.appFooterHome .footerCopyright {
+  position: absolute;
+  right: 8px;
+  bottom: 3px;
+  left: 8px;
+  margin: 0;
+  transform: none;
+  color: rgb(101 74 50 / 62%);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.appFooterPage .footerMenuContent {
+  grid-template-columns: 1fr;
+  min-height: 92px;
+  padding-top: 8px;
+}
+
+.footerCharacters {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: -6px;
+  left: 0;
+  height: 184px;
+  pointer-events: none;
+}
+
+.footerCharacter {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: clamp(166px, 27vw, 208px);
+  height: auto;
+}
+
+.footerDog {
+  right: -14px;
+  transform: rotate(5deg);
+}
+
+.footerCat {
+  left: -30px;
+  transform: rotate(-4deg);
+}
+
+.appFooterPage,
+.appFooterPage .footerScene,
+.appFooterPage .footerCard {
+  min-height: 92px;
+}
+
+.appFooterPage .footerScene {
+  z-index: 4;
+}
+
+.appFooterPage .footerAssistantSpace {
+  display: none;
+}
+
+.appFooterPage .footerMenuPanel {
+  position: relative;
+  z-index: 4;
+  width: min(100%, 180px);
+  justify-self: center;
+}
+
+.appFooterPage .footerMenuNav {
+  grid-template-columns: 1fr;
+  transform: none;
+}
+
+.appFooterPage .footerPageMenuButton {
+  display: flex;
+  width: 180px;
+  min-height: 62px;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  place-self: center;
+  place-items: center;
+  transform: translateY(-26px);
+  border: 2px solid #dfc9aa;
+  border-radius: 999px;
+  background: #fffdfa;
+  box-shadow: 0 5px 14px rgb(101 64 25 / 14%);
+  color: #654a32;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.appFooterPage .footerPageMenuButton svg {
+  width: 21px;
+  height: 21px;
+  color: #925716;
+  fill: #f08aa6;
+  stroke-width: 2.2;
+}
+
+.appFooterPage .footerPageMenuButton svg:first-child {
+  transform: rotate(-18deg);
+}
+
+.appFooterPage .footerPageMenuButton svg:last-child {
+  transform: rotate(18deg) scaleX(-1);
+}
+
+.appFooterPage .footerPageMenuButton:hover {
+  transform: translateY(-29px);
+  box-shadow: 0 7px 17px rgb(101 64 25 / 18%);
+}
+
+.appFooterPage .footerPageMenuButton:active {
+  transform: translateY(-23px) scale(.98);
+  box-shadow: 0 2px 7px rgb(101 64 25 / 12%);
+}
+
+.appFooterPage .footerCopyright {
+  position: absolute;
+  right: 116px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 116px;
+  margin: 0;
+  transform: none;
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
 }
 
 .footerMenuPanel {
@@ -1539,23 +1697,67 @@
 
 .companyPage {
   min-height: 52dvh;
-  background: #fff8ed;
+  background: #f8ead3;
 }
 
 .companyPageContent {
   width: min(100%, 940px);
   margin: 0 auto;
-  padding: 48px 24px 72px;
+  padding: 42px 0 0;
 }
 
 .companyPageContent h1 {
-  margin: 0 0 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
   color: #4b321f;
   font-size: clamp(28px, 5vw, 42px);
 }
 
-.companyPageContent header p {
-  margin: -18px 0 32px;
+.companyPageHeading {
+  padding: 0 24px 24px;
+}
+
+.companyTitleIcons {
+  display: inline-flex;
+  align-items: center;
+  color: #9b621f;
+}
+
+.companyTitleTaxi {
+  width: 34px;
+  height: 34px;
+}
+
+.companyTitlePaws {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+}
+
+.companyTitlePaws svg {
+  width: 19px;
+  height: 19px;
+  transform: rotate(-24deg);
+}
+
+.companyTitlePaws svg + svg {
+  margin: 13px 0 0 -3px;
+  transform: rotate(14deg);
+}
+
+.companyPagePanel {
+  border: 0;
+  border-radius: 0;
+  background: #fff8ed;
+  padding: 36px 24px 72px;
+  box-shadow: none;
+}
+
+.companyPagePanel > p {
+  margin: 0 0 32px;
   color: #806143;
   line-height: 1.8;
 }
@@ -1583,6 +1785,10 @@
 }
 
 @media (max-width: 560px) {
+  .companyPagePanel {
+    padding: 30px 24px 64px;
+  }
+
   .companyPageContent dl > div {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -1623,6 +1829,42 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 4px;
     padding: 6px 8px 4px;
+  }
+
+  .appFooterHome .footerContent {
+    min-height: 126px;
+  }
+
+  .footerCharacters {
+    right: 0;
+    bottom: -6px;
+    left: 0;
+    height: 166px;
+  }
+
+  .footerCharacter {
+    width: 166px;
+  }
+
+  .footerDog {
+    right: -14px;
+  }
+
+  .footerCat {
+    left: -30px;
+  }
+
+  .appFooterPage,
+  .appFooterPage .footerScene,
+  .appFooterPage .footerCard,
+  .appFooterPage .footerMenuContent {
+    min-height: 88px;
+  }
+
+  .appFooterPage .footerCopyright {
+    right: 102px;
+    left: 102px;
+    font-size: 9px;
   }
 
   .footerAssistantButton {

@@ -1,7 +1,9 @@
 "use client";
 
-import { Bell, Check, ChevronDown, Globe2, Mail, UserRound } from "lucide-react";
+import { Bell, Check, ChevronDown, ChevronRight, Globe2, Mail, UserRound } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -122,6 +124,7 @@ async function hashNonce(nonce: string) {
 }
 
 export function AppHeader() {
+  const pathname = usePathname();
   const { language, languages, setLanguage } = useLanguage();
   const {
     identity,
@@ -761,9 +764,19 @@ export function AppHeader() {
         <div className="headerContent">
           <div className="headerBrand">
             <strong className="headerLogo">PET TAXI</strong>
-            <span className="headerPageName">
-              {getTranslation({ ja: "ホーム", en: "Home" }, language)}
-            </span>
+            <nav className="headerPageName" aria-label={getTranslation({ ja: "パンくずリスト", en: "Breadcrumb" }, language)}>
+              {pathname.endsWith("/company") ? (
+                <>
+                  <Link href={pathname.startsWith("/main") ? "/main" : "/"}>
+                    {getTranslation({ ja: "ホーム", en: "Home" }, language)}
+                  </Link>
+                  <ChevronRight aria-hidden="true" />
+                  <span>{getTranslation({ ja: "会社概要", en: "Company Profile" }, language)}</span>
+                </>
+              ) : (
+                <span>{getTranslation({ ja: "ホーム", en: "Home" }, language)}</span>
+              )}
+            </nav>
           </div>
 
           <div className="headerAccount">
@@ -848,6 +861,7 @@ export function AppHeader() {
               </strong>
             </div>
           </div>
+
         </div>
 
         <svg

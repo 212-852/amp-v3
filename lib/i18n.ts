@@ -14,7 +14,7 @@ export const languageNames: Readonly<Record<string, string>> = {
   en: "English",
 };
 
-export const DEFAULT_LANGUAGE: Language = "en";
+export const DEFAULT_LANGUAGE: Language = "ja";
 export const LANGUAGE_STORAGE_KEY = "pet_taxi_language";
 export const defaultLanguageOptions: readonly LanguageOption[] =
   supportedLanguages.map((code) => ({ code, name: languageNames[code] }));
@@ -38,7 +38,7 @@ export function detectLanguage(
 ): Language {
   const primaryLanguage = browserLanguages[0]?.toLowerCase();
 
-  return primaryLanguage?.startsWith("ja") ? "ja" : DEFAULT_LANGUAGE;
+  return primaryLanguage?.startsWith("ja") ? "ja" : "en";
 }
 
 export function resolveLanguage(

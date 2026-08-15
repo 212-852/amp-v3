@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CarTaxiFront, PawPrint } from "lucide-react";
 
-import { Breadcrumb } from "@/components/breadcrumb";
 import { useLanguage } from "@/components/language";
 import { getSourceLanguage, getTranslation } from "@/lib/i18n";
 
@@ -82,26 +82,38 @@ export default function CompanyPage() {
     [language],
   );
 
-  const address = [prefecture, city, company.address.detail].filter(Boolean).join(" ");
+  const address = placeLanguage === "ja"
+    ? [prefecture, city, company.address.detail].filter(Boolean).join(" ")
+    : [company.address.detail, city, prefecture].filter(Boolean).join(", ");
 
   return (
     <article className="companyPage">
-      <Breadcrumb items={[{ label: text.home, href: "/main" }, { label: text.title }]} />
       <div className="companyPageContent">
-        <header>
-          <h1>{text.title}</h1>
-          <p>{text.introduction}</p>
+        <header className="companyPageHeading">
+          <h1>
+            {text.title}
+            <span className="companyTitleIcons" aria-hidden="true">
+              <CarTaxiFront className="companyTitleTaxi" />
+              <span className="companyTitlePaws">
+                <PawPrint />
+                <PawPrint />
+              </span>
+            </span>
+          </h1>
         </header>
-        <dl>
-          <div>
-            <dt>{text.name}</dt>
-            <dd>{getTranslation(company.name, language)}</dd>
-          </div>
-          <div>
-            <dt>{text.address}</dt>
-            <dd>{address || "—"}</dd>
-          </div>
-        </dl>
+        <section className="companyPagePanel">
+          <p>{text.introduction}</p>
+          <dl>
+            <div>
+              <dt>{text.name}</dt>
+              <dd>{getTranslation(company.name, language)}</dd>
+            </div>
+            <div>
+              <dt>{text.address}</dt>
+              <dd>{address || "—"}</dd>
+            </div>
+          </dl>
+        </section>
       </div>
     </article>
   );

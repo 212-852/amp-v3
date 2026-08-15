@@ -70,7 +70,7 @@ export function AppFooter() {
         {
           label: text({ ja: "会社概要", en: "Company profile" }),
           description: text({ ja: "運営会社の基本情報を確認", en: "View company information" }),
-          href: "/main/company",
+          href: "/company",
         },
         {
           label: text({ ja: "運営サービス", en: "Services" }),
@@ -125,7 +125,28 @@ export function AppFooter() {
   }
 
   return (
-    <footer className="appFooter">
+    <footer className={`appFooter${isHomePage ? " appFooterHome" : " appFooterPage"}`}>
+      {!isHomePage ? (
+        <div className="footerCharacters" aria-hidden="true">
+          <Image
+            className="footerCharacter footerDog"
+            src="/images/dog-character.svg"
+            width={300}
+            height={300}
+            alt=""
+            unoptimized
+          />
+          <Image
+            className="footerCharacter footerCat"
+            src="/images/cat-character.svg"
+            width={300}
+            height={300}
+            alt=""
+            unoptimized
+          />
+        </div>
+      ) : null}
+
       <svg
         className="footerWave"
         viewBox="0 0 1440 150"
@@ -135,31 +156,33 @@ export function AppFooter() {
         <path d="M0 102C195 42 334 13 514 40c199 30 278 101 493 94 161-5 269-43 433-58v74H0Z" />
       </svg>
 
-      <button
-        className="footerAssistantButton footerFixedAssistant"
-        type="button"
-        aria-label={isMenuOpen
-          ? text({ ja: "チャットを表示", en: "Show chat" })
-          : text({ ja: "メニューを表示", en: "Show menu" })}
-        aria-expanded={isMenuOpen}
-        onClick={handleFooterFlip}
-      >
-        <Image
-          className="footerAssistantIcon"
-          src="/icons/icon.svg?v=20260812"
-          width={72}
-          height={72}
-          alt=""
-          aria-hidden="true"
-          unoptimized
-        />
-        <span className="footerRefresh">
-          <RefreshCw aria-hidden="true" />
-        </span>
-      </button>
+      {isHomePage ? (
+        <button
+          className="footerAssistantButton footerFixedAssistant"
+          type="button"
+          aria-label={isMenuOpen
+            ? text({ ja: "チャットを表示", en: "Show chat" })
+            : text({ ja: "メニューを表示", en: "Show menu" })}
+          aria-expanded={isMenuOpen}
+          onClick={handleFooterFlip}
+        >
+          <Image
+            className="footerAssistantIcon"
+            src="/icons/icon.svg?v=20260812"
+            width={72}
+            height={72}
+            alt=""
+            aria-hidden="true"
+            unoptimized
+          />
+          <span className="footerRefresh">
+            <RefreshCw aria-hidden="true" />
+          </span>
+        </button>
+      ) : null}
 
       <div className="footerScene">
-        <div className={`footerCard${isMenuOpen ? " footerCardFlipped" : ""}`}>
+        <div className={`footerCard${isMenuOpen || !isHomePage ? " footerCardFlipped" : ""}`}>
           <div className="footerFace footerFront">
             <div className="footerContent">
               <div className="footerAssistantSpace" aria-hidden="true" />
@@ -210,7 +233,7 @@ export function AppFooter() {
               <div className="footerAssistantSpace" aria-hidden="true" />
 
               <div className="footerMenuPanel">
-                <div className="footerModeSwitch" aria-label="Assistant mode">
+                {isHomePage ? <div className="footerModeSwitch" aria-label="Assistant mode">
                   <button
                     className={assistantMode === "bot" ? "footerModeActive" : ""}
                     type="button"
@@ -229,30 +252,36 @@ export function AppFooter() {
                   >
                     Concierge
                   </button>
-                </div>
+                </div> : null}
 
                 <nav className="footerMenuNav" aria-label="Footer menu">
-                  <button type="button">
-                    <CircleUserRound aria-hidden="true" />
-                    <span>{text({ ja: "マイページ", en: "My Page" })}</span>
-                  </button>
-                  <button type="button">
-                    <MessageCircle aria-hidden="true" />
-                    <span>{text({ ja: "クイックメニュー", en: "Quick Menu" })}</span>
-                  </button>
+                  {isHomePage ? <>
+                    <button type="button">
+                      <CircleUserRound aria-hidden="true" />
+                      <span>{text({ ja: "マイページ", en: "My Page" })}</span>
+                    </button>
+                    <button type="button">
+                      <MessageCircle aria-hidden="true" />
+                      <span>{text({ ja: "クイックメニュー", en: "Quick Menu" })}</span>
+                    </button>
+                  </> : null}
                   <button
+                    className={!isHomePage ? "footerPageMenuButton" : undefined}
                     type="button"
                     aria-haspopup="dialog"
                     aria-expanded={isWorkspaceOpen}
                     onClick={() => setIsWorkspaceOpen(true)}
                   >
-                    <Menu aria-hidden="true" />
-                    <span>{text({ ja: "メニュー", en: "Menu" })}</span>
+                    {isHomePage ? <Menu aria-hidden="true" /> : <PawPrint aria-hidden="true" />}
+                    <span>{isHomePage
+                      ? text({ ja: "メニュー", en: "Menu" })
+                      : "MENU"}</span>
+                    {!isHomePage ? <PawPrint aria-hidden="true" /> : null}
                   </button>
                 </nav>
               </div>
 
-              <Bot className="footerBotIcon" aria-hidden="true" />
+              {isHomePage ? <Bot className="footerBotIcon" aria-hidden="true" /> : null}
               <small className="footerCopyright">{copyrightText}</small>
             </div>
           </div>
@@ -308,6 +337,7 @@ export function AppFooter() {
                     onClick={() => {
                       if (item.id === "home") {
                         setIsWorkspaceOpen(false);
+                        router.push(pathname.startsWith("/main") ? "/main" : "/");
                         return;
                       }
 
@@ -331,7 +361,10 @@ export function AppFooter() {
                     onClick={() => {
                       if (!("href" in page) || !page.href) return;
                       setIsWorkspaceOpen(false);
-                      router.push(page.href);
+                      const target = pathname.startsWith("/main")
+                        ? `/main${page.href}`
+                        : page.href;
+                      router.push(target);
                     }}
                   >
                     <span>
