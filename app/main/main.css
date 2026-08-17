@@ -399,10 +399,18 @@
   font-size: 28px;
 }
 
-.modalClose {
-  position: absolute;
+.modalCloseAnchor {
+  position: sticky;
+  z-index: 20;
   top: 14px;
-  right: 14px;
+  display: flex;
+  height: 0;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.modalClose {
+  position: relative;
   display: grid;
   width: 44px;
   height: 44px;
@@ -413,6 +421,7 @@
   background: #f3e6d4;
   color: #5c402b;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .modalClose svg {

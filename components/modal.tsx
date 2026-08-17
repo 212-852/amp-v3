@@ -76,14 +76,16 @@ export function Modal({
         aria-label={title ? undefined : label}
         aria-labelledby={title ? titleId : undefined}
       >
-        <button
-          className="modalClose"
-          type="button"
-          aria-label="Close modal"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" />
-        </button>
+        <div className="modalCloseAnchor">
+          <button
+            className="modalClose"
+            type="button"
+            aria-label="Close modal"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
 
         {title ? <h2 id={titleId}>{title}</h2> : null}
         <div className="modalBody">{children}</div>

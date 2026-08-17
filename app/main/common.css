@@ -386,11 +386,20 @@ body:has(.driverApp) {
   box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
 }
 
-.adminModalOverlay .modalClose {
-  position: absolute;
-  z-index: 10;
+.adminModalOverlay .modalCloseAnchor,
+.adminTalkOverlay .modalCloseAnchor {
+  position: sticky;
+  z-index: 20;
   top: 16px;
-  right: 16px;
+  display: flex;
+  height: 0;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.adminModalOverlay .modalClose {
+  position: relative;
+  z-index: 10;
   display: grid;
   width: 42px;
   height: 42px;
@@ -400,6 +409,7 @@ body:has(.driverApp) {
   background: #ededed;
   color: #222;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .adminModalOverlay .modalClose svg {
@@ -513,10 +523,8 @@ body:has(.driverApp) {
 }
 
 .adminTalkOverlay .modalClose {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  top: 18px;
-  right: 18px;
   display: grid;
   width: 42px;
   height: 42px;
@@ -526,6 +534,7 @@ body:has(.driverApp) {
   background: #e4e4e4;
   color: #222;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .adminTalkPanel h2 {
