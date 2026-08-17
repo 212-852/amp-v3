@@ -1,7 +1,7 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, GripVertical, Home, ImageUp, LockKeyhole, MessageCircle, Plus, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
 
 import { Address, type AddressValue } from "@/components/address";
@@ -106,6 +106,8 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [countryLanguage, setCountryLanguage] = useState<"ja" | "en">("ja");
   const [selectedCountryIndex, setSelectedCountryIndex] = useState(-1);
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null);
+  const touchedCountryIndex = useRef<number | null>(null);
+  const touchedCountryTargetIndex = useRef<number | null>(null);
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
@@ -418,7 +420,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     });
   }
 
-  function moveCountry(fromIndex: number, toIndex: number) {
+  function reorderCountry(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return;
     setCountries((current) => {
       const selectedCountry = current[selectedCountryIndex];
@@ -430,6 +432,42 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       setSelectedCountryIndex(nextSelectedIndex);
       return normalizedCountries;
     });
+  }
+
+  function moveCountry(fromIndex: number, toIndex: number) {
+    reorderCountry(fromIndex, toIndex);
+    setDraggedCountryIndex(null);
+  }
+
+  function startCountryTouch(index: number, event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === "mouse") return;
+    event.preventDefault();
+    touchedCountryIndex.current = index;
+    touchedCountryTargetIndex.current = index;
+    setDraggedCountryIndex(index);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveCountryTouch(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (touchedCountryIndex.current === null) return;
+    event.preventDefault();
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-country-index]");
+    const toIndex = Number(target?.dataset.countryIndex);
+    if (!Number.isInteger(toIndex) || toIndex === touchedCountryTargetIndex.current) return;
+    touchedCountryTargetIndex.current = toIndex;
+    setDraggedCountryIndex(toIndex);
+  }
+
+  function endCountryTouch(event: ReactPointerEvent<HTMLButtonElement>) {
+    const fromIndex = touchedCountryIndex.current;
+    const toIndex = touchedCountryTargetIndex.current;
+    if (fromIndex === null || toIndex === null) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    touchedCountryIndex.current = null;
+    touchedCountryTargetIndex.current = null;
+    reorderCountry(fromIndex, toIndex);
     setDraggedCountryIndex(null);
   }
 
@@ -690,13 +728,24 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                           <Fragment key={`${country.code}-${index}`}>
                             <div
                               className={`workspaceCountryRow${isOpen ? " isActive" : ""}${draggedCountryIndex === index ? " isDragging" : ""}`}
-                              draggable
-                              onDragStart={() => setDraggedCountryIndex(index)}
-                              onDragEnd={() => setDraggedCountryIndex(null)}
+                              data-country-index={index}
                               onDragOver={(event) => event.preventDefault()}
                               onDrop={() => draggedCountryIndex !== null && moveCountry(draggedCountryIndex, index)}
                             >
-                              <GripVertical aria-hidden="true" className="workspaceCountryGrip" />
+                              <button
+                                type="button"
+                                className="workspaceCountryGrip"
+                                aria-label={`${country.name.ja || country.name.en || country.code || `国 ${index + 1}`}の表示順を変更`}
+                                draggable
+                                onDragStart={() => setDraggedCountryIndex(index)}
+                                onDragEnd={() => setDraggedCountryIndex(null)}
+                                onPointerDown={(event) => startCountryTouch(index, event)}
+                                onPointerMove={moveCountryTouch}
+                                onPointerUp={endCountryTouch}
+                                onPointerCancel={endCountryTouch}
+                              >
+                                <GripVertical aria-hidden="true" />
+                              </button>
                               <button type="button" aria-expanded={isOpen} onClick={() => setSelectedCountryIndex(isOpen ? -1 : index)}>
                                 <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(country.code)}</span>
                                 <span className="workspaceCountryName">{country.name.ja || country.name.en || country.code || `国 ${index + 1}`}</span>

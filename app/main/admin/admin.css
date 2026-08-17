@@ -566,14 +566,29 @@
 }
 
 .workspaceCountryGrip {
-  width: 18px;
+  display: grid;
+  width: 34px;
+  height: 44px;
+  place-items: center;
   margin-left: 10px;
   flex: 0 0 auto;
+  border: 0;
+  background: transparent;
   color: #999;
   cursor: grab;
+  touch-action: none;
 }
 
-.workspaceCountryRow > button {
+.workspaceCountryGrip:active {
+  cursor: grabbing;
+}
+
+.workspaceCountryGrip svg {
+  width: 18px;
+  height: 18px;
+}
+
+.workspaceCountryRow > button:not(.workspaceCountryGrip) {
   display: grid;
   width: 100%;
   min-width: 0;
@@ -589,12 +604,12 @@
   cursor: pointer;
 }
 
-.workspaceCountryRow > button > svg {
+.workspaceCountryRow > button:not(.workspaceCountryGrip) > svg {
   width: 17px;
   color: #888;
 }
 
-.workspaceCountryRow > button > svg.isOpen {
+.workspaceCountryRow > button:not(.workspaceCountryGrip) > svg.isOpen {
   transform: rotate(90deg);
 }
 
