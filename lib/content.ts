@@ -19,7 +19,7 @@ export type StructuredServiceConfig = {
 
 export type StructuredConfig = Record<ServiceId, StructuredServiceConfig>;
 
-export type CountryRegion = "northAmerica" | "europe" | "asia" | "oceania" | "other";
+export type CountryRegion = "eastAsia" | "southeastAsia" | "northAmerica" | "europe" | "oceania" | "other";
 export type CountryStatus = "active" | "consult" | "paused";
 
 export type CountryConfig = {

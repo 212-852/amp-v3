@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  BookOpenText,
   Building2,
   ChevronRight,
   CircleUserRound,
@@ -12,7 +13,6 @@ import {
   MessageCircle,
   PawPrint,
   RefreshCw,
-  Settings,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -45,24 +45,6 @@ export function AppFooter() {
       pages: [],
     },
     {
-      id: "support",
-      label: text({ ja: "サポート", en: "Support" }),
-      icon: HelpCircle,
-      pages: [
-        {
-          label: text({ ja: "海外渡航サポート", en: "International travel support" }),
-          description: text({ ja: "海外渡航やペット輸送について相談", en: "Ask about international travel and pet transport" }),
-        },
-        { label: text({ ja: "お問い合わせ", en: "Contact us" }), description: text({ ja: "スタッフへ相談", en: "Contact our staff" }) },
-        { label: text({ ja: "よくある質問", en: "FAQ" }), description: text({ ja: "サービスに関する回答を確認", en: "Find answers about the service" }) },
-        { label: text({ ja: "利用規約", en: "Terms of service" }), description: text({ ja: "サービスの利用条件を確認", en: "Review the terms of service" }) },
-        {
-          label: text({ ja: "プライバシーポリシー", en: "Privacy policy" }),
-          description: text({ ja: "個人情報の取り扱いを確認", en: "Review how personal information is handled" }),
-        },
-      ],
-    },
-    {
       id: "company",
       label: text({ ja: "運営会社", en: "Company" }),
       icon: Building2,
@@ -84,12 +66,41 @@ export function AppFooter() {
       ],
     },
     {
-      id: "settings",
-      label: text({ ja: "設定", en: "Settings" }),
-      icon: Settings,
+      id: "terms",
+      label: text({ ja: "利用規約", en: "Legal" }),
+      icon: BookOpenText,
       pages: [
-        { label: text({ ja: "アカウント", en: "Account" }), description: text({ ja: "ログイン情報を確認", en: "Review login information" }) },
-        { label: text({ ja: "プライバシー", en: "Privacy" }), description: text({ ja: "安全と公開範囲を設定", en: "Manage safety and visibility" }) },
+        {
+          label: text({ ja: "利用規約", en: "Terms of service" }),
+          description: text({ ja: "サービスの利用条件を確認", en: "Review the terms of service" }),
+        },
+        {
+          label: text({ ja: "プライバシーポリシー", en: "Privacy policy" }),
+          description: text({ ja: "個人情報の取り扱いを確認", en: "Review how personal information is handled" }),
+        },
+        {
+          label: text({ ja: "キャンセルポリシー", en: "Cancellation policy" }),
+          description: text({ ja: "キャンセル・返金条件を確認", en: "Review cancellation and refund terms" }),
+        },
+      ],
+    },
+    {
+      id: "support",
+      label: text({ ja: "サポート", en: "Support" }),
+      icon: HelpCircle,
+      pages: [
+        {
+          label: text({ ja: "よくある質問", en: "FAQ" }),
+          description: text({ ja: "サービスに関する回答を確認", en: "Find answers about the service" }),
+        },
+        {
+          label: text({ ja: "国内外空輸サポート", en: "Domestic and international air transport support" }),
+          description: text({ ja: "国内外の空輸やペット輸送について相談", en: "Ask about domestic and international air transport" }),
+        },
+        {
+          label: text({ ja: "お問い合わせ", en: "Contact us" }),
+          description: text({ ja: "スタッフへ相談", en: "Contact our staff" }),
+        },
       ],
     },
   ];

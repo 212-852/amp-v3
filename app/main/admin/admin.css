@@ -2,6 +2,138 @@
   --portal-background: #f4f4f4;
 }
 
+.adminInboxPage {
+  display: grid;
+  gap: 22px;
+}
+
+.adminInboxHeading h1,
+.adminInboxHeading p {
+  margin: 0;
+}
+
+.adminInboxHeading p {
+  margin-top: 8px;
+}
+
+.adminInboxFilters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.adminInboxFilters button {
+  display: inline-flex;
+  min-width: max-content;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d5d5d5;
+  border-radius: 999px;
+  background: #fff;
+  padding: 8px 16px;
+  color: #444;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.adminInboxFilters button.isActive {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+
+.adminInboxFilters svg,
+.adminInboxSearch svg {
+  width: 18px;
+  height: 18px;
+}
+
+.adminInboxSearch {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d5d5d5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 15px;
+  color: #777;
+}
+
+.adminInboxSearch input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #222;
+  font: inherit;
+}
+
+.adminInboxWorkspace {
+  display: grid;
+  min-height: 480px;
+  grid-template-columns: minmax(260px, 38%) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid #d8d8d8;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.adminInboxList,
+.adminInboxDetail {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 36px;
+  text-align: center;
+}
+
+.adminInboxList {
+  border-right: 1px solid #e1e1e1;
+  background: #fafafa;
+}
+
+.adminInboxList svg,
+.adminInboxDetail svg {
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  color: #777;
+  stroke-width: 1.5;
+}
+
+.adminInboxList strong,
+.adminInboxDetail strong {
+  font-size: 17px;
+}
+
+.adminInboxList p,
+.adminInboxDetail p {
+  max-width: 360px;
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .adminInboxWorkspace {
+    min-height: 520px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .adminInboxList {
+    border-right: 0;
+    border-bottom: 1px solid #e1e1e1;
+  }
+
+  .adminInboxList,
+  .adminInboxDetail {
+    padding: 28px 20px;
+  }
+}
+
 .workspaceLanguages {
   width: min(100%, 620px);
   margin: 0 auto;

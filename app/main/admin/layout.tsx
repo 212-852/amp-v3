@@ -2,7 +2,7 @@ import type { Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { PortalToolbar, RobotNotice } from "@/components/robot";
+import { AdminTrail, PortalToolbar, RobotNotice } from "@/components/robot";
 import { getCopyright } from "@/lib/content";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 import "@/app/main/common.css";
@@ -38,12 +38,9 @@ export default async function AdminLayout({
           displayName={session.displayName}
           pictureUrl={session.pictureUrl}
           chatMode="toggle"
+          inboxHref="/main/admin/inbox"
         />
-        <nav className="adminBreadcrumb" aria-label="Breadcrumb">
-          <strong>Home</strong>
-          <span aria-hidden="true">›</span>
-          <span>Admin</span>
-        </nav>
+        <AdminTrail />
       </header>
 
       <main className="adminMain">{children}</main>

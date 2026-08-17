@@ -33,7 +33,18 @@ type WorkspaceProps = {
 
 type CompanyConfig = {
   name: Record<string, string>;
+  representative: Record<string, string>;
+  business: Record<string, string>;
+  contact: { phone: string; email: string };
   address: Omit<AddressValue, "detail"> & { detail: Record<string, string> };
+  legal: {
+    seller: Record<string, string>;
+    operationsManager: Record<string, string>;
+    price: Record<string, string>;
+    additionalFees: Record<string, string>;
+    paymentMethods: Record<string, string>;
+    cancellationRefunds: Record<string, string>;
+  };
 };
 
 const structuredServices: Array<[ServiceId, string]> = [
@@ -59,7 +70,18 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [languageError, setLanguageError] = useState("");
   const [company, setCompany] = useState<CompanyConfig>({
     name: { ja: "", en: "" },
+    representative: { ja: "", en: "" },
+    business: { ja: "", en: "" },
+    contact: { phone: "", email: "" },
     address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } },
+    legal: {
+      seller: { ja: "", en: "" },
+      operationsManager: { ja: "", en: "" },
+      price: { ja: "", en: "" },
+      additionalFees: { ja: "", en: "" },
+      paymentMethods: { ja: "", en: "" },
+      cancellationRefunds: { ja: "", en: "" },
+    },
   });
   const [companyStatus, setCompanyStatus] = useState("");
   const [companyLanguage, setCompanyLanguage] = useState<"ja" | "en">("ja");
@@ -224,6 +246,23 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     }));
   }
 
+  function updateCompanyText(key: "representative" | "business", value: string) {
+    setCompany((current) => ({
+      ...current,
+      [key]: { ...current[key], [companyLanguage]: value },
+    }));
+  }
+
+  function updateLegalText(key: keyof CompanyConfig["legal"], value: string) {
+    setCompany((current) => ({
+      ...current,
+      legal: {
+        ...current.legal,
+        [key]: { ...current.legal[key], [companyLanguage]: value },
+      },
+    }));
+  }
+
   async function saveCopyright(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCopyrightStatus("保存中…");
@@ -336,7 +375,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     setCountries((current) => [...current, {
       code: "",
       name: { ja: "", en: "" },
-      region: "other",
+      region: "eastAsia",
       status: "consult",
       featured: false,
       sortOrder: nextSortOrder,
@@ -458,6 +497,19 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                         address: { ...address, detail: { ...current.address.detail, [companyLanguage]: address.detail } },
                       }))}
                     />
+                    <label>{companyLanguage === "ja" ? "代表者" : "Representative"}<input value={company.representative[companyLanguage] ?? ""} onChange={(event) => updateCompanyText("representative", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "事業内容" : "Business activities"}<textarea value={company.business[companyLanguage] ?? ""} onChange={(event) => updateCompanyText("business", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "電話番号" : "Phone"}<input type="tel" value={company.contact.phone} onChange={(event) => setCompany((current) => ({ ...current, contact: { ...current.contact, phone: event.target.value } }))} /></label>
+                    <label>{companyLanguage === "ja" ? "メールアドレス" : "Email"}<input type="email" value={company.contact.email} onChange={(event) => setCompany((current) => ({ ...current, contact: { ...current.contact, email: event.target.value } }))} /></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend>{companyLanguage === "ja" ? "特定商取引法に基づく表記" : "Commercial transactions disclosure"}</legend>
+                    <label>{companyLanguage === "ja" ? "販売事業者" : "Service provider"}<input value={company.legal.seller[companyLanguage] ?? ""} onChange={(event) => updateLegalText("seller", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "運営責任者" : "Operations manager"}<input value={company.legal.operationsManager[companyLanguage] ?? ""} onChange={(event) => updateLegalText("operationsManager", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "料金" : "Prices"}<textarea value={company.legal.price[companyLanguage] ?? ""} onChange={(event) => updateLegalText("price", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "追加費用" : "Additional fees"}<textarea value={company.legal.additionalFees[companyLanguage] ?? ""} onChange={(event) => updateLegalText("additionalFees", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "支払方法" : "Payment methods"}<textarea value={company.legal.paymentMethods[companyLanguage] ?? ""} onChange={(event) => updateLegalText("paymentMethods", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "キャンセル・返金条件" : "Cancellation and refund policy"}<textarea value={company.legal.cancellationRefunds[companyLanguage] ?? ""} onChange={(event) => updateLegalText("cancellationRefunds", event.target.value)} /></label>
                   </fieldset>
                   <div className="workspaceCompanyActions">
                     <span role="status">{companyStatus}</span>
@@ -590,7 +642,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                           <label>国コード<input maxLength={2} required value={country.code} onChange={(event) => updateCountry(index, { code: event.target.value.toUpperCase() })} /></label>
                           <label>表示順<input min="0" type="number" required value={country.sortOrder} onChange={(event) => updateCountry(index, { sortOrder: Number(event.target.value) })} /></label>
                           <label>{countryLanguage === "ja" ? "国名" : "Country name"}<input required value={country.name[countryLanguage] ?? ""} onChange={(event) => updateCountryText(index, "name", event.target.value)} /></label>
-                          <label>地域<select value={country.region} onChange={(event) => updateCountry(index, { region: event.target.value as CountryConfig["region"] })}><option value="northAmerica">北米</option><option value="europe">欧州</option><option value="asia">アジア</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label>
+                          <label>地域<select value={country.region} onChange={(event) => updateCountry(index, { region: event.target.value as CountryConfig["region"] })}><option value="eastAsia">東アジア</option><option value="southeastAsia">東南アジア</option><option value="northAmerica">北米</option><option value="europe">ヨーロッパ</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label>
                           <label>対応状況<select value={country.status} onChange={(event) => updateCountry(index, { status: event.target.value as CountryConfig["status"] })}><option value="active">対応中</option><option value="consult">要相談</option><option value="paused">停止中</option></select></label>
                           <label className="workspaceCountryFeatured"><input type="checkbox" checked={country.featured} onChange={(event) => updateCountry(index, { featured: event.target.checked })} />トップページに表示</label>
                         </div>

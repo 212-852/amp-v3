@@ -8,6 +8,9 @@ import { getSourceLanguage, getTranslation } from "@/lib/i18n";
 
 type CompanyConfig = {
   name: Record<string, string>;
+  representative: Record<string, string>;
+  business: Record<string, string>;
+  contact: { phone: string; email: string };
   address: {
     prefectureCode: string;
     cityCode: string;
@@ -19,6 +22,9 @@ type Place = { code: string; name: string };
 
 const emptyCompany: CompanyConfig = {
   name: {},
+  representative: {},
+  business: {},
+  contact: { phone: "", email: "" },
   address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } },
 };
 
@@ -78,6 +84,9 @@ export default function CompanyPage() {
       introduction: getTranslation({ ja: "サービスを運営する会社の基本情報です。", en: "Basic information about the company operating this service." }, language),
       name: getTranslation({ ja: "会社名", en: "Company name" }, language),
       address: getTranslation({ ja: "所在地", en: "Address" }, language),
+      representative: getTranslation({ ja: "代表者", en: "Representative" }, language),
+      business: getTranslation({ ja: "事業内容", en: "Business activities" }, language),
+      contact: getTranslation({ ja: "連絡先", en: "Contact" }, language),
     }),
     [language],
   );
@@ -111,6 +120,18 @@ export default function CompanyPage() {
             <div>
               <dt>{text.address}</dt>
               <dd>{address || "—"}</dd>
+            </div>
+            <div>
+              <dt>{text.representative}</dt>
+              <dd>{getTranslation(company.representative, language) || "—"}</dd>
+            </div>
+            <div>
+              <dt>{text.business}</dt>
+              <dd>{getTranslation(company.business, language) || "—"}</dd>
+            </div>
+            <div>
+              <dt>{text.contact}</dt>
+              <dd>{[company.contact.phone, company.contact.email].filter(Boolean).join(" / ") || "—"}</dd>
             </div>
           </dl>
         </section>

@@ -172,7 +172,7 @@ export async function PATCH(request: NextRequest) {
       const item = entry as Record<string, unknown>;
       return typeof item.code === "string" && /^[A-Za-z]{2}$/.test(item.code) &&
         isLocalizedText(item.name) &&
-        ["northAmerica", "europe", "asia", "oceania", "other"].includes(String(item.region)) &&
+        ["eastAsia", "southeastAsia", "northAmerica", "europe", "oceania", "other"].includes(String(item.region)) &&
         ["active", "consult", "paused"].includes(String(item.status)) &&
         typeof item.featured === "boolean" &&
         Number.isFinite(item.sortOrder) &&
@@ -280,7 +280,11 @@ export async function PATCH(request: NextRequest) {
 
     const company = body.company as {
       name?: unknown;
+      representative?: unknown;
+      business?: unknown;
+      contact?: unknown;
       address?: unknown;
+      legal?: unknown;
     };
     const isLocalizedText = (value: unknown) =>
       Boolean(value) &&
@@ -291,6 +295,8 @@ export async function PATCH(request: NextRequest) {
       );
 
     const address = company.address as Record<string, unknown> | undefined;
+    const contact = company.contact as Record<string, unknown> | undefined;
+    const legal = company.legal as Record<string, unknown> | undefined;
     const isAddress =
       Boolean(address) &&
       !Array.isArray(address) &&
@@ -298,7 +304,10 @@ export async function PATCH(request: NextRequest) {
       typeof address.cityCode === "string" &&
       isLocalizedText(address.detail);
 
-    if (!isLocalizedText(company.name) || !isAddress) {
+    const isContact = Boolean(contact) && !Array.isArray(contact) && typeof contact?.phone === "string" && typeof contact.email === "string";
+    const isLegal = Boolean(legal) && !Array.isArray(legal) && ["seller", "operationsManager", "price", "additionalFees", "paymentMethods", "cancellationRefunds"].every((key) => isLocalizedText(legal?.[key]));
+
+    if (!isLocalizedText(company.name) || !isLocalizedText(company.representative) || !isLocalizedText(company.business) || !isContact || !isAddress || !isLegal) {
       return Response.json({ error: "Invalid company configuration." }, { status: 400 });
     }
 
@@ -310,11 +319,15 @@ export async function PATCH(request: NextRequest) {
         action: "update_company_config",
         company: {
           name: company.name as Record<string, string>,
+          representative: company.representative as Record<string, string>,
+          business: company.business as Record<string, string>,
+          contact: { phone: contact!.phone as string, email: contact!.email as string },
           address: {
             prefectureCode: address!.prefectureCode as string,
             cityCode: address!.cityCode as string,
             detail: address!.detail as Record<string, string>,
           },
+          legal: legal as import("@/lib/identity").CompanyConfig["legal"],
         },
       });
       return Response.json({ company: updatedCompany });

@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
@@ -26,12 +28,14 @@ type PortalToolbarProps = {
   displayName: string;
   pictureUrl?: string | null;
   chatMode: "icon" | "toggle";
+  inboxHref?: string;
 };
 
 export function PortalToolbar({
   displayName,
   pictureUrl,
   chatMode,
+  inboxHref,
 }: PortalToolbarProps) {
   const [isChatEnabled, setIsChatEnabled] = useState(true);
 
@@ -80,17 +84,36 @@ export function PortalToolbar({
           </button>
         </div>
 
-        <button
+      </div>
+
+      {inboxHref ? (
+        <Link
           className="adminInboxButton"
-          type="button"
-          aria-label="受信トレイ（準備中）"
-          title="個別・グループチャットとメールをまとめる受信トレイ（準備中）"
+          href={inboxHref}
+          aria-label="受信トレイを開く"
         >
           <Inbox aria-hidden="true" />
           <span>受信トレイ</span>
-        </button>
-      </div>
+        </Link>
+      ) : null}
     </>
+  );
+}
+
+export function AdminTrail() {
+  const pathname = usePathname();
+  const isInbox = pathname === "/main/admin/inbox";
+
+  return (
+    <nav className="adminBreadcrumb" aria-label="Breadcrumb">
+      {isInbox ? <Link href="/main/admin">Home</Link> : <strong>Home</strong>}
+      {isInbox ? (
+        <>
+          <span aria-hidden="true">›</span>
+          <strong>受信トレイ</strong>
+        </>
+      ) : null}
+    </nav>
   );
 }
 

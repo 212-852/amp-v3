@@ -185,12 +185,46 @@ type SessionResult = {
 
 export type CompanyConfig = {
   name: Record<string, string>;
+  representative: Record<string, string>;
+  business: Record<string, string>;
+  contact: {
+    phone: string;
+    email: string;
+  };
   address: {
     prefectureCode: string;
     cityCode: string;
     detail: Record<string, string>;
   };
+  legal: {
+    seller: Record<string, string>;
+    operationsManager: Record<string, string>;
+    price: Record<string, string>;
+    additionalFees: Record<string, string>;
+    paymentMethods: Record<string, string>;
+    cancellationRefunds: Record<string, string>;
+  };
 };
+
+const emptyLocalizedText = () => ({ ja: "", en: "" });
+
+function emptyCompanyConfig(): CompanyConfig {
+  return {
+    name: emptyLocalizedText(),
+    representative: emptyLocalizedText(),
+    business: emptyLocalizedText(),
+    contact: { phone: "", email: "" },
+    address: { prefectureCode: "", cityCode: "", detail: emptyLocalizedText() },
+    legal: {
+      seller: emptyLocalizedText(),
+      operationsManager: emptyLocalizedText(),
+      price: emptyLocalizedText(),
+      additionalFees: emptyLocalizedText(),
+      paymentMethods: emptyLocalizedText(),
+      cancellationRefunds: emptyLocalizedText(),
+    },
+  };
+}
 
 function normalizeLanguage(language: unknown): Language {
   return isLanguageCode(language) ? language : DEFAULT_LANGUAGE;
@@ -1116,7 +1150,7 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
 
   const company = data?.company;
   if (!company || typeof company !== "object" || Array.isArray(company)) {
-    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } } };
+    return emptyCompanyConfig();
   }
 
   const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
@@ -1133,13 +1167,17 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
       : { ja: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "", en: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "" },
   };
 
-  return { name, address };
+  return normalizeCompanyConfig({ ...company, name, address });
 }
 
 function normalizeCompanyConfig(company: unknown): CompanyConfig {
   if (!company || typeof company !== "object" || Array.isArray(company)) {
-    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } } };
+    return emptyCompanyConfig();
   }
+
+  const localized = (value: unknown) => value && typeof value === "object" && !Array.isArray(value)
+    ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+    : emptyLocalizedText();
 
   const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
     ? Object.fromEntries(Object.entries(company.name).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
@@ -1147,15 +1185,35 @@ function normalizeCompanyConfig(company: unknown): CompanyConfig {
   const rawAddress = "address" in company && company.address && typeof company.address === "object" && !Array.isArray(company.address)
     ? company.address
     : {};
+  const rawContact = "contact" in company && company.contact && typeof company.contact === "object" && !Array.isArray(company.contact)
+    ? company.contact
+    : {};
+  const rawLegal = "legal" in company && company.legal && typeof company.legal === "object" && !Array.isArray(company.legal)
+    ? company.legal
+    : {};
 
   return {
     name,
+    representative: localized("representative" in company ? company.representative : null),
+    business: localized("business" in company ? company.business : null),
+    contact: {
+      phone: "phone" in rawContact && typeof rawContact.phone === "string" ? rawContact.phone : "",
+      email: "email" in rawContact && typeof rawContact.email === "string" ? rawContact.email : "",
+    },
     address: {
       prefectureCode: "prefectureCode" in rawAddress && typeof rawAddress.prefectureCode === "string" ? rawAddress.prefectureCode : "",
       cityCode: "cityCode" in rawAddress && typeof rawAddress.cityCode === "string" ? rawAddress.cityCode : "",
       detail: "detail" in rawAddress && rawAddress.detail && typeof rawAddress.detail === "object" && !Array.isArray(rawAddress.detail)
         ? Object.fromEntries(Object.entries(rawAddress.detail).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
         : { ja: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "", en: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "" },
+    },
+    legal: {
+      seller: localized("seller" in rawLegal ? rawLegal.seller : null),
+      operationsManager: localized("operationsManager" in rawLegal ? rawLegal.operationsManager : null),
+      price: localized("price" in rawLegal ? rawLegal.price : null),
+      additionalFees: localized("additionalFees" in rawLegal ? rawLegal.additionalFees : null),
+      paymentMethods: localized("paymentMethods" in rawLegal ? rawLegal.paymentMethods : null),
+      cancellationRefunds: localized("cancellationRefunds" in rawLegal ? rawLegal.cancellationRefunds : null),
     },
   };
 }
@@ -1233,7 +1291,7 @@ function normalizeCountriesConfig(value: unknown): CountriesConfig {
           )
         : { ja: "", en: "" };
     };
-    const region = ["northAmerica", "europe", "asia", "oceania", "other"].includes(String(item.region))
+    const region = ["eastAsia", "southeastAsia", "northAmerica", "europe", "oceania", "other"].includes(String(item.region))
       ? item.region as CountryConfig["region"]
       : "other";
     const status = ["active", "consult", "paused"].includes(String(item.status))
