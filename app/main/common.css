@@ -527,7 +527,21 @@ body:has(.driverApp) {
   font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
     "Hiragino Kaku Gothic ProN", sans-serif;
   font-weight: 500;
-  animation: adminMenuBounce 520ms cubic-bezier(.2, .9, .28, 1.2) both;
+}
+
+.adminMenuOverlay {
+  place-items: stretch end;
+  padding: 0;
+}
+
+.adminMenuOverlay .adminMenuModal {
+  width: min(92vw, 620px);
+  height: 100dvh;
+  max-height: none;
+  border-width: 0 0 0 1px;
+  border-radius: 28px 0 0 28px;
+  box-shadow: -18px 0 44px rgb(0 0 0 / 20%);
+  animation: adminMenuSlideIn 340ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .adminMenuModal h2 {
@@ -731,24 +745,13 @@ body:has(.driverApp) {
   }
 }
 
-@keyframes adminMenuBounce {
+@keyframes adminMenuSlideIn {
   0% {
-    opacity: 0;
-    transform: scale(.62);
-  }
-
-  68% {
-    opacity: 1;
-    transform: scale(1.045);
-  }
-
-  84% {
-    transform: scale(.985);
+    transform: translateX(102%);
   }
 
   100% {
-    opacity: 1;
-    transform: scale(1);
+    transform: translateX(0);
   }
 }
 
@@ -794,6 +797,12 @@ body:has(.driverApp) {
   .adminModalOverlay .modalPanel {
     border-radius: 24px;
     padding: 24px 18px 20px;
+  }
+
+  .adminMenuOverlay .adminMenuModal {
+    height: 100dvh;
+    max-height: none;
+    border-radius: 24px 0 0 24px;
   }
 
   .adminMenuGrid {

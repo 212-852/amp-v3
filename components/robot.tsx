@@ -223,7 +223,7 @@ export function PortalToolbar({
         <Modal
           label="管理メニュー"
           open={isMenuOpen}
-          overlayClassName="adminModalOverlay"
+          overlayClassName="adminModalOverlay adminMenuOverlay"
           panelClassName="adminMenuModal"
           onClose={() => setIsMenuOpen(false)}
         >
