@@ -296,6 +296,46 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("resource") !== "structured-image") {
+    return Response.json({ error: "Unsupported resource." }, { status: 404 });
+  }
+
+  try {
+    if (!(await requireLanguageAdministrator(request))) {
+      return Response.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    const formData = await request.formData();
+    const service = formData.get("service");
+    const image = formData.get("image");
+    const services = ["main", "tokyo", "airport", "corporate", "flight"] as const;
+    const contentTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+
+    if (
+      typeof service !== "string" ||
+      !services.some((item) => item === service) ||
+      !(image instanceof File) ||
+      !contentTypes.some((item) => item === image.type) ||
+      image.size === 0 ||
+      image.size > 5 * 1024 * 1024
+    ) {
+      return Response.json({ error: "JPEG・PNG・WebP（5MB以下）を選択してください。" }, { status: 400 });
+    }
+
+    return Response.json(
+      await identityDispatcher({
+        action: "upload_structured_image",
+        service: service as import("@/lib/content").ServiceId,
+        contentType: image.type as "image/jpeg" | "image/png" | "image/webp",
+        data: await image.arrayBuffer(),
+      }),
+    );
+  } catch {
+    return Response.json({ error: "画像をアップロードできませんでした。" }, { status: 500 });
+  }
+}
+
 async function requireLanguageAdministrator(request: NextRequest) {
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!sessionToken) return null;

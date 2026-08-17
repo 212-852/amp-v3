@@ -2,7 +2,7 @@
 
 import type { FormEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, LockKeyhole, MessageCircle, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
+import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, ImageUp, LockKeyhole, MessageCircle, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
 
 import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
@@ -67,6 +67,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [structuredLanguage, setStructuredLanguage] = useState<"ja" | "en">("ja");
   const [structured, setStructured] = useState<StructuredConfig>(defaultStructured);
   const [structuredStatus, setStructuredStatus] = useState("");
+  const [structuredUploadStatus, setStructuredUploadStatus] = useState("");
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
@@ -257,6 +258,27 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     }));
   }
 
+  async function uploadStructuredImage(file: File | undefined) {
+    if (!file) return;
+    setStructuredUploadStatus("アップロード中…");
+    const formData = new FormData();
+    formData.set("service", structuredService);
+    formData.set("image", file);
+    const response = await fetch("/api/session?resource=structured-image", {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
+
+    if (!response.ok || !result?.url) {
+      setStructuredUploadStatus(result?.error ?? "アップロードできませんでした");
+      return;
+    }
+
+    updateStructuredShared("image", result.url);
+    setStructuredUploadStatus("アップロードしました。最後に保存してください");
+  }
+
   function selectGroup(item: NavigationGroup) {
     if (!canAccessNavigation(item.allowedTiers, tier)) return;
     setGroupId(item.id);
@@ -422,17 +444,40 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                 <form onSubmit={saveStructured}>
                   <div className="workspaceStructuredSwitch">
                     <span>JSON-LD</span>
-                    <label>
+                    <label className="workspaceToggle">
                       <input
                         checked={structured[structuredService].enabled}
                         type="checkbox"
+                        role="switch"
+                        aria-label="JSON-LDを有効にする"
                         onChange={(event) => updateStructuredShared("enabled", event.target.checked)}
                       />
-                      {structured[structuredService].enabled ? "有効" : "無効"}
+                      <span className="workspaceToggleTrack" aria-hidden="true">
+                        <span className="workspaceToggleThumb" />
+                      </span>
+                      <span className="workspaceToggleStatus">
+                        {structured[structuredService].enabled ? "有効" : "無効"}
+                      </span>
                     </label>
                   </div>
                   <label>サイトURL<input type="url" value={structured[structuredService].url} onChange={(event) => updateStructuredShared("url", event.target.value)} /></label>
-                  <label>代表画像URL<input type="text" value={structured[structuredService].image} onChange={(event) => updateStructuredShared("image", event.target.value)} /></label>
+                  <div className="workspaceStructuredImage">
+                    <label>代表画像URL<input type="url" value={structured[structuredService].image} onChange={(event) => updateStructuredShared("image", event.target.value)} /></label>
+                    <label className="workspaceImageUpload">
+                      <ImageUp size={18} aria-hidden="true" />
+                      画像をアップロード
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => {
+                          void uploadStructuredImage(event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <small>JPEG・PNG・WebP／5MB以下</small>
+                    <span role="status">{structuredUploadStatus}</span>
+                  </div>
                   <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
                     <button className={structuredLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={structuredLanguage === "ja"} onClick={() => setStructuredLanguage("ja")}>日本語</button>
                     <button className={structuredLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={structuredLanguage === "en"} onClick={() => setStructuredLanguage("en")}>English</button>

@@ -97,6 +97,12 @@ export type IdentityRequest =
       structured: StructuredConfig;
     }
   | {
+      action: "upload_structured_image";
+      service: ServiceId;
+      contentType: "image/jpeg" | "image/png" | "image/webp";
+      data: ArrayBuffer;
+    }
+  | {
       action: "list_places";
       placeType: "prefectures" | "cities";
       language: "ja" | "en";
@@ -240,6 +246,9 @@ export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_structured_config" }>,
 ): Promise<StructuredConfig>;
 export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "upload_structured_image" }>,
+): Promise<{ url: string }>;
+export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "list_places" }>,
 ): Promise<Array<{ code: string; name: string }>>;
 export function identityDispatcher(
@@ -341,6 +350,9 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "update_structured_config":
       return updateStructuredConfig(request.structured);
+
+    case "upload_structured_image":
+      return uploadStructuredImage(request);
 
     case "list_places":
       return listPlaces(request);
@@ -1266,6 +1278,27 @@ async function updateStructuredConfig(structured: StructuredConfig) {
 
   if (error) throw new Error(`Structured data update failed: ${error.message}`);
   return structured;
+}
+
+async function uploadStructuredImage(
+  request: Extract<IdentityRequest, { action: "upload_structured_image" }>,
+) {
+  const supabase = getSupabaseAdmin();
+  const extension = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  }[request.contentType];
+  const path = `structured/${request.service}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage.from("site_assets").upload(path, request.data, {
+    cacheControl: "31536000",
+    contentType: request.contentType,
+    upsert: false,
+  });
+
+  if (error) throw new Error(`Structured image upload failed: ${error.message}`);
+  const { data } = supabase.storage.from("site_assets").getPublicUrl(path);
+  return { url: data.publicUrl };
 }
 
 async function listPlaces(

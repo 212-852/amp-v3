@@ -113,18 +113,102 @@
   font-weight: 700;
 }
 
-.workspaceStructured .workspaceStructuredSwitch label {
+.workspaceStructured .workspaceStructuredSwitch .workspaceToggle {
   display: flex;
   grid-template-columns: none;
   align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.workspaceToggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.workspaceToggleTrack {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid #b7b7b7;
+  border-radius: 999px;
+  background: #d8d8d8;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.workspaceToggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+  transition: transform 160ms ease;
+}
+
+.workspaceToggle input:checked + .workspaceToggleTrack {
+  border-color: #222;
+  background: #222;
+}
+
+.workspaceToggle input:checked + .workspaceToggleTrack .workspaceToggleThumb {
+  transform: translateX(20px);
+}
+
+.workspaceToggle input:focus-visible + .workspaceToggleTrack {
+  outline: 3px solid rgb(0 0 0 / 18%);
+  outline-offset: 2px;
+}
+
+.workspaceToggleStatus {
+  min-width: 2em;
+}
+
+.workspaceStructuredImage {
+  display: grid;
   gap: 8px;
 }
 
-.workspaceStructured .workspaceStructuredSwitch input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: #222;
+.workspaceStructured .workspaceImageUpload {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 42px;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: #fff;
+  color: #222;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workspaceImageUpload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.workspaceImageUpload:focus-within {
+  outline: 3px solid rgb(0 0 0 / 18%);
+  outline-offset: 2px;
+}
+
+.workspaceStructuredImage small,
+.workspaceStructuredImage > span {
+  color: #717171;
+  font-size: 12px;
 }
 
 .srOnly {
