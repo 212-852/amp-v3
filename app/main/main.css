@@ -339,7 +339,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 14px;
-  transform: translateY(-28px);
+  transform: translateY(-12px);
   color: #654a32;
   font-size: 23px;
   text-align: right;
@@ -1126,7 +1126,7 @@
 
   .headerProfile {
     gap: 8px;
-    transform: translateY(-20px);
+    transform: translateY(-6px);
     font-size: 15px;
   }
 

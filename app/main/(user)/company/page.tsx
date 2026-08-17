@@ -11,7 +11,7 @@ type CompanyConfig = {
   address: {
     prefectureCode: string;
     cityCode: string;
-    detail: string;
+    detail: Record<string, string>;
   };
 };
 
@@ -19,7 +19,7 @@ type Place = { code: string; name: string };
 
 const emptyCompany: CompanyConfig = {
   name: {},
-  address: { prefectureCode: "", cityCode: "", detail: "" },
+  address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } },
 };
 
 export default function CompanyPage() {
@@ -83,8 +83,8 @@ export default function CompanyPage() {
   );
 
   const address = placeLanguage === "ja"
-    ? [prefecture, city, company.address.detail].filter(Boolean).join(" ")
-    : [company.address.detail, city, prefecture].filter(Boolean).join(", ");
+    ? [prefecture, city, getTranslation(company.address.detail, "ja")].filter(Boolean).join(" ")
+    : [getTranslation(company.address.detail, "en"), city, prefecture].filter(Boolean).join(", ");
 
   return (
     <article className="companyPage">

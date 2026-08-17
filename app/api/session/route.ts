@@ -78,6 +78,15 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (resource === "countries") {
+    try {
+      const countries = await identityDispatcher({ action: "get_countries_config" });
+      return Response.json({ countries });
+    } catch {
+      return Response.json({ error: "Countries configuration is unavailable." }, { status: 500 });
+    }
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const loginProvider = request.cookies.get("login_provider")?.value;
 
@@ -148,7 +157,46 @@ export async function PATCH(request: NextRequest) {
     company?: unknown;
     copyright?: unknown;
     structured?: unknown;
+    countries?: unknown;
   } | null;
+
+  if (body?.resource === "countries") {
+    const countries = body.countries;
+    const isLocalizedText = (value: unknown) =>
+      Boolean(value) &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.values(value as Record<string, unknown>).every((item) => typeof item === "string");
+    const validCountries = Array.isArray(countries) && countries.every((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+      const item = entry as Record<string, unknown>;
+      return typeof item.code === "string" && /^[A-Za-z]{2}$/.test(item.code) &&
+        isLocalizedText(item.name) &&
+        ["northAmerica", "europe", "asia", "oceania", "other"].includes(String(item.region)) &&
+        ["active", "consult", "paused"].includes(String(item.status)) &&
+        typeof item.featured === "boolean" &&
+        Number.isFinite(item.sortOrder) &&
+        isLocalizedText(item.note) &&
+        typeof item.url === "string";
+    });
+
+    if (!validCountries) {
+      return Response.json({ error: "Invalid countries configuration." }, { status: 400 });
+    }
+
+    try {
+      if (!(await requireLanguageAdministrator(request))) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
+      const updatedCountries = await identityDispatcher({
+        action: "update_countries_config",
+        countries: countries as import("@/lib/content").CountriesConfig,
+      });
+      return Response.json({ countries: updatedCountries });
+    } catch {
+      return Response.json({ error: "Countries configuration could not be saved." }, { status: 500 });
+    }
+  }
 
   if (body?.resource === "structured") {
     const structured = body.structured;
@@ -248,7 +296,7 @@ export async function PATCH(request: NextRequest) {
       !Array.isArray(address) &&
       typeof address?.prefectureCode === "string" &&
       typeof address.cityCode === "string" &&
-      typeof address.detail === "string";
+      isLocalizedText(address.detail);
 
     if (!isLocalizedText(company.name) || !isAddress) {
       return Response.json({ error: "Invalid company configuration." }, { status: 400 });
@@ -265,7 +313,7 @@ export async function PATCH(request: NextRequest) {
           address: {
             prefectureCode: address!.prefectureCode as string,
             cityCode: address!.cityCode as string,
-            detail: address!.detail as string,
+            detail: address!.detail as Record<string, string>,
           },
         },
       });

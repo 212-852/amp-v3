@@ -864,13 +864,15 @@ export function AppHeader() {
           <div className="headerBrand">
             <strong className="headerLogo">PET TAXI</strong>
             <nav className="headerPageName" aria-label={getTranslation({ ja: "パンくずリスト", en: "Breadcrumb" }, language)}>
-              {pathname.endsWith("/company") ? (
+              {pathname.endsWith("/company") || pathname.endsWith("/legal") ? (
                 <>
                   <Link href={pathname.startsWith("/main") ? "/main" : "/"}>
                     {getTranslation({ ja: "ホーム", en: "Home" }, language)}
                   </Link>
                   <ChevronRight aria-hidden="true" />
-                  <span>{getTranslation({ ja: "会社概要", en: "Company Profile" }, language)}</span>
+                  <span>{pathname.endsWith("/legal")
+                    ? getTranslation({ ja: "特定商取引法に基づく表記", en: "Commercial Transactions" }, language)
+                    : getTranslation({ ja: "会社概要", en: "Company Profile" }, language)}</span>
                 </>
               ) : (
                 <span>{getTranslation({ ja: "ホーム", en: "Home" }, language)}</span>

@@ -243,7 +243,8 @@
 }
 
 .workspaceCompany input,
-.workspaceCompany textarea {
+.workspaceCompany textarea,
+.workspaceCompany select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #d8d8d8;
@@ -258,6 +259,101 @@
 .workspaceCompany textarea {
   min-height: 72px;
   resize: vertical;
+}
+
+.workspaceCountries {
+  width: min(100%, 760px);
+}
+
+.workspaceCountries > .workspaceCompanyTabs {
+  margin-bottom: 20px;
+}
+
+.workspaceCountryList {
+  display: grid;
+  gap: 14px;
+}
+
+.workspaceCompany .workspaceCountryCard {
+  gap: 14px;
+  border: 1px solid #dedede;
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 16px;
+}
+
+.workspaceCountryHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspaceCountryHeading strong {
+  font-size: 15px;
+}
+
+.workspaceCountryHeading button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #eee;
+  color: #555;
+  cursor: pointer;
+}
+
+.workspaceCountryHeading svg,
+.workspaceCountryAdd svg {
+  width: 17px;
+  height: 17px;
+}
+
+.workspaceCountryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workspaceCompany .workspaceCountryFeatured {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  min-height: 39px;
+  color: #333;
+  font-weight: 700;
+}
+
+.workspaceCompany .workspaceCountryFeatured input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.workspaceCountryAdd {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 40px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 14px;
+  color: #222;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .workspaceCountryGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .workspaceCompanyActions {

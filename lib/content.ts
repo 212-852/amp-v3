@@ -19,6 +19,24 @@ export type StructuredServiceConfig = {
 
 export type StructuredConfig = Record<ServiceId, StructuredServiceConfig>;
 
+export type CountryRegion = "northAmerica" | "europe" | "asia" | "oceania" | "other";
+export type CountryStatus = "active" | "consult" | "paused";
+
+export type CountryConfig = {
+  code: string;
+  name: Translation;
+  region: CountryRegion;
+  status: CountryStatus;
+  featured: boolean;
+  sortOrder: number;
+  note: Translation;
+  url: string;
+};
+
+export type CountriesConfig = CountryConfig[];
+
+export const defaultCountries: CountriesConfig = [];
+
 const emptyStructuredService: StructuredServiceConfig = {
   enabled: false,
   url: "",

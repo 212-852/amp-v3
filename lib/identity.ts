@@ -8,8 +8,11 @@ import {
   type Language,
 } from "@/lib/i18n";
 import {
+  defaultCountries,
   defaultCopyright,
   defaultStructured,
+  type CountriesConfig,
+  type CountryConfig,
   type CopyrightConfig,
   type ServiceId,
   type StructuredConfig,
@@ -84,6 +87,7 @@ export type IdentityRequest =
   | { action: "get_app_config" }
   | { action: "get_copyright_config" }
   | { action: "get_structured_config" }
+  | { action: "get_countries_config" }
   | {
       action: "update_company_config";
       company: CompanyConfig;
@@ -95,6 +99,10 @@ export type IdentityRequest =
   | {
       action: "update_structured_config";
       structured: StructuredConfig;
+    }
+  | {
+      action: "update_countries_config";
+      countries: CountriesConfig;
     }
   | {
       action: "upload_structured_image";
@@ -180,7 +188,7 @@ export type CompanyConfig = {
   address: {
     prefectureCode: string;
     cityCode: string;
-    detail: string;
+    detail: Record<string, string>;
   };
 };
 
@@ -229,13 +237,16 @@ export function identityDispatcher(
 ): Promise<CompanyConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_app_config" }>,
-): Promise<{ languages: Array<{ code: Language; name: string }>; company: CompanyConfig; copyright: CopyrightConfig; structured: StructuredConfig }>;
+): Promise<{ languages: Array<{ code: Language; name: string }>; company: CompanyConfig; copyright: CopyrightConfig; structured: StructuredConfig; countries: CountriesConfig }>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_copyright_config" }>,
 ): Promise<CopyrightConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_structured_config" }>,
 ): Promise<StructuredConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_countries_config" }>,
+): Promise<CountriesConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_company_config" }>,
 ): Promise<CompanyConfig>;
@@ -245,6 +256,9 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_structured_config" }>,
 ): Promise<StructuredConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_countries_config" }>,
+): Promise<CountriesConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "upload_structured_image" }>,
 ): Promise<{ url: string }>;
@@ -342,6 +356,9 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "get_structured_config":
       return getStructuredConfig();
 
+    case "get_countries_config":
+      return getCountriesConfig();
+
     case "update_company_config":
       return updateCompanyConfig(request.company);
 
@@ -350,6 +367,9 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "update_structured_config":
       return updateStructuredConfig(request.structured);
+
+    case "update_countries_config":
+      return updateCountriesConfig(request.countries);
 
     case "upload_structured_image":
       return uploadStructuredImage(request);
@@ -1096,7 +1116,7 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
 
   const company = data?.company;
   if (!company || typeof company !== "object" || Array.isArray(company)) {
-    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: "" } };
+    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } } };
   }
 
   const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
@@ -1108,7 +1128,9 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
   const address = {
     prefectureCode: "prefectureCode" in rawAddress && typeof rawAddress.prefectureCode === "string" ? rawAddress.prefectureCode : "",
     cityCode: "cityCode" in rawAddress && typeof rawAddress.cityCode === "string" ? rawAddress.cityCode : "",
-    detail: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "",
+    detail: "detail" in rawAddress && rawAddress.detail && typeof rawAddress.detail === "object" && !Array.isArray(rawAddress.detail)
+      ? Object.fromEntries(Object.entries(rawAddress.detail).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+      : { ja: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "", en: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "" },
   };
 
   return { name, address };
@@ -1116,7 +1138,7 @@ async function getCompanyConfig(): Promise<CompanyConfig> {
 
 function normalizeCompanyConfig(company: unknown): CompanyConfig {
   if (!company || typeof company !== "object" || Array.isArray(company)) {
-    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: "" } };
+    return { name: { ja: "", en: "" }, address: { prefectureCode: "", cityCode: "", detail: { ja: "", en: "" } } };
   }
 
   const name = "name" in company && company.name && typeof company.name === "object" && !Array.isArray(company.name)
@@ -1131,7 +1153,9 @@ function normalizeCompanyConfig(company: unknown): CompanyConfig {
     address: {
       prefectureCode: "prefectureCode" in rawAddress && typeof rawAddress.prefectureCode === "string" ? rawAddress.prefectureCode : "",
       cityCode: "cityCode" in rawAddress && typeof rawAddress.cityCode === "string" ? rawAddress.cityCode : "",
-      detail: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "",
+      detail: "detail" in rawAddress && rawAddress.detail && typeof rawAddress.detail === "object" && !Array.isArray(rawAddress.detail)
+        ? Object.fromEntries(Object.entries(rawAddress.detail).filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+        : { ja: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "", en: "detail" in rawAddress && typeof rawAddress.detail === "string" ? rawAddress.detail : "" },
     },
   };
 }
@@ -1195,11 +1219,46 @@ function normalizeStructuredConfig(value: unknown): StructuredConfig {
   ) as StructuredConfig;
 }
 
+function normalizeCountriesConfig(value: unknown): CountriesConfig {
+  if (!Array.isArray(value)) return defaultCountries;
+
+  return value.flatMap((entry): CountryConfig[] => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const item = entry as Record<string, unknown>;
+    const localized = (key: "name" | "note") => {
+      const raw = item[key];
+      return raw && typeof raw === "object" && !Array.isArray(raw)
+        ? Object.fromEntries(
+            Object.entries(raw).filter((part): part is [string, string] => typeof part[1] === "string"),
+          )
+        : { ja: "", en: "" };
+    };
+    const region = ["northAmerica", "europe", "asia", "oceania", "other"].includes(String(item.region))
+      ? item.region as CountryConfig["region"]
+      : "other";
+    const status = ["active", "consult", "paused"].includes(String(item.status))
+      ? item.status as CountryConfig["status"]
+      : "consult";
+
+    return [{
+      code: typeof item.code === "string" ? item.code.toUpperCase() : "",
+      name: localized("name"),
+      region,
+      status,
+      featured: typeof item.featured === "boolean" ? item.featured : false,
+      sortOrder: typeof item.sortOrder === "number" ? item.sortOrder : 0,
+      note: localized("note"),
+      url: typeof item.url === "string" ? item.url : "",
+    }];
+  }).filter((country) => /^[A-Z]{2}$/.test(country.code))
+    .sort((left, right) => left.sortOrder - right.sortOrder);
+}
+
 async function getAppConfig() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("configs")
-    .select("languages, company, copyright, structured")
+    .select("languages, company, copyright, structured, countries")
     .eq("config_id", 1)
     .maybeSingle();
 
@@ -1217,6 +1276,7 @@ async function getAppConfig() {
     company: normalizeCompanyConfig(data?.company),
     copyright: normalizeCopyrightConfig(data?.copyright),
     structured: normalizeStructuredConfig(data?.structured),
+    countries: normalizeCountriesConfig(data?.countries),
   };
 }
 
@@ -1242,6 +1302,18 @@ async function getStructuredConfig() {
 
   if (error) throw new Error(`Structured data lookup failed: ${error.message}`);
   return normalizeStructuredConfig(data?.structured);
+}
+
+async function getCountriesConfig() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("countries")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Countries lookup failed: ${error.message}`);
+  return normalizeCountriesConfig(data?.countries);
 }
 
 async function updateCompanyConfig(company: CompanyConfig) {
@@ -1278,6 +1350,19 @@ async function updateStructuredConfig(structured: StructuredConfig) {
 
   if (error) throw new Error(`Structured data update failed: ${error.message}`);
   return structured;
+}
+
+async function updateCountriesConfig(countries: CountriesConfig) {
+  const normalizedCountries = normalizeCountriesConfig(countries);
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    countries: normalizedCountries,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Countries update failed: ${error.message}`);
+  return normalizedCountries;
 }
 
 async function uploadStructuredImage(

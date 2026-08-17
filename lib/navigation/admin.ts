@@ -31,6 +31,12 @@ export const adminNavigation: NavigationGroup[] = [
         description: "各サービス固有の検索情報とJSON-LDを管理します。",
         allowedTiers: ["owner", "core"],
       },
+      {
+        id: "countries",
+        label: "対応国",
+        description: "国名、対応状況、表示順と掲載場所を管理します。",
+        allowedTiers: ["owner", "core"],
+      },
     ],
   },
 ];
