@@ -52,6 +52,9 @@ alter table public.configs
 add column if not exists copyright jsonb not null
 default '{"startYear":2006,"services":{"main":{"ja":"PET TAXI","en":"PET TAXI"},"tokyo":{"ja":"ペットタクシー東京","en":"PET TAXI TOKYO"},"airport":{"ja":"PET TAXI AIRPORT","en":"PET TAXI AIRPORT"},"corporate":{"ja":"PET TAXI","en":"PET TAXI"},"flight":{"ja":"PawsFlight Japan","en":"PawsFlight Japan"}}}'::jsonb;
 
+alter table public.configs
+add column if not exists structured jsonb not null default '{}'::jsonb;
+
 create table if not exists public.notifications (
   notification_uuid uuid primary key default gen_random_uuid(),
   user_uuid uuid not null references public.users(user_uuid) on delete cascade,

@@ -7,6 +7,36 @@ export type CopyrightConfig = {
   services: Record<ServiceId, Translation>;
 };
 
+export type StructuredServiceConfig = {
+  enabled: boolean;
+  url: string;
+  image: string;
+  description: Translation;
+  category: Translation;
+  area: Translation;
+  offering: Translation;
+};
+
+export type StructuredConfig = Record<ServiceId, StructuredServiceConfig>;
+
+const emptyStructuredService: StructuredServiceConfig = {
+  enabled: false,
+  url: "",
+  image: "",
+  description: { ja: "", en: "" },
+  category: { ja: "", en: "" },
+  area: { ja: "", en: "" },
+  offering: { ja: "", en: "" },
+};
+
+export const defaultStructured: StructuredConfig = {
+  main: { ...emptyStructuredService },
+  tokyo: { ...emptyStructuredService },
+  airport: { ...emptyStructuredService },
+  corporate: { ...emptyStructuredService },
+  flight: { ...emptyStructuredService },
+};
+
 export const defaultCopyright: CopyrightConfig = {
   startYear: 2006,
   services: {

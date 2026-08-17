@@ -7,7 +7,14 @@ import {
   isLanguageCode,
   type Language,
 } from "@/lib/i18n";
-import { defaultCopyright, type CopyrightConfig } from "@/lib/content";
+import {
+  defaultCopyright,
+  defaultStructured,
+  type CopyrightConfig,
+  type ServiceId,
+  type StructuredConfig,
+  type StructuredServiceConfig,
+} from "@/lib/content";
 
 type EntrySource = "liff" | "web" | "pwa";
 
@@ -76,6 +83,7 @@ export type IdentityRequest =
   | { action: "get_company_config" }
   | { action: "get_app_config" }
   | { action: "get_copyright_config" }
+  | { action: "get_structured_config" }
   | {
       action: "update_company_config";
       company: CompanyConfig;
@@ -83,6 +91,10 @@ export type IdentityRequest =
   | {
       action: "update_copyright_config";
       copyright: CopyrightConfig;
+    }
+  | {
+      action: "update_structured_config";
+      structured: StructuredConfig;
     }
   | {
       action: "list_places";
@@ -211,16 +223,22 @@ export function identityDispatcher(
 ): Promise<CompanyConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_app_config" }>,
-): Promise<{ languages: Array<{ code: Language; name: string }>; company: CompanyConfig; copyright: CopyrightConfig }>;
+): Promise<{ languages: Array<{ code: Language; name: string }>; company: CompanyConfig; copyright: CopyrightConfig; structured: StructuredConfig }>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "get_copyright_config" }>,
 ): Promise<CopyrightConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_structured_config" }>,
+): Promise<StructuredConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_company_config" }>,
 ): Promise<CompanyConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_copyright_config" }>,
 ): Promise<CopyrightConfig>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_structured_config" }>,
+): Promise<StructuredConfig>;
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "list_places" }>,
 ): Promise<Array<{ code: string; name: string }>>;
@@ -312,11 +330,17 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "get_copyright_config":
       return getCopyrightConfig();
 
+    case "get_structured_config":
+      return getStructuredConfig();
+
     case "update_company_config":
       return updateCompanyConfig(request.company);
 
     case "update_copyright_config":
       return updateCopyrightConfig(request.copyright);
+
+    case "update_structured_config":
+      return updateStructuredConfig(request.structured);
 
     case "list_places":
       return listPlaces(request);
@@ -1122,11 +1146,48 @@ function normalizeCopyrightConfig(value: unknown): CopyrightConfig {
   return { startYear, services };
 }
 
+function normalizeStructuredService(value: unknown, fallback: StructuredServiceConfig): StructuredServiceConfig {
+  const item = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const localized = (key: "description" | "category" | "area" | "offering") => {
+    const raw = item[key];
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? Object.fromEntries(
+          Object.entries(raw).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+        )
+      : { ...fallback[key] };
+  };
+
+  return {
+    enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
+    url: typeof item.url === "string" ? item.url : fallback.url,
+    image: typeof item.image === "string" ? item.image : fallback.image,
+    description: localized("description"),
+    category: localized("category"),
+    area: localized("area"),
+    offering: localized("offering"),
+  };
+}
+
+function normalizeStructuredConfig(value: unknown): StructuredConfig {
+  const raw = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+
+  return Object.fromEntries(
+    (Object.keys(defaultStructured) as ServiceId[]).map((service) => [
+      service,
+      normalizeStructuredService(raw[service], defaultStructured[service]),
+    ]),
+  ) as StructuredConfig;
+}
+
 async function getAppConfig() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("configs")
-    .select("languages, company, copyright")
+    .select("languages, company, copyright, structured")
     .eq("config_id", 1)
     .maybeSingle();
 
@@ -1143,6 +1204,7 @@ async function getAppConfig() {
     languages,
     company: normalizeCompanyConfig(data?.company),
     copyright: normalizeCopyrightConfig(data?.copyright),
+    structured: normalizeStructuredConfig(data?.structured),
   };
 }
 
@@ -1156,6 +1218,18 @@ async function getCopyrightConfig() {
 
   if (error) throw new Error(`Copyright lookup failed: ${error.message}`);
   return normalizeCopyrightConfig(data?.copyright);
+}
+
+async function getStructuredConfig() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("configs")
+    .select("structured")
+    .eq("config_id", 1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Structured data lookup failed: ${error.message}`);
+  return normalizeStructuredConfig(data?.structured);
 }
 
 async function updateCompanyConfig(company: CompanyConfig) {
@@ -1180,6 +1254,18 @@ async function updateCopyrightConfig(copyright: CopyrightConfig) {
 
   if (error) throw new Error(`Copyright update failed: ${error.message}`);
   return copyright;
+}
+
+async function updateStructuredConfig(structured: StructuredConfig) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("configs").upsert({
+    config_id: 1,
+    structured,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(`Structured data update failed: ${error.message}`);
+  return structured;
 }
 
 async function listPlaces(

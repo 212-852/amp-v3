@@ -8,7 +8,13 @@ import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
 import { defaultLanguageOptions, type LanguageOption } from "@/lib/i18n";
-import { defaultCopyright, type CopyrightConfig, type ServiceId } from "@/lib/content";
+import {
+  defaultCopyright,
+  defaultStructured,
+  type CopyrightConfig,
+  type ServiceId,
+  type StructuredConfig,
+} from "@/lib/content";
 
 const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, wrench: Wrench, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList };
 
@@ -58,6 +64,9 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [copyrightStatus, setCopyrightStatus] = useState("");
   const [copyrightLanguage, setCopyrightLanguage] = useState<"ja" | "en">("ja");
   const [structuredService, setStructuredService] = useState<ServiceId>("main");
+  const [structuredLanguage, setStructuredLanguage] = useState<"ja" | "en">("ja");
+  const [structured, setStructured] = useState<StructuredConfig>(defaultStructured);
+  const [structuredStatus, setStructuredStatus] = useState("");
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
@@ -102,7 +111,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   }, [showCompany]);
 
   useEffect(() => {
-    if (!showCopyright && !showStructured) return;
+    if (!showCopyright) return;
     const controller = new AbortController();
     void fetch("/api/session?resource=copyright", {
       cache: "no-store",
@@ -118,7 +127,26 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, [showCopyright, showStructured]);
+  }, [showCopyright]);
+
+  useEffect(() => {
+    if (!showStructured) return;
+    const controller = new AbortController();
+    void fetch("/api/session?resource=structured", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) =>
+        response.ok
+          ? (response.json() as Promise<{ structured?: StructuredConfig }>)
+          : null,
+      )
+      .then((result) => {
+        if (result?.structured) setStructured(result.structured);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [showStructured]);
 
   if (!group || !page) return null;
   const showHome = group.id === "home" && page.id === "overview";
@@ -185,6 +213,46 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       services: {
         ...current.services,
         [service]: { ...current.services[service], [language]: value },
+      },
+    }));
+  }
+
+  async function saveStructured(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStructuredStatus("保存中…");
+    const response = await fetch("/api/session", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resource: "structured", structured }),
+    });
+    setStructuredStatus(response.ok ? "保存しました" : "保存できませんでした");
+  }
+
+  function updateStructuredShared(
+    key: "enabled" | "url" | "image",
+    value: boolean | string,
+  ) {
+    setStructured((current) => ({
+      ...current,
+      [structuredService]: {
+        ...current[structuredService],
+        [key]: value,
+      },
+    }));
+  }
+
+  function updateStructuredText(
+    key: "description" | "category" | "area" | "offering",
+    value: string,
+  ) {
+    setStructured((current) => ({
+      ...current,
+      [structuredService]: {
+        ...current[structuredService],
+        [key]: {
+          ...current[structuredService][key],
+          [structuredLanguage]: value,
+        },
       },
     }));
   }
@@ -336,7 +404,6 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
               <section className="workspaceCompany workspaceStructured">
                 <header>
                   <h1>SEO・構造化データ</h1>
-                  <p>会社情報などの共通項目は既存設定を自動的に使用します。</p>
                 </header>
                 <div className="workspaceServiceTabs" role="tablist" aria-label="対象サービス">
                   {structuredServices.map(([service, label]) => (
@@ -352,30 +419,36 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                     </button>
                   ))}
                 </div>
-                <div className="workspaceStructuredSummary">
-                  <div>
-                    <span>サービス名</span>
-                    <strong>{copyright.services[structuredService].ja}</strong>
-                    <small>コピーライト設定を共通利用</small>
+                <form onSubmit={saveStructured}>
+                  <div className="workspaceStructuredSwitch">
+                    <span>JSON-LD</span>
+                    <label>
+                      <input
+                        checked={structured[structuredService].enabled}
+                        type="checkbox"
+                        onChange={(event) => updateStructuredShared("enabled", event.target.checked)}
+                      />
+                      {structured[structuredService].enabled ? "有効" : "無効"}
+                    </label>
                   </div>
-                  <div>
-                    <span>会社名・住所</span>
-                    <strong>会社概要の設定を使用</strong>
-                    <small>同じ情報を再入力する必要はありません</small>
+                  <label>サイトURL<input type="url" value={structured[structuredService].url} onChange={(event) => updateStructuredShared("url", event.target.value)} /></label>
+                  <label>代表画像URL<input type="text" value={structured[structuredService].image} onChange={(event) => updateStructuredShared("image", event.target.value)} /></label>
+                  <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
+                    <button className={structuredLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={structuredLanguage === "ja"} onClick={() => setStructuredLanguage("ja")}>日本語</button>
+                    <button className={structuredLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={structuredLanguage === "en"} onClick={() => setStructuredLanguage("en")}>English</button>
                   </div>
-                </div>
-                <fieldset>
-                  <legend>サービスごとに設定する項目</legend>
-                  <ul className="workspaceStructuredFields">
-                    <li>JSON-LDの有効・無効</li>
-                    <li>サービスURL</li>
-                    <li>サービス説明（日本語・英語）</li>
-                    <li>サービス分類</li>
-                    <li>対応地域</li>
-                    <li>サービス画像・提供内容</li>
-                  </ul>
-                </fieldset>
-                <p className="workspaceStructuredNotice">入力・保存機能は次の工程でデータベースへ接続します。</p>
+                  <fieldset>
+                    <legend className="srOnly">{structuredLanguage === "ja" ? "日本語" : "English"}</legend>
+                    <label>{structuredLanguage === "ja" ? "サービス説明" : "Service description"}<textarea value={structured[structuredService].description[structuredLanguage] ?? ""} onChange={(event) => updateStructuredText("description", event.target.value)} /></label>
+                    <label>{structuredLanguage === "ja" ? "サービス分類" : "Service category"}<input value={structured[structuredService].category[structuredLanguage] ?? ""} onChange={(event) => updateStructuredText("category", event.target.value)} /></label>
+                    <label>{structuredLanguage === "ja" ? "対応地域" : "Area served"}<input value={structured[structuredService].area[structuredLanguage] ?? ""} onChange={(event) => updateStructuredText("area", event.target.value)} /></label>
+                    <label>{structuredLanguage === "ja" ? "提供内容" : "Service offering"}<textarea value={structured[structuredService].offering[structuredLanguage] ?? ""} onChange={(event) => updateStructuredText("offering", event.target.value)} /></label>
+                  </fieldset>
+                  <div className="workspaceCompanyActions">
+                    <span role="status">{structuredStatus}</span>
+                    <button type="submit">保存</button>
+                  </div>
+                </form>
               </section>
             ) : (
               <div className="workspacePlaceholder">

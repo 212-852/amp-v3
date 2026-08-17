@@ -69,6 +69,15 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (resource === "structured") {
+    try {
+      const structured = await identityDispatcher({ action: "get_structured_config" });
+      return Response.json({ structured });
+    } catch {
+      return Response.json({ error: "Structured data configuration is unavailable." }, { status: 500 });
+    }
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const loginProvider = request.cookies.get("login_provider")?.value;
 
@@ -138,7 +147,50 @@ export async function PATCH(request: NextRequest) {
     language?: unknown;
     company?: unknown;
     copyright?: unknown;
+    structured?: unknown;
   } | null;
+
+  if (body?.resource === "structured") {
+    const structured = body.structured;
+    const isLocalizedText = (value: unknown) =>
+      Boolean(value) &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.values(value as Record<string, unknown>).every((item) => typeof item === "string");
+    const validStructured =
+      structured &&
+      typeof structured === "object" &&
+      !Array.isArray(structured) &&
+      ["main", "tokyo", "airport", "corporate", "flight"].every((service) => {
+        const item = (structured as Record<string, unknown>)[service];
+        if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+        const record = item as Record<string, unknown>;
+        return typeof record.enabled === "boolean" &&
+          typeof record.url === "string" &&
+          typeof record.image === "string" &&
+          isLocalizedText(record.description) &&
+          isLocalizedText(record.category) &&
+          isLocalizedText(record.area) &&
+          isLocalizedText(record.offering);
+      });
+
+    if (!validStructured) {
+      return Response.json({ error: "Invalid structured data configuration." }, { status: 400 });
+    }
+
+    try {
+      if (!(await requireLanguageAdministrator(request))) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
+      const updatedStructured = await identityDispatcher({
+        action: "update_structured_config",
+        structured: structured as import("@/lib/content").StructuredConfig,
+      });
+      return Response.json({ structured: updatedStructured });
+    } catch {
+      return Response.json({ error: "Structured data configuration could not be saved." }, { status: 500 });
+    }
+  }
 
   if (body?.resource === "copyright") {
     const copyright = body.copyright as {

@@ -68,22 +68,30 @@
 }
 
 .workspaceServiceTabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
   gap: 6px;
   margin-bottom: 20px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: thin;
 }
 
 .workspaceServiceTabs button {
+  flex: 0 0 auto;
   min-height: 42px;
+  min-width: max-content;
   border: 1px solid #d8d8d8;
   border-radius: 8px;
   background: #fff;
+  padding: 8px 18px;
   color: #555;
   font: inherit;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  scroll-snap-align: start;
 }
 
 .workspaceServiceTabs button.isActive {
@@ -92,51 +100,31 @@
   color: #fff;
 }
 
-.workspaceStructuredSummary {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.workspaceStructuredSummary > div {
-  display: grid;
-  gap: 4px;
-  border: 1px solid #e0e0e0;
+.workspaceStructuredSwitch {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #d8d8d8;
   border-radius: 10px;
-  background: #f7f7f7;
-  padding: 12px 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.workspaceStructuredSummary span,
-.workspaceStructuredSummary small,
-.workspaceStructuredNotice {
-  color: #777;
-  font-size: 12px;
-}
-
-.workspaceStructuredSummary strong {
-  font-size: 14px;
-}
-
-.workspaceStructuredFields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.workspaceStructured .workspaceStructuredSwitch label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
   gap: 8px;
+}
+
+.workspaceStructured .workspaceStructuredSwitch input {
+  width: 18px;
+  height: 18px;
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.workspaceStructuredFields li {
-  border-radius: 8px;
-  background: #f3f3f3;
-  padding: 10px;
-  color: #555;
-  font-size: 12px;
-}
-
-.workspaceStructuredNotice {
-  margin-top: 14px !important;
+  accent-color: #222;
 }
 
 .srOnly {
