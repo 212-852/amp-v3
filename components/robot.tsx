@@ -240,7 +240,8 @@ export function PortalToolbar({
 
 export function AdminTrail() {
   const pathname = usePathname();
-  const isInbox = pathname === "/main/admin/inbox";
+  const isInbox =
+    pathname === "/main/admin/inbox" || pathname === "/admin/inbox";
 
   return (
     <nav className="adminBreadcrumb" aria-label="Breadcrumb">

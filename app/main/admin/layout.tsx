@@ -15,6 +15,7 @@ export const viewport: Viewport = {
 export default async function AdminLayout({
   children,
 }: LayoutProps<"/main/admin">) {
+  const hostname = (await headers()).get("host")?.split(":")[0];
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = sessionToken
@@ -24,7 +25,6 @@ export default async function AdminLayout({
       })
     : null;
   if (!session || session.role !== "admin") {
-    const hostname = (await headers()).get("host")?.split(":")[0];
     redirect(
       hostname === "localhost" || hostname === "127.0.0.1" ? "/main" : "/",
     );
@@ -38,7 +38,11 @@ export default async function AdminLayout({
           displayName={session.displayName}
           pictureUrl={session.pictureUrl}
           chatMode="toggle"
-          inboxHref="/main/admin/inbox"
+          inboxHref={
+            hostname === "localhost" || hostname === "127.0.0.1"
+              ? "/main/admin/inbox"
+              : "/admin/inbox"
+          }
           language={session.language}
           profileEditable
           role="admin"
