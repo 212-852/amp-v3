@@ -311,7 +311,7 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
         {message ? <span className="adminRobotDot" aria-hidden="true" /> : null}
       </button>
 
-      <section className="adminNotice" role="status" aria-live="polite">
+      {message ? <section className="adminNotice" role="status" aria-live="polite">
         <svg
           className="adminNoticeTail"
           viewBox="0 0 52 32"
@@ -334,7 +334,7 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
             <X aria-hidden="true" />
           </button>
         </div>
-      </section>
+      </section> : null}
 
       <Modal
         label="Robo NEKOとのトーク"

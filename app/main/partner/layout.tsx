@@ -27,7 +27,7 @@ export default async function PartnerLayout({
 
       <footer className="adminFooter">
         <RobotNotice
-          message="You have a new partner notification."
+          message=""
           role="partner"
         />
         <small>{getCopyright(appConfig.copyright, appConfig.company.name, "ja", "corporate")}</small>

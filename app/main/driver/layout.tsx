@@ -27,7 +27,7 @@ export default async function DriverLayout({
 
       <footer className="adminFooter">
         <RobotNotice
-          message="You have a new driver notification."
+          message=""
           role="driver"
         />
         <small>{getCopyright(appConfig.copyright, appConfig.company.name, "ja", "corporate")}</small>
