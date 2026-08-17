@@ -1,8 +1,8 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, Home, ImageUp, LockKeyhole, MessageCircle, Plus, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Bell, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, GripVertical, Home, ImageUp, LockKeyhole, MessageCircle, Plus, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
 
 import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
@@ -55,6 +55,14 @@ const structuredServices: Array<[ServiceId, string]> = [
   ["corporate", "コーポレート"],
 ];
 
+function countryFlag(code: string) {
+  const normalizedCode = code.trim().toUpperCase();
+  if (normalizedCode === "EU") return "🇪🇺";
+  if (normalizedCode === "WW") return "🌏";
+  if (!/^[A-Z]{2}$/.test(normalizedCode)) return "🏳️";
+  return String.fromCodePoint(...normalizedCode.split("").map((character) => 127397 + character.charCodeAt(0)));
+}
+
 export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, direct = false, onGroupChange }: WorkspaceProps) {
   const groups = useMemo(
     () => suppliedGroups ?? navigationDispatcher(role),
@@ -96,12 +104,18 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [countries, setCountries] = useState<CountriesConfig>(defaultCountries);
   const [countriesStatus, setCountriesStatus] = useState("");
   const [countryLanguage, setCountryLanguage] = useState<"ja" | "en">("ja");
+  const [selectedCountryIndex, setSelectedCountryIndex] = useState(0);
+  const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null);
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
     role === "admin" && group?.id === "languages" && page?.id === "supported";
   const showCompany =
     role === "admin" && group?.id === "languages" && page?.id === "company";
+  const showLegal =
+    role === "admin" && group?.id === "languages" && page?.id === "legal";
+  const showCancellation =
+    role === "admin" && group?.id === "languages" && page?.id === "cancellation";
   const showCopyright =
     role === "admin" && group?.id === "languages" && page?.id === "copyright";
   const showStructured =
@@ -123,7 +137,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   }, [loadLanguages, showLanguages]);
 
   useEffect(() => {
-    if (!showCompany) return;
+    if (!showCompany && !showLegal && !showCancellation) return;
     const controller = new AbortController();
     void fetch("/api/session?resource=company", {
       cache: "no-store",
@@ -139,7 +153,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, [showCompany]);
+  }, [showCancellation, showCompany, showLegal]);
 
   useEffect(() => {
     if (!showCopyright) return;
@@ -192,7 +206,10 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
           : null,
       )
       .then((result) => {
-        if (result?.countries) setCountries(result.countries);
+        if (result?.countries) {
+          setCountries([...result.countries].sort((left, right) => left.sortOrder - right.sortOrder));
+          setSelectedCountryIndex(0);
+        }
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -348,11 +365,16 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   async function saveCountries(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCountriesStatus("保存中…");
+    const orderedCountries = countries.map((country, index) => ({
+      ...country,
+      sortOrder: index + 1,
+    }));
     const response = await fetch("/api/session", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resource: "countries", countries }),
+      body: JSON.stringify({ resource: "countries", countries: orderedCountries }),
     });
+    if (response.ok) setCountries(orderedCountries);
     setCountriesStatus(response.ok ? "保存しました" : "保存できませんでした");
   }
 
@@ -371,21 +393,41 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   }
 
   function addCountry() {
-    const nextSortOrder = countries.reduce((maximum, country) => Math.max(maximum, country.sortOrder), 0) + 10;
-    setCountries((current) => [...current, {
-      code: "",
-      name: { ja: "", en: "" },
-      region: "eastAsia",
-      status: "consult",
-      featured: false,
-      sortOrder: nextSortOrder,
-      note: { ja: "", en: "" },
-      url: "",
-    }]);
+    setCountries((current) => {
+      const nextCountries = [...current, {
+        code: "",
+        name: { ja: "", en: "" },
+        region: "eastAsia" as const,
+        status: "consult" as const,
+        featured: false,
+        sortOrder: current.length + 1,
+        note: { ja: "", en: "" },
+        url: "",
+      }];
+      setSelectedCountryIndex(nextCountries.length - 1);
+      setCountryLanguage("ja");
+      return nextCountries;
+    });
   }
 
   function removeCountry(index: number) {
     setCountries((current) => current.filter((_, countryIndex) => countryIndex !== index));
+    setSelectedCountryIndex((current) => Math.max(0, current > index ? current - 1 : Math.min(current, countries.length - 2)));
+  }
+
+  function moveCountry(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    setCountries((current) => {
+      const selectedCountry = current[selectedCountryIndex];
+      const nextCountries = [...current];
+      const [movedCountry] = nextCountries.splice(fromIndex, 1);
+      nextCountries.splice(toIndex, 0, movedCountry);
+      const nextSelectedIndex = nextCountries.indexOf(selectedCountry);
+      const normalizedCountries = nextCountries.map((country, index) => ({ ...country, sortOrder: index + 1 }));
+      setSelectedCountryIndex(Math.max(0, nextSelectedIndex));
+      return normalizedCountries;
+    });
+    setDraggedCountryIndex(null);
   }
 
   function selectGroup(item: NavigationGroup) {
@@ -438,13 +480,17 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
             <nav className="workspacePane workspacePages" aria-label="小さいメニュー">
               <button className="workspaceBack" onClick={() => setLevel(0)} type="button"><ChevronLeft aria-hidden="true" />管理メニューへ戻る</button>
               <p className="workspaceHeading">{group.label}一覧</p>
-              {group.pages.map((item) => {
+              {group.pages.map((item, index) => {
                 const allowed = canAccessNavigation(item.allowedTiers, tier);
+                const showSection = item.section && item.section !== group.pages[index - 1]?.section;
                 return (
-                  <button className={item.id === page.id ? "isActive" : undefined} disabled={!allowed} key={item.id} onClick={() => { if (!allowed) return; setPageId(item.id); setLevel(2); }} type="button">
-                    <span>{item.label}</span><small>{item.description}</small>
-                    {!allowed && <small className="workspaceAccess"><LockKeyhole aria-hidden="true" />owner・coreのみ</small>}
-                  </button>
+                  <Fragment key={item.id}>
+                    {showSection ? <p className={`workspacePageSection workspacePageSection-${item.section}`}>{item.section === "display" ? "サイト表示" : "内部設定"}</p> : null}
+                    <button className={item.id === page.id ? "isActive" : undefined} disabled={!allowed} onClick={() => { if (!allowed) return; setPageId(item.id); setLevel(2); }} type="button">
+                      <span>{item.label}</span><small>{item.description}</small>
+                      {!allowed && <small className="workspaceAccess"><LockKeyhole aria-hidden="true" />owner・coreのみ</small>}
+                    </button>
+                  </Fragment>
                 );
               })}
             </nav>
@@ -475,18 +521,18 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                   ))}
                 </ul>
               </section>
-            ) : showCompany ? (
+            ) : showCompany || showLegal || showCancellation ? (
               <section className="workspaceCompany">
                 <header>
-                  <h1>会社概要</h1>
-                  <p>ウェブアプリで共通利用する会社情報です。</p>
+                  <h1>{showLegal ? "特商法" : showCancellation ? "キャンセルポリシー" : "会社概要"}</h1>
+                  <p>{showLegal ? "特定商取引法に基づく表示内容です。" : showCancellation ? "キャンセル・返金条件を管理します。" : "ウェブアプリで共通利用する会社情報です。"}</p>
                 </header>
                 <form onSubmit={saveCompany}>
                   <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
                     <button className={companyLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={companyLanguage === "ja"} onClick={() => setCompanyLanguage("ja")}>日本語</button>
                     <button className={companyLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={companyLanguage === "en"} onClick={() => setCompanyLanguage("en")}>English</button>
                   </div>
-                  <fieldset>
+                  {showCompany ? <fieldset>
                     <legend className="srOnly">{companyLanguage === "ja" ? "日本語" : "English"}</legend>
                     <label>{companyLanguage === "ja" ? "会社名" : "Company name"}<input required value={company.name[companyLanguage] ?? ""} onChange={(event) => updateCompanyName(companyLanguage, event.target.value)} /></label>
                     <Address
@@ -501,16 +547,19 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                     <label>{companyLanguage === "ja" ? "事業内容" : "Business activities"}<textarea value={company.business[companyLanguage] ?? ""} onChange={(event) => updateCompanyText("business", event.target.value)} /></label>
                     <label>{companyLanguage === "ja" ? "電話番号" : "Phone"}<input type="tel" value={company.contact.phone} onChange={(event) => setCompany((current) => ({ ...current, contact: { ...current.contact, phone: event.target.value } }))} /></label>
                     <label>{companyLanguage === "ja" ? "メールアドレス" : "Email"}<input type="email" value={company.contact.email} onChange={(event) => setCompany((current) => ({ ...current, contact: { ...current.contact, email: event.target.value } }))} /></label>
-                  </fieldset>
-                  <fieldset>
+                  </fieldset> : null}
+                  {showLegal ? <fieldset>
                     <legend>{companyLanguage === "ja" ? "特定商取引法に基づく表記" : "Commercial transactions disclosure"}</legend>
                     <label>{companyLanguage === "ja" ? "販売事業者" : "Service provider"}<input value={company.legal.seller[companyLanguage] ?? ""} onChange={(event) => updateLegalText("seller", event.target.value)} /></label>
                     <label>{companyLanguage === "ja" ? "運営責任者" : "Operations manager"}<input value={company.legal.operationsManager[companyLanguage] ?? ""} onChange={(event) => updateLegalText("operationsManager", event.target.value)} /></label>
                     <label>{companyLanguage === "ja" ? "料金" : "Prices"}<textarea value={company.legal.price[companyLanguage] ?? ""} onChange={(event) => updateLegalText("price", event.target.value)} /></label>
                     <label>{companyLanguage === "ja" ? "追加費用" : "Additional fees"}<textarea value={company.legal.additionalFees[companyLanguage] ?? ""} onChange={(event) => updateLegalText("additionalFees", event.target.value)} /></label>
                     <label>{companyLanguage === "ja" ? "支払方法" : "Payment methods"}<textarea value={company.legal.paymentMethods[companyLanguage] ?? ""} onChange={(event) => updateLegalText("paymentMethods", event.target.value)} /></label>
+                  </fieldset> : null}
+                  {showCancellation ? <fieldset>
+                    <legend>{companyLanguage === "ja" ? "キャンセル・返金条件" : "Cancellation and refund policy"}</legend>
                     <label>{companyLanguage === "ja" ? "キャンセル・返金条件" : "Cancellation and refund policy"}<textarea value={company.legal.cancellationRefunds[companyLanguage] ?? ""} onChange={(event) => updateLegalText("cancellationRefunds", event.target.value)} /></label>
-                  </fieldset>
+                  </fieldset> : null}
                   <div className="workspaceCompanyActions">
                     <span role="status">{companyStatus}</span>
                     <button type="submit">保存</button>
@@ -624,34 +673,61 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
               <section className="workspaceCompany workspaceCountries">
                 <header>
                   <h1>対応国</h1>
-                  <p>トップ表示、対応状況、地域別一覧をまとめて管理します。</p>
+                  <p>国を選んで詳細を編集します。並び順の上位5か国はトップページへ自動表示されます。</p>
                 </header>
-                <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
-                  <button className={countryLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "ja"} onClick={() => setCountryLanguage("ja")}>日本語</button>
-                  <button className={countryLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "en"} onClick={() => setCountryLanguage("en")}>English</button>
-                </div>
                 <form onSubmit={saveCountries}>
-                  <div className="workspaceCountryList">
-                    {countries.map((country, index) => (
-                      <fieldset className="workspaceCountryCard" key={index}>
+                  <div className="workspaceCountryManager">
+                    <div className="workspaceCountryList" aria-label="対応国の並び順">
+                      {countries.map((country, index) => {
+                        const activeRank = country.status === "paused"
+                          ? 0
+                          : countries.slice(0, index + 1).filter((item) => item.status !== "paused").length;
+                        return (
+                          <div
+                            className={`workspaceCountryRow${selectedCountryIndex === index ? " isActive" : ""}${draggedCountryIndex === index ? " isDragging" : ""}`}
+                            draggable
+                            key={`${country.code}-${index}`}
+                            onDragStart={() => setDraggedCountryIndex(index)}
+                            onDragEnd={() => setDraggedCountryIndex(null)}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={() => draggedCountryIndex !== null && moveCountry(draggedCountryIndex, index)}
+                          >
+                            <GripVertical aria-hidden="true" className="workspaceCountryGrip" />
+                            <button type="button" onClick={() => setSelectedCountryIndex(index)}>
+                              <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(country.code)}</span>
+                              <span className="workspaceCountryName">{country.name.ja || country.name.en || country.code || `国 ${index + 1}`}</span>
+                              {activeRank > 0 && activeRank <= 5 ? <small>トップ {activeRank}</small> : null}
+                              <ChevronRight aria-hidden="true" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                      <button className="workspaceCountryAdd" type="button" onClick={addCountry}><Plus aria-hidden="true" />国を追加</button>
+                    </div>
+                    {countries[selectedCountryIndex] ? (
+                      <fieldset className="workspaceCountryDetail">
                         <div className="workspaceCountryHeading">
-                          <strong>{country.name[countryLanguage] || country.code || `国 ${index + 1}`}</strong>
-                          <button type="button" aria-label={`${country.name[countryLanguage] || country.code || "国"}を削除`} onClick={() => removeCountry(index)}><Trash2 aria-hidden="true" /></button>
+                          <div>
+                            <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(countries[selectedCountryIndex].code)}</span>
+                            <strong>{countries[selectedCountryIndex].name.ja || countries[selectedCountryIndex].code || `国 ${selectedCountryIndex + 1}`}</strong>
+                          </div>
+                          <button type="button" aria-label={`${countries[selectedCountryIndex].name.ja || countries[selectedCountryIndex].code || "国"}を削除`} onClick={() => removeCountry(selectedCountryIndex)}><Trash2 aria-hidden="true" /></button>
+                        </div>
+                        <div className="workspaceCompanyTabs" role="tablist" aria-label="選択した国の編集言語">
+                          <button className={countryLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "ja"} onClick={() => setCountryLanguage("ja")}>日本語</button>
+                          <button className={countryLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "en"} onClick={() => setCountryLanguage("en")}>English</button>
                         </div>
                         <div className="workspaceCountryGrid">
-                          <label>国コード<input maxLength={2} required value={country.code} onChange={(event) => updateCountry(index, { code: event.target.value.toUpperCase() })} /></label>
-                          <label>表示順<input min="0" type="number" required value={country.sortOrder} onChange={(event) => updateCountry(index, { sortOrder: Number(event.target.value) })} /></label>
-                          <label>{countryLanguage === "ja" ? "国名" : "Country name"}<input required value={country.name[countryLanguage] ?? ""} onChange={(event) => updateCountryText(index, "name", event.target.value)} /></label>
-                          <label>地域<select value={country.region} onChange={(event) => updateCountry(index, { region: event.target.value as CountryConfig["region"] })}><option value="eastAsia">東アジア</option><option value="southeastAsia">東南アジア</option><option value="northAmerica">北米</option><option value="europe">ヨーロッパ</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label>
-                          <label>対応状況<select value={country.status} onChange={(event) => updateCountry(index, { status: event.target.value as CountryConfig["status"] })}><option value="active">対応中</option><option value="consult">要相談</option><option value="paused">停止中</option></select></label>
-                          <label className="workspaceCountryFeatured"><input type="checkbox" checked={country.featured} onChange={(event) => updateCountry(index, { featured: event.target.checked })} />トップページに表示</label>
+                          <label>国コード<input maxLength={2} required value={countries[selectedCountryIndex].code} onChange={(event) => updateCountry(selectedCountryIndex, { code: event.target.value.toUpperCase() })} /></label>
+                          <label>{countryLanguage === "ja" ? "国名" : "Country name"}<input required value={countries[selectedCountryIndex].name[countryLanguage] ?? ""} onChange={(event) => updateCountryText(selectedCountryIndex, "name", event.target.value)} /></label>
+                          <label>地域<select value={countries[selectedCountryIndex].region} onChange={(event) => updateCountry(selectedCountryIndex, { region: event.target.value as CountryConfig["region"] })}><option value="eastAsia">東アジア</option><option value="southeastAsia">東南アジア</option><option value="northAmerica">北米</option><option value="europe">ヨーロッパ</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label>
+                          <label>対応状況<select value={countries[selectedCountryIndex].status} onChange={(event) => updateCountry(selectedCountryIndex, { status: event.target.value as CountryConfig["status"] })}><option value="active">対応中</option><option value="consult">要相談</option><option value="paused">停止中</option></select></label>
                         </div>
-                        <label>{countryLanguage === "ja" ? "国別の注意事項" : "Country notes"}<textarea value={country.note[countryLanguage] ?? ""} onChange={(event) => updateCountryText(index, "note", event.target.value)} /></label>
-                        <label>詳細ページURL（将来用）<input type="url" value={country.url} onChange={(event) => updateCountry(index, { url: event.target.value })} /></label>
+                        <label>{countryLanguage === "ja" ? "国別の注意事項" : "Country notes"}<textarea value={countries[selectedCountryIndex].note[countryLanguage] ?? ""} onChange={(event) => updateCountryText(selectedCountryIndex, "note", event.target.value)} /></label>
+                        <label>詳細ページURL（将来用）<input type="url" value={countries[selectedCountryIndex].url} onChange={(event) => updateCountry(selectedCountryIndex, { url: event.target.value })} /></label>
                       </fieldset>
-                    ))}
+                    ) : <p className="workspaceCountryEmpty">国を追加してください。</p>}
                   </div>
-                  <button className="workspaceCountryAdd" type="button" onClick={addCountry}><Plus aria-hidden="true" />国を追加</button>
                   <div className="workspaceCompanyActions">
                     <span role="status">{countriesStatus}</span>
                     <button type="submit">保存</button>

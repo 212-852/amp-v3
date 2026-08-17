@@ -125,6 +125,25 @@
   gap: 22px;
 }
 
+.workspacePages .workspacePageSection {
+  margin: 12px 8px 4px;
+  color: #777;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.workspacePages .workspacePageSection-internal {
+  margin-top: 18px;
+  border-top: 1px solid #d8d8d8;
+  padding-top: 15px;
+}
+
+.portalWorkspaceCompact .workspacePages .workspacePageSection {
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
 .adminInboxHeading h1,
 .adminInboxHeading p {
   margin: 0;
@@ -512,24 +531,98 @@
 }
 
 .workspaceCountries {
-  width: min(100%, 760px);
+  width: min(100%, 920px);
 }
 
-.workspaceCountries > .workspaceCompanyTabs {
-  margin-bottom: 20px;
+.workspaceCountryManager {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(360px, 1.4fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .workspaceCountryList {
   display: grid;
-  gap: 14px;
+  gap: 7px;
 }
 
-.workspaceCompany .workspaceCountryCard {
-  gap: 14px;
+.workspaceCountryRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border: 1px solid #dedede;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.workspaceCountryRow.isActive {
+  border-color: #222;
+  background: #f4f4f4;
+}
+
+.workspaceCountryRow.isDragging {
+  opacity: 0.45;
+}
+
+.workspaceCountryGrip {
+  width: 18px;
+  margin-left: 10px;
+  flex: 0 0 auto;
+  color: #999;
+  cursor: grab;
+}
+
+.workspaceCountryRow > button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px 9px 7px;
+  color: #222;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspaceCountryRow > button > svg {
+  width: 17px;
+  color: #888;
+}
+
+.workspaceCountryFlag {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.workspaceCountryName {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceCountryRow small {
+  border-radius: 999px;
+  background: #222;
+  padding: 3px 7px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.workspaceCompany .workspaceCountryDetail {
+  gap: 16px;
   border: 1px solid #dedede;
   border-radius: 12px;
   background: #fafafa;
-  padding: 16px;
+  padding: 18px;
 }
 
 .workspaceCountryHeading {
@@ -539,8 +632,14 @@
   gap: 12px;
 }
 
+.workspaceCountryHeading > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
 .workspaceCountryHeading strong {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .workspaceCountryHeading button {
@@ -567,22 +666,6 @@
   gap: 12px;
 }
 
-.workspaceCompany .workspaceCountryFeatured {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  align-self: end;
-  min-height: 39px;
-  color: #333;
-  font-weight: 700;
-}
-
-.workspaceCompany .workspaceCountryFeatured input {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-}
-
 .workspaceCountryAdd {
   display: inline-flex;
   width: fit-content;
@@ -600,7 +683,26 @@
   cursor: pointer;
 }
 
-@media (max-width: 600px) {
+.workspaceCountryList .workspaceCountryAdd {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.workspaceCountryEmpty {
+  margin: 0;
+  border: 1px dashed #ccc;
+  border-radius: 12px;
+  padding: 24px;
+  color: #777;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .workspaceCountryManager {
+    grid-template-columns: 1fr;
+  }
+
   .workspaceCountryGrid {
     grid-template-columns: 1fr;
   }

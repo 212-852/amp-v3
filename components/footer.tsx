@@ -55,7 +55,7 @@ export function AppFooter() {
           href: "/company",
         },
         {
-          label: text({ ja: "特定商取引法に基づく表記", en: "Commercial transactions disclosure" }),
+          label: text({ ja: "特商法表記", en: "Legal notice" }),
           description: text({ ja: "各サービスの取引条件を確認", en: "Review transaction terms for each service" }),
           href: "/legal",
         },
