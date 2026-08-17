@@ -275,103 +275,6 @@ body:has(.driverApp) {
   outline-offset: 2px;
 }
 
-.adminRobotDot {
-  position: absolute;
-  top: 5px;
-  right: 8px;
-  width: 11px;
-  height: 11px;
-  border: 2px solid #2b2b2b;
-  border-radius: 50%;
-  background: #222;
-}
-
-.adminNotice {
-  position: absolute;
-  bottom: 68px;
-  left: 104px;
-  visibility: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  width: min(520px, calc(100vw - 150px));
-  border: 0;
-  border-radius: 28px;
-  background: #fff;
-  padding: 20px 54px 20px 22px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 10%);
-  opacity: 0;
-  transform: translateX(-10px) scale(.98);
-  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms;
-  isolation: isolate;
-}
-
-.adminNoticeTail {
-  position: absolute;
-  top: auto;
-  bottom: -20px;
-  left: 8px;
-  z-index: -1;
-  width: 52px;
-  height: 30px;
-  overflow: visible;
-  fill: #fff;
-  stroke: #fff;
-  stroke-linejoin: round;
-  stroke-width: 2;
-  transform: scaleY(1);
-}
-
-.adminNoticeMeta {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.adminNoticeMeta button {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: #ededed;
-  color: #222;
-  cursor: pointer;
-}
-
-.adminNoticeMeta button:hover {
-  background: #d9d9d9;
-}
-
-.adminNoticeMeta svg {
-  width: 17px;
-  height: 17px;
-  stroke-width: 2;
-}
-
-.adminRobotCallOpen .adminNotice {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(0) scale(1);
-  animation: adminNoticeFloat 4.2s ease-in-out 180ms infinite;
-}
-
-@keyframes adminNoticeFloat {
-  0%,
-  100% {
-    transform: translateX(0) translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateX(0) translateY(-3px) scale(1);
-  }
-}
-
 .adminRobot {
   display: block;
   width: 116px;
@@ -383,17 +286,6 @@ body:has(.driverApp) {
   animation: adminRobotBlink 5s steps(1, end) infinite;
 }
 
-.adminNoticeText {
-  display: grid;
-  gap: 5px;
-}
-
-.adminNoticeText strong {
-  font-size: 15px;
-}
-
-.adminNoticeText span,
-.adminNotice time,
 .adminFooter small {
   color: #666;
   font-size: 13px;
@@ -434,12 +326,6 @@ body:has(.driverApp) {
 .adminMenuOpen svg {
   width: 16px;
   height: 16px;
-}
-
-.adminNoticeActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 18px;
 }
 
 .adminModalOverlay {
@@ -755,10 +641,6 @@ body:has(.driverApp) {
   }
 }
 
-.adminNotice time {
-  align-self: start;
-}
-
 .adminFooter > small {
   align-self: end;
   justify-self: center;
@@ -905,27 +787,14 @@ body:has(.driverApp) {
     height: 96px;
   }
 
-  .adminNotice {
-    bottom: 64px;
-    left: 92px;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    width: calc(100vw - 106px);
-    padding: 18px 48px 18px 18px;
-  }
-
   .adminRobot {
     width: 98px;
   }
 
-  .adminNotice time {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .adminRobot,
-  .adminRobotCallOpen .adminNotice,
   .adminMenuModal {
     animation: none;
   }

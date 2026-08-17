@@ -1,13 +1,13 @@
 "use client";
 
 import {
+  Bell,
   CircleUserRound,
   Inbox,
   Menu,
   MessageCircle,
   Send,
   Settings,
-  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -129,6 +129,14 @@ export function PortalToolbar({
               <MessageCircle aria-hidden="true" />
             </button>
           )}
+
+          <button
+            className="adminToolButton"
+            type="button"
+            aria-label={getTranslation({ ja: "お知らせ", en: "Notifications" }, language)}
+          >
+            <Bell aria-hidden="true" />
+          </button>
 
           <button
             className="adminToolButton"
@@ -257,14 +265,12 @@ export function AdminTrail() {
 }
 
 type RobotNoticeProps = {
-  message: string;
   role: RobotRole;
   tier?: string;
 };
 
-export function RobotNotice({ message, role }: RobotNoticeProps) {
+export function RobotNotice({ role }: RobotNoticeProps) {
   const profile = getRobotProfile(role);
-  const [isNoticeOpen, setIsNoticeOpen] = useState(Boolean(message));
   const [isTalkOpen, setIsTalkOpen] = useState(false);
   const [talkMessage, setTalkMessage] = useState("");
   const [talkMessages, setTalkMessages] = useState<
@@ -296,7 +302,7 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
   }
 
   return (
-    <div className={`adminRobotCall${isNoticeOpen ? " adminRobotCallOpen" : ""}`}>
+    <div className="adminRobotCall">
       <button
         className="adminRobotButton"
         type="button"
@@ -309,33 +315,7 @@ export function RobotNotice({ message, role }: RobotNoticeProps) {
           role="img"
           aria-label="Robo NEKO blinking"
         />
-        {message ? <span className="adminRobotDot" aria-hidden="true" /> : null}
       </button>
-
-      {message ? <section className="adminNotice" role="status" aria-live="polite">
-        <svg
-          className="adminNoticeTail"
-          viewBox="0 0 52 32"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path d="M51 2C35 4 24 18 4 29c18 0 36-8 46-18Z" />
-        </svg>
-        <div className="adminNoticeText">
-          <strong>New notification</strong>
-          <span>{message}</span>
-        </div>
-        <div className="adminNoticeMeta">
-          <time>Now</time>
-          <button
-            type="button"
-            aria-label="Close notification"
-            onClick={() => setIsNoticeOpen(false)}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </div>
-      </section> : null}
 
       <Modal
         label="Robo NEKOとのトーク"
