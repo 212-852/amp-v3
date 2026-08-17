@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bot,
   CircleUserRound,
   Inbox,
   Menu,
@@ -33,6 +32,8 @@ type PortalToolbarProps = {
   inboxHref?: string;
   language?: Language;
   profileEditable?: boolean;
+  role?: RobotRole;
+  tier?: string;
 };
 
 export function PortalToolbar({
@@ -42,10 +43,13 @@ export function PortalToolbar({
   inboxHref,
   language = "ja",
   profileEditable = false,
+  role,
+  tier,
 }: PortalToolbarProps) {
   const router = useRouter();
   const [isChatEnabled, setIsChatEnabled] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentDisplayName, setCurrentDisplayName] = useState(displayName);
   const [profileName, setProfileName] = useState(displayName);
   const [profileLanguage, setProfileLanguage] = useState<Language>(language);
@@ -61,6 +65,10 @@ export function PortalToolbar({
     saved: getTranslation({ ja: "保存しました", en: "Saved" }, language),
     error: getTranslation({ ja: "保存できませんでした", en: "Could not save" }, language),
   };
+  const managementGroups = useMemo(
+    () => role ? navigationDispatcher(role).filter((item) => item.id !== "home") : [],
+    [role],
+  );
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,6 +143,17 @@ export function PortalToolbar({
           >
             <Settings aria-hidden="true" />
           </button>
+          {role ? (
+            <button
+              className="adminHeaderMenuButton"
+              type="button"
+              aria-label="メニューを開く"
+              onClick={() => setIsMenuOpen(true)}
+            >
+              <Menu aria-hidden="true" />
+              <span>MENU</span>
+            </button>
+          ) : null}
         </div>
 
       </div>
@@ -199,6 +218,22 @@ export function PortalToolbar({
           </form>
         </Modal>
       ) : null}
+
+      {role ? (
+        <Modal
+          label="管理メニュー"
+          open={isMenuOpen}
+          overlayClassName="adminModalOverlay"
+          panelClassName="adminMenuModal"
+          onClose={() => setIsMenuOpen(false)}
+        >
+          <div className="adminMenuTitle">
+            <Menu aria-hidden="true" />
+            <strong>MENU</strong>
+          </div>
+          <Workspace compact groups={managementGroups} role={role} tier={tier} />
+        </Modal>
+      ) : null}
     </>
   );
 }
@@ -226,14 +261,9 @@ type RobotNoticeProps = {
   tier?: string;
 };
 
-export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
+export function RobotNotice({ message, role }: RobotNoticeProps) {
   const profile = getRobotProfile(role);
-  const managementGroups = useMemo(
-    () => navigationDispatcher(role).filter((item) => item.id !== "home"),
-    [role],
-  );
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNoticeOpen, setIsNoticeOpen] = useState(Boolean(message));
   const [isTalkOpen, setIsTalkOpen] = useState(false);
   const [talkMessage, setTalkMessage] = useState("");
   const [talkMessages, setTalkMessages] = useState<
@@ -265,20 +295,20 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
   }
 
   return (
-    <div className={`adminRobotCall${isOpen ? " adminRobotCallOpen" : ""}`}>
+    <div className={`adminRobotCall${isNoticeOpen ? " adminRobotCallOpen" : ""}`}>
       <button
         className="adminRobotButton"
         type="button"
-        aria-label={isOpen ? "Close notifications" : "Open notifications"}
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
+        aria-label="Robo NEKOチャットアシスタントを開く"
+        aria-expanded={isTalkOpen}
+        onClick={() => setIsTalkOpen(true)}
       >
         <span
           className="adminRobot"
           role="img"
           aria-label="Robo NEKO blinking"
         />
-        <span className="adminRobotDot" aria-hidden="true" />
+        {message ? <span className="adminRobotDot" aria-hidden="true" /> : null}
       </button>
 
       <section className="adminNotice" role="status" aria-live="polite">
@@ -293,55 +323,18 @@ export function RobotNotice({ message, role, tier }: RobotNoticeProps) {
         <div className="adminNoticeText">
           <strong>New notification</strong>
           <span>{message}</span>
-          <div className="adminNoticeActions">
-            <button
-              className="adminMenuOpen"
-              type="button"
-              onClick={() => setIsMenuOpen(true)}
-            >
-              <Menu aria-hidden="true" />
-              Menu
-            </button>
-            <button
-              className="adminMenuOpen"
-              type="button"
-              onClick={() => setIsTalkOpen(true)}
-            >
-              <Bot aria-hidden="true" />
-              Robo NEKO
-            </button>
-          </div>
         </div>
         <div className="adminNoticeMeta">
           <time>Now</time>
           <button
             type="button"
             aria-label="Close notification"
-            onClick={() => setIsOpen(false)}
+            onClick={() => setIsNoticeOpen(false)}
           >
             <X aria-hidden="true" />
           </button>
         </div>
       </section>
-
-      <Modal
-        label="管理メニュー"
-        open={isMenuOpen}
-        overlayClassName="adminModalOverlay"
-        panelClassName="adminMenuModal"
-        onClose={() => setIsMenuOpen(false)}
-      >
-        <div className="adminMenuTitle">
-          <Menu aria-hidden="true" />
-          <strong>MENU</strong>
-        </div>
-        <Workspace
-          compact
-          groups={managementGroups}
-          role={role}
-          tier={tier}
-        />
-      </Modal>
 
       <Modal
         label="Robo NEKOとのトーク"

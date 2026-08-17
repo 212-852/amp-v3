@@ -41,6 +41,8 @@ export default async function AdminLayout({
           inboxHref="/main/admin/inbox"
           language={session.language}
           profileEditable
+          role="admin"
+          tier={session.tier}
         />
         <AdminTrail />
       </header>
