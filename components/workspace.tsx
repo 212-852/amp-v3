@@ -27,6 +27,14 @@ type CompanyConfig = {
   address: AddressValue;
 };
 
+const structuredServices: Array<[ServiceId, string]> = [
+  ["main", "PET TAXI"],
+  ["tokyo", "PET TAXI TOKYO"],
+  ["airport", "PET TAXI AIRPORT"],
+  ["flight", "PawsFlight Japan"],
+  ["corporate", "コーポレート"],
+];
+
 export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, direct = false, onGroupChange }: WorkspaceProps) {
   const groups = useMemo(
     () => suppliedGroups ?? navigationDispatcher(role),
@@ -49,6 +57,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [copyright, setCopyright] = useState<CopyrightConfig>(defaultCopyright);
   const [copyrightStatus, setCopyrightStatus] = useState("");
   const [copyrightLanguage, setCopyrightLanguage] = useState<"ja" | "en">("ja");
+  const [structuredService, setStructuredService] = useState<ServiceId>("main");
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
   const showLanguages =
@@ -57,6 +66,8 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     role === "admin" && group?.id === "languages" && page?.id === "company";
   const showCopyright =
     role === "admin" && group?.id === "languages" && page?.id === "copyright";
+  const showStructured =
+    role === "admin" && group?.id === "languages" && page?.id === "structured";
 
   const loadLanguages = useCallback(async () => {
     const response = await fetch("/api/session?resource=languages", { cache: "no-store" });
@@ -91,7 +102,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   }, [showCompany]);
 
   useEffect(() => {
-    if (!showCopyright) return;
+    if (!showCopyright && !showStructured) return;
     const controller = new AbortController();
     void fetch("/api/session?resource=copyright", {
       cache: "no-store",
@@ -107,7 +118,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, [showCopyright]);
+  }, [showCopyright, showStructured]);
 
   if (!group || !page) return null;
   const showHome = group.id === "home" && page.id === "overview";
@@ -320,6 +331,51 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                     <button type="submit">保存</button>
                   </div>
                 </form>
+              </section>
+            ) : showStructured ? (
+              <section className="workspaceCompany workspaceStructured">
+                <header>
+                  <h1>SEO・構造化データ</h1>
+                  <p>会社情報などの共通項目は既存設定を自動的に使用します。</p>
+                </header>
+                <div className="workspaceServiceTabs" role="tablist" aria-label="対象サービス">
+                  {structuredServices.map(([service, label]) => (
+                    <button
+                      className={structuredService === service ? "isActive" : ""}
+                      key={service}
+                      type="button"
+                      role="tab"
+                      aria-selected={structuredService === service}
+                      onClick={() => setStructuredService(service)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="workspaceStructuredSummary">
+                  <div>
+                    <span>サービス名</span>
+                    <strong>{copyright.services[structuredService].ja}</strong>
+                    <small>コピーライト設定を共通利用</small>
+                  </div>
+                  <div>
+                    <span>会社名・住所</span>
+                    <strong>会社概要の設定を使用</strong>
+                    <small>同じ情報を再入力する必要はありません</small>
+                  </div>
+                </div>
+                <fieldset>
+                  <legend>サービスごとに設定する項目</legend>
+                  <ul className="workspaceStructuredFields">
+                    <li>JSON-LDの有効・無効</li>
+                    <li>サービスURL</li>
+                    <li>サービス説明（日本語・英語）</li>
+                    <li>サービス分類</li>
+                    <li>対応地域</li>
+                    <li>サービス画像・提供内容</li>
+                  </ul>
+                </fieldset>
+                <p className="workspaceStructuredNotice">入力・保存機能は次の工程でデータベースへ接続します。</p>
               </section>
             ) : (
               <div className="workspacePlaceholder">

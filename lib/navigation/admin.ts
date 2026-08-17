@@ -25,6 +25,12 @@ export const adminNavigation: NavigationGroup[] = [
         description: "ウェブアプリで利用できる言語を確認します。",
         allowedTiers: ["owner", "core"],
       },
+      {
+        id: "structured",
+        label: "SEO・構造化データ",
+        description: "各サービス固有の検索情報とJSON-LDを管理します。",
+        allowedTiers: ["owner", "core"],
+      },
     ],
   },
 ];
