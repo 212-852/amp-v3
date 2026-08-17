@@ -104,7 +104,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const [countries, setCountries] = useState<CountriesConfig>(defaultCountries);
   const [countriesStatus, setCountriesStatus] = useState("");
   const [countryLanguage, setCountryLanguage] = useState<"ja" | "en">("ja");
-  const [selectedCountryIndex, setSelectedCountryIndex] = useState(0);
+  const [selectedCountryIndex, setSelectedCountryIndex] = useState(-1);
   const [draggedCountryIndex, setDraggedCountryIndex] = useState<number | null>(null);
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
@@ -412,7 +412,10 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
 
   function removeCountry(index: number) {
     setCountries((current) => current.filter((_, countryIndex) => countryIndex !== index));
-    setSelectedCountryIndex((current) => Math.max(0, current > index ? current - 1 : Math.min(current, countries.length - 2)));
+    setSelectedCountryIndex((current) => {
+      if (current === index) return -1;
+      return current > index ? current - 1 : current;
+    });
   }
 
   function moveCountry(fromIndex: number, toIndex: number) {
@@ -424,7 +427,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
       nextCountries.splice(toIndex, 0, movedCountry);
       const nextSelectedIndex = nextCountries.indexOf(selectedCountry);
       const normalizedCountries = nextCountries.map((country, index) => ({ ...country, sortOrder: index + 1 }));
-      setSelectedCountryIndex(Math.max(0, nextSelectedIndex));
+      setSelectedCountryIndex(nextSelectedIndex);
       return normalizedCountries;
     });
     setDraggedCountryIndex(null);
@@ -682,51 +685,38 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                         const activeRank = country.status === "paused"
                           ? 0
                           : countries.slice(0, index + 1).filter((item) => item.status !== "paused").length;
+                        const isOpen = selectedCountryIndex === index;
                         return (
-                          <div
-                            className={`workspaceCountryRow${selectedCountryIndex === index ? " isActive" : ""}${draggedCountryIndex === index ? " isDragging" : ""}`}
-                            draggable
-                            key={`${country.code}-${index}`}
-                            onDragStart={() => setDraggedCountryIndex(index)}
-                            onDragEnd={() => setDraggedCountryIndex(null)}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={() => draggedCountryIndex !== null && moveCountry(draggedCountryIndex, index)}
-                          >
-                            <GripVertical aria-hidden="true" className="workspaceCountryGrip" />
-                            <button type="button" onClick={() => setSelectedCountryIndex(index)}>
-                              <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(country.code)}</span>
-                              <span className="workspaceCountryName">{country.name.ja || country.name.en || country.code || `国 ${index + 1}`}</span>
-                              {activeRank > 0 && activeRank <= 5 ? <small>トップ {activeRank}</small> : null}
-                              <ChevronRight aria-hidden="true" />
-                            </button>
-                          </div>
+                          <Fragment key={`${country.code}-${index}`}>
+                            <div
+                              className={`workspaceCountryRow${isOpen ? " isActive" : ""}${draggedCountryIndex === index ? " isDragging" : ""}`}
+                              draggable
+                              onDragStart={() => setDraggedCountryIndex(index)}
+                              onDragEnd={() => setDraggedCountryIndex(null)}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={() => draggedCountryIndex !== null && moveCountry(draggedCountryIndex, index)}
+                            >
+                              <GripVertical aria-hidden="true" className="workspaceCountryGrip" />
+                              <button type="button" aria-expanded={isOpen} onClick={() => setSelectedCountryIndex(isOpen ? -1 : index)}>
+                                <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(country.code)}</span>
+                                <span className="workspaceCountryName">{country.name.ja || country.name.en || country.code || `国 ${index + 1}`}</span>
+                                {activeRank > 0 && activeRank <= 5 ? <small>トップ {activeRank}</small> : null}
+                                <ChevronRight className={isOpen ? "isOpen" : ""} aria-hidden="true" />
+                              </button>
+                            </div>
+                            {isOpen ? (
+                              <fieldset className="workspaceCountryDetail">
+                                <div className="workspaceCountryHeading"><div><span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(country.code)}</span><strong>{country.name.ja || country.code || `国 ${index + 1}`}</strong></div><button type="button" aria-label={`${country.name.ja || country.code || "国"}を削除`} onClick={() => removeCountry(index)}><Trash2 aria-hidden="true" /></button></div>
+                                <div className="workspaceCompanyTabs" role="tablist" aria-label="選択した国の編集言語"><button className={countryLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "ja"} onClick={() => setCountryLanguage("ja")}>日本語</button><button className={countryLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "en"} onClick={() => setCountryLanguage("en")}>English</button></div>
+                                <div className="workspaceCountryGrid"><label>国コード<input maxLength={2} required value={country.code} onChange={(event) => updateCountry(index, { code: event.target.value.toUpperCase() })} /></label><label>{countryLanguage === "ja" ? "国名" : "Country name"}<input required value={country.name[countryLanguage] ?? ""} onChange={(event) => updateCountryText(index, "name", event.target.value)} /></label><label>地域<select value={country.region} onChange={(event) => updateCountry(index, { region: event.target.value as CountryConfig["region"] })}><option value="eastAsia">東アジア</option><option value="southeastAsia">東南アジア</option><option value="northAmerica">北米</option><option value="europe">ヨーロッパ</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label><label>対応状況<select value={country.status} onChange={(event) => updateCountry(index, { status: event.target.value as CountryConfig["status"] })}><option value="active">対応中</option><option value="consult">要相談</option><option value="paused">停止中</option></select></label></div>
+                                <label>{countryLanguage === "ja" ? "国別の注意事項" : "Country notes"}<textarea value={country.note[countryLanguage] ?? ""} onChange={(event) => updateCountryText(index, "note", event.target.value)} /></label><label>詳細ページURL（将来用）<input type="url" value={country.url} onChange={(event) => updateCountry(index, { url: event.target.value })} /></label>
+                              </fieldset>
+                            ) : null}
+                          </Fragment>
                         );
                       })}
                       <button className="workspaceCountryAdd" type="button" onClick={addCountry}><Plus aria-hidden="true" />国を追加</button>
                     </div>
-                    {countries[selectedCountryIndex] ? (
-                      <fieldset className="workspaceCountryDetail">
-                        <div className="workspaceCountryHeading">
-                          <div>
-                            <span className="workspaceCountryFlag" aria-hidden="true">{countryFlag(countries[selectedCountryIndex].code)}</span>
-                            <strong>{countries[selectedCountryIndex].name.ja || countries[selectedCountryIndex].code || `国 ${selectedCountryIndex + 1}`}</strong>
-                          </div>
-                          <button type="button" aria-label={`${countries[selectedCountryIndex].name.ja || countries[selectedCountryIndex].code || "国"}を削除`} onClick={() => removeCountry(selectedCountryIndex)}><Trash2 aria-hidden="true" /></button>
-                        </div>
-                        <div className="workspaceCompanyTabs" role="tablist" aria-label="選択した国の編集言語">
-                          <button className={countryLanguage === "ja" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "ja"} onClick={() => setCountryLanguage("ja")}>日本語</button>
-                          <button className={countryLanguage === "en" ? "isActive" : ""} type="button" role="tab" aria-selected={countryLanguage === "en"} onClick={() => setCountryLanguage("en")}>English</button>
-                        </div>
-                        <div className="workspaceCountryGrid">
-                          <label>国コード<input maxLength={2} required value={countries[selectedCountryIndex].code} onChange={(event) => updateCountry(selectedCountryIndex, { code: event.target.value.toUpperCase() })} /></label>
-                          <label>{countryLanguage === "ja" ? "国名" : "Country name"}<input required value={countries[selectedCountryIndex].name[countryLanguage] ?? ""} onChange={(event) => updateCountryText(selectedCountryIndex, "name", event.target.value)} /></label>
-                          <label>地域<select value={countries[selectedCountryIndex].region} onChange={(event) => updateCountry(selectedCountryIndex, { region: event.target.value as CountryConfig["region"] })}><option value="eastAsia">東アジア</option><option value="southeastAsia">東南アジア</option><option value="northAmerica">北米</option><option value="europe">ヨーロッパ</option><option value="oceania">オセアニア</option><option value="other">その他</option></select></label>
-                          <label>対応状況<select value={countries[selectedCountryIndex].status} onChange={(event) => updateCountry(selectedCountryIndex, { status: event.target.value as CountryConfig["status"] })}><option value="active">対応中</option><option value="consult">要相談</option><option value="paused">停止中</option></select></label>
-                        </div>
-                        <label>{countryLanguage === "ja" ? "国別の注意事項" : "Country notes"}<textarea value={countries[selectedCountryIndex].note[countryLanguage] ?? ""} onChange={(event) => updateCountryText(selectedCountryIndex, "note", event.target.value)} /></label>
-                        <label>詳細ページURL（将来用）<input type="url" value={countries[selectedCountryIndex].url} onChange={(event) => updateCountry(selectedCountryIndex, { url: event.target.value })} /></label>
-                      </fieldset>
-                    ) : <p className="workspaceCountryEmpty">国を追加してください。</p>}
                   </div>
                   <div className="workspaceCompanyActions">
                     <span role="status">{countriesStatus}</span>
