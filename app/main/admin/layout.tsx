@@ -34,9 +34,15 @@ export default async function AdminLayout({
   return (
     <div className="adminApp">
       <header className="adminHeader">
-        <PortalToolbar displayName={session.displayName} chatMode="toggle" />
+        <PortalToolbar
+          displayName={session.displayName}
+          pictureUrl={session.pictureUrl}
+          chatMode="toggle"
+        />
         <nav className="adminBreadcrumb" aria-label="Breadcrumb">
           <strong>Home</strong>
+          <span aria-hidden="true">›</span>
+          <span>Admin</span>
         </nav>
       </header>
 

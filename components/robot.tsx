@@ -3,12 +3,14 @@
 import {
   Bot,
   CircleUserRound,
+  Inbox,
   Menu,
   MessageCircle,
   Send,
   Settings,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
@@ -22,11 +24,13 @@ import type { RobotRole } from "@/lib/robot/common";
 
 type PortalToolbarProps = {
   displayName: string;
+  pictureUrl?: string | null;
   chatMode: "icon" | "toggle";
 };
 
 export function PortalToolbar({
   displayName,
+  pictureUrl,
   chatMode,
 }: PortalToolbarProps) {
   const [isChatEnabled, setIsChatEnabled] = useState(true);
@@ -34,34 +38,57 @@ export function PortalToolbar({
   return (
     <>
       <div className="adminIdentity">
-        <CircleUserRound aria-hidden="true" />
+        <span className="adminIdentityAvatar">
+          {pictureUrl ? (
+            <Image
+              src={pictureUrl}
+              alt=""
+              width={52}
+              height={52}
+              unoptimized
+            />
+          ) : (
+            <CircleUserRound aria-hidden="true" />
+          )}
+        </span>
         <strong>{displayName}</strong>
       </div>
 
       <div className="adminTools">
-        {chatMode === "toggle" ? (
-          <button
-            className="adminChatToggle"
-            type="button"
-            aria-label={`Turn chat ${isChatEnabled ? "off" : "on"}`}
-            aria-pressed={isChatEnabled}
-            onClick={() => setIsChatEnabled((current) => !current)}
-          >
-            <MessageCircle aria-hidden="true" />
-            <span className="adminToggleState">
-              {isChatEnabled ? "ON" : "OFF"}
-            </span>
-          </button>
-        ) : (
-          <button className="adminToolButton" type="button" aria-label="Chat">
-            <MessageCircle aria-hidden="true" />
-          </button>
-        )}
+        <div className="adminToolRow">
+          {chatMode === "toggle" ? (
+            <button
+              className="adminChatToggle"
+              type="button"
+              aria-label={`Turn chat ${isChatEnabled ? "off" : "on"}`}
+              aria-pressed={isChatEnabled}
+              onClick={() => setIsChatEnabled((current) => !current)}
+            >
+              <MessageCircle aria-hidden="true" />
+              <span className="adminToggleState">
+                {isChatEnabled ? "ON" : "OFF"}
+              </span>
+            </button>
+          ) : (
+            <button className="adminToolButton" type="button" aria-label="Chat">
+              <MessageCircle aria-hidden="true" />
+            </button>
+          )}
 
-        <button className="adminToolButton" type="button" aria-label="Settings">
-          <Settings aria-hidden="true" />
+          <button className="adminToolButton" type="button" aria-label="Settings">
+            <Settings aria-hidden="true" />
+          </button>
+        </div>
+
+        <button
+          className="adminInboxButton"
+          type="button"
+          aria-label="受信トレイ（準備中）"
+          title="個別・グループチャットとメールをまとめる受信トレイ（準備中）"
+        >
+          <Inbox aria-hidden="true" />
+          <span>受信トレイ</span>
         </button>
-
       </div>
     </>
   );
