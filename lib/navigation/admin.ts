@@ -50,6 +50,20 @@ export const adminNavigation: NavigationGroup[] = [
         allowedTiers: ["owner", "core"],
       },
       {
+        id: "pets",
+        label: "ペット一覧",
+        description: "犬種・猫種などのペット情報を管理します。",
+        section: "content",
+        allowedTiers: ["owner", "core"],
+      },
+      {
+        id: "gallery",
+        label: "写真アップロード",
+        description: "共通ギャラリーの写真と掲載先を管理します。",
+        section: "content",
+        allowedTiers: ["owner", "core"],
+      },
+      {
         id: "copyright",
         label: "コピーライト",
         description: "開始年とサービス別の表示名を管理します。",

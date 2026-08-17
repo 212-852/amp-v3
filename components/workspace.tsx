@@ -526,7 +526,11 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                 const showSection = item.section && item.section !== group.pages[index - 1]?.section;
                 return (
                   <Fragment key={item.id}>
-                    {showSection ? <p className={`workspacePageSection workspacePageSection-${item.section}`}>{item.section === "display" ? "サイト表示" : "内部設定"}</p> : null}
+                    {showSection ? (
+                      <p className={`workspacePageSection workspacePageSection-${item.section}`}>
+                        {item.section === "display" ? "サイト表示" : item.section === "content" ? "コンテンツ管理" : "内部設定"}
+                      </p>
+                    ) : null}
                     <button className={item.id === page.id ? "isActive" : undefined} disabled={!allowed} onClick={() => { if (!allowed) return; setPageId(item.id); setLevel(2); }} type="button">
                       <span>{item.label}</span><small>{item.description}</small>
                       {!allowed && <small className="workspaceAccess"><LockKeyhole aria-hidden="true" />owner・coreのみ</small>}

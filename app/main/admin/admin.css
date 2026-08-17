@@ -139,6 +139,12 @@
   padding-top: 15px;
 }
 
+.workspacePages .workspacePageSection-content {
+  margin-top: 18px;
+  border-top: 1px solid #d8d8d8;
+  padding-top: 15px;
+}
+
 .portalWorkspaceCompact .workspacePages .workspacePageSection {
   margin-right: 4px;
   margin-left: 4px;

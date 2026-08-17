@@ -6,7 +6,7 @@ export type NavigationPage = {
   id: string;
   label: string;
   description: string;
-  section?: "display" | "internal";
+  section?: "display" | "content" | "internal";
   allowedTiers?: readonly NavigationTier[];
 };
 
