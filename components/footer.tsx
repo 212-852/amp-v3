@@ -130,7 +130,7 @@ export function AppFooter() {
         <div className="footerCharacters" aria-hidden="true">
           <Image
             className="footerCharacter footerDog"
-            src="/images/dog-character.svg"
+            src="/images/main/dog-character.svg"
             width={300}
             height={300}
             alt=""
@@ -138,7 +138,7 @@ export function AppFooter() {
           />
           <Image
             className="footerCharacter footerCat"
-            src="/images/cat-character.svg"
+            src="/images/main/cat-character.svg"
             width={300}
             height={300}
             alt=""

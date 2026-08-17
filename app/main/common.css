@@ -297,7 +297,7 @@ body:has(.driverApp) {
   display: block;
   width: 116px;
   aspect-ratio: 83 / 99;
-  background-image: url("/images/robotcat.svg?v=20260812");
+  background-image: url("/images/main/robotcat.svg?v=20260812");
   background-position: 0 0;
   background-repeat: no-repeat;
   background-size: 400% 100%;
