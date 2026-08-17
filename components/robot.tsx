@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
@@ -23,12 +24,15 @@ import {
   robotDispatcher,
 } from "@/lib/robot/dispatcher";
 import type { RobotRole } from "@/lib/robot/common";
+import { getTranslation, type Language } from "@/lib/i18n";
 
 type PortalToolbarProps = {
   displayName: string;
   pictureUrl?: string | null;
   chatMode: "icon" | "toggle";
   inboxHref?: string;
+  language?: Language;
+  profileEditable?: boolean;
 };
 
 export function PortalToolbar({
@@ -36,8 +40,47 @@ export function PortalToolbar({
   pictureUrl,
   chatMode,
   inboxHref,
+  language = "ja",
+  profileEditable = false,
 }: PortalToolbarProps) {
+  const router = useRouter();
   const [isChatEnabled, setIsChatEnabled] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [currentDisplayName, setCurrentDisplayName] = useState(displayName);
+  const [profileName, setProfileName] = useState(displayName);
+  const [profileLanguage, setProfileLanguage] = useState<Language>(language);
+  const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const profileText = {
+    title: getTranslation({ ja: "プロフィール編集", en: "Edit profile" }, language),
+    intro: getTranslation({ ja: "社内や顧客とのチャットで表示する名前を設定します。", en: "Set the name shown in team and customer chats." }, language),
+    nickname: getTranslation({ ja: "ニックネーム", en: "Nickname" }, language),
+    nicknameHelp: getTranslation({ ja: "従業員同士の会話や、顧客とのチャットに表示されます。", en: "Shown in conversations with staff and customers." }, language),
+    language: getTranslation({ ja: "表示言語", en: "Display language" }, language),
+    save: getTranslation({ ja: "保存する", en: "Save" }, language),
+    saving: getTranslation({ ja: "保存中…", en: "Saving…" }, language),
+    saved: getTranslation({ ja: "保存しました", en: "Saved" }, language),
+    error: getTranslation({ ja: "保存できませんでした", en: "Could not save" }, language),
+  };
+
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nickname = profileName.trim();
+    if (!nickname || nickname.length > 50) return;
+    setProfileStatus("saving");
+    try {
+      const response = await fetch("/api/session", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resource: "profile", displayName: nickname, language: profileLanguage }),
+      });
+      if (!response.ok) throw new Error("Profile update failed");
+      setCurrentDisplayName(nickname);
+      setProfileStatus("saved");
+      router.refresh();
+    } catch {
+      setProfileStatus("error");
+    }
+  }
 
   return (
     <>
@@ -55,7 +98,7 @@ export function PortalToolbar({
             <CircleUserRound aria-hidden="true" />
           )}
         </span>
-        <strong>{displayName}</strong>
+        <strong>{currentDisplayName}</strong>
       </div>
 
       <div className="adminTools">
@@ -79,7 +122,17 @@ export function PortalToolbar({
             </button>
           )}
 
-          <button className="adminToolButton" type="button" aria-label="Settings">
+          <button
+            className="adminToolButton"
+            type="button"
+            aria-label="Settings"
+            onClick={() => {
+              if (!profileEditable) return;
+              setProfileName(currentDisplayName);
+              setProfileStatus("idle");
+              setIsProfileOpen(true);
+            }}
+          >
             <Settings aria-hidden="true" />
           </button>
         </div>
@@ -95,6 +148,56 @@ export function PortalToolbar({
           <Inbox aria-hidden="true" />
           <span>受信トレイ</span>
         </Link>
+      ) : null}
+
+      {profileEditable ? (
+        <Modal
+          open={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+          label={profileText.title}
+          title={profileText.title}
+          overlayClassName="adminModalOverlay adminProfileOverlay"
+          panelClassName="adminProfileModal"
+        >
+          <form className="adminProfileForm" onSubmit={handleProfileSubmit}>
+            <p>{profileText.intro}</p>
+            <label>
+              <span>{profileText.nickname}</span>
+              <input
+                type="text"
+                value={profileName}
+                maxLength={50}
+                autoComplete="nickname"
+                onChange={(event) => setProfileName(event.target.value)}
+                required
+              />
+              <small>{profileText.nicknameHelp}</small>
+            </label>
+            <fieldset>
+              <legend>{profileText.language}</legend>
+              <div className="adminProfileLanguages">
+                {(["ja", "en"] as const).map((option) => (
+                  <button
+                    key={option}
+                    className={profileLanguage === option ? "isActive" : ""}
+                    type="button"
+                    onClick={() => setProfileLanguage(option)}
+                  >
+                    {option === "ja" ? "日本語" : "English"}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <button className="adminProfileSave" type="submit" disabled={profileStatus === "saving" || !profileName.trim()}>
+              {profileStatus === "saving" ? profileText.saving : profileText.save}
+            </button>
+            {profileStatus === "saved" || profileStatus === "error" ? (
+              <p className={`adminProfileStatus ${profileStatus}`} role="status">
+                {profileStatus === "saved" ? profileText.saved : profileText.error}
+              </p>
+            ) : null}
+          </form>
+        </Modal>
       ) : null}
     </>
   );

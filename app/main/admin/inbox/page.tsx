@@ -1,4 +1,7 @@
 import { Mail, MessageCircle, Search, Users } from "lucide-react";
+import { cookies } from "next/headers";
+
+import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 
 const copy = {
   ja: {
@@ -33,8 +36,13 @@ export const metadata = {
   title: "受信トレイ | Admin",
 };
 
-export default function InboxPage() {
-  const text = copy.ja;
+export default async function InboxPage() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const session = sessionToken
+    ? await identityDispatcher({ action: "resolve_session", sessionToken })
+    : null;
+  const text = copy[session?.language === "en" ? "en" : "ja"];
 
   return (
     <section className="adminInboxPage">

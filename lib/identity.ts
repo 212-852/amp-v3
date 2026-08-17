@@ -73,6 +73,12 @@ export type IdentityRequest =
       sessionToken: string;
       language: Language;
     }
+  | {
+      action: "update_session_profile";
+      sessionToken: string;
+      displayName: string;
+      language: Language;
+    }
   | { action: "list_supported_languages" }
   | {
       action: "add_supported_language";
@@ -258,6 +264,9 @@ export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "update_session_language" }>,
 ): Promise<{ language: Language }>;
 export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_session_profile" }>,
+): Promise<{ displayName: string; language: Language }>;
+export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "list_supported_languages" }>,
 ): Promise<Array<{ code: Language; name: string }>>;
 export function identityDispatcher(
@@ -368,6 +377,13 @@ export async function identityDispatcher(request: IdentityRequest) {
 
     case "update_session_language":
       return updateSessionLanguage(request.sessionToken, request.language);
+
+    case "update_session_profile":
+      return updateSessionProfile(
+        request.sessionToken,
+        request.displayName,
+        request.language,
+      );
 
     case "list_supported_languages":
       return listSupportedLanguages();
@@ -1069,6 +1085,50 @@ async function updateSessionLanguage(
   }
 
   return { language };
+}
+
+async function updateSessionProfile(
+  sessionToken: string,
+  displayName: string,
+  language: Language,
+) {
+  const normalizedDisplayName = displayName.trim();
+  if (!normalizedDisplayName || normalizedDisplayName.length > 50) {
+    throw new Error("Display name must contain between 1 and 50 characters.");
+  }
+
+  const languages = await listSupportedLanguages();
+  if (!languages.some((item) => item.code === language)) {
+    throw new Error("Selected language is not supported.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const sessionTokenHash = await hashSessionToken(sessionToken);
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("user_uuid")
+    .eq("session_token_hash", sessionTokenHash)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(`Session lookup failed: ${sessionError.message}`);
+  }
+  if (!session) {
+    throw new Error("Active session was not found.");
+  }
+
+  const { error: userError } = await supabase
+    .from("users")
+    .update({ display_name: normalizedDisplayName, language })
+    .eq("user_uuid", session.user_uuid);
+
+  if (userError) {
+    throw new Error(`Profile update failed: ${userError.message}`);
+  }
+
+  return { displayName: normalizedDisplayName, language };
 }
 
 async function listSupportedLanguages() {

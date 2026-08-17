@@ -39,6 +39,8 @@ export default async function AdminLayout({
           pictureUrl={session.pictureUrl}
           chatMode="toggle"
           inboxHref="/main/admin/inbox"
+          language={session.language}
+          profileEditable
         />
         <AdminTrail />
       </header>

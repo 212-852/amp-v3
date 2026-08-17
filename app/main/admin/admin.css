@@ -2,6 +2,124 @@
   --portal-background: #f4f4f4;
 }
 
+.adminProfileModal {
+  width: min(100%, 520px) !important;
+}
+
+.adminProfileModal > h2 {
+  margin: 0 56px 8px 0;
+  font-size: 26px;
+}
+
+.adminProfileForm {
+  display: grid;
+  gap: 22px;
+  padding-top: 12px;
+}
+
+.adminProfileForm > p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.adminProfileForm label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.adminProfileForm input {
+  min-height: 48px;
+  border: 1px solid #cfcfcf;
+  border-radius: 12px;
+  padding: 0 14px;
+  color: #222;
+  background: #fff;
+  font: inherit;
+}
+
+.adminProfileForm input:focus {
+  border-color: #222;
+  outline: 2px solid rgb(0 0 0 / 10%);
+  outline-offset: 2px;
+}
+
+.adminProfileForm small {
+  color: #777;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.adminProfileForm fieldset {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.adminProfileForm legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.adminProfileLanguages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  border: 1px solid #d5d5d5;
+  border-radius: 12px;
+  background: #f2f2f2;
+  padding: 4px;
+}
+
+.adminProfileLanguages button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #666;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.adminProfileLanguages button.isActive {
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 10%);
+}
+
+.adminProfileSave {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #222;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.adminProfileSave:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.adminProfileStatus {
+  text-align: center;
+  font-weight: 700;
+}
+
+.adminProfileStatus.saved {
+  color: #176b35;
+}
+
+.adminProfileStatus.error {
+  color: #a32626;
+}
+
 .adminInboxPage {
   display: grid;
   gap: 22px;

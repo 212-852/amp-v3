@@ -158,7 +158,34 @@ export async function PATCH(request: NextRequest) {
     copyright?: unknown;
     structured?: unknown;
     countries?: unknown;
+    displayName?: unknown;
   } | null;
+
+  if (body?.resource === "profile") {
+    if (!sessionToken) {
+      return Response.json({ error: "Authentication is required." }, { status: 401 });
+    }
+    if (
+      typeof body.displayName !== "string" ||
+      !body.displayName.trim() ||
+      body.displayName.trim().length > 50 ||
+      !isLanguageCode(body.language)
+    ) {
+      return Response.json({ error: "Invalid profile." }, { status: 400 });
+    }
+
+    try {
+      const profile = await identityDispatcher({
+        action: "update_session_profile",
+        sessionToken,
+        displayName: body.displayName,
+        language: body.language,
+      });
+      return Response.json({ profile });
+    } catch {
+      return Response.json({ error: "Profile update failed." }, { status: 401 });
+    }
+  }
 
   if (body?.resource === "countries") {
     const countries = body.countries;
