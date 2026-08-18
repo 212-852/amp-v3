@@ -121,7 +121,10 @@ export const proxy: NextProxy = async (request, event) => {
       },
     });
   } else if (hostname === "app.da-nya.com") {
-    url.pathname = `/main${pathname}`;
+    url.pathname =
+      pathname === "/main" || pathname.startsWith("/main/")
+        ? pathname
+        : `/main${pathname}`;
     response = NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
