@@ -246,18 +246,30 @@ export function PortalToolbar({
   );
 }
 
-export function AdminTrail() {
+export function AdminTrail({ language = "ja" }: { language?: Language }) {
   const pathname = usePathname();
   const isInbox =
     pathname === "/main/admin/inbox" || pathname === "/admin/inbox";
+  const isPets =
+    pathname === "/main/admin/pets" || pathname === "/admin/pets";
+  const isGallery =
+    pathname === "/main/admin/gallery" || pathname === "/admin/gallery";
+  const currentLabel = isInbox
+    ? getTranslation({ ja: "受信トレイ", en: "Inbox" }, language)
+    : isPets
+      ? getTranslation({ ja: "ペット一覧", en: "Pets" }, language)
+      : isGallery
+        ? getTranslation({ ja: "写真アップロード", en: "Photo upload" }, language)
+        : "";
+  const isSubpage = Boolean(currentLabel);
 
   return (
     <nav className="adminBreadcrumb" aria-label="Breadcrumb">
-      {isInbox ? <Link href="/main/admin">Home</Link> : <strong>Home</strong>}
-      {isInbox ? (
+      {isSubpage ? <Link href="/main/admin">Home</Link> : <strong>Home</strong>}
+      {isSubpage ? (
         <>
           <span aria-hidden="true">›</span>
-          <strong>受信トレイ</strong>
+          <strong>{currentLabel}</strong>
         </>
       ) : null}
     </nav>

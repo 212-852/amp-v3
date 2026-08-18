@@ -3,6 +3,7 @@
 import type { FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, GripVertical, Home, ImageUp, LockKeyhole, MessageCircle, Plus, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
+import Link from "next/link";
 
 import { Address, type AddressValue } from "@/components/address";
 import { canAccessNavigation, type NavigationGroup, type PortalRole } from "@/lib/navigation/common";
@@ -510,10 +511,16 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
               const Icon = icons[item.icon];
               const allowed = canAccessNavigation(item.allowedTiers, tier);
               return (
-                <button className={item.id === group.id ? "isActive" : undefined} disabled={!allowed} key={item.id} onClick={() => selectGroup(item)} type="button">
-                  <Icon aria-hidden="true" /><span>{item.label}</span>
-                  {!allowed && <small className="workspaceAccess"><LockKeyhole aria-hidden="true" />owner・coreのみ</small>}
-                </button>
+                item.href && allowed ? (
+                  <Link className={item.id === group.id ? "isActive" : undefined} href={item.href} key={item.id}>
+                    <Icon aria-hidden="true" /><span>{item.label}</span>
+                  </Link>
+                ) : (
+                  <button className={item.id === group.id ? "isActive" : undefined} disabled={!allowed} key={item.id} onClick={() => selectGroup(item)} type="button">
+                    <Icon aria-hidden="true" /><span>{item.label}</span>
+                    {!allowed && <small className="workspaceAccess"><LockKeyhole aria-hidden="true" />owner・coreのみ</small>}
+                  </button>
+                )
               );
             })}
           </nav>

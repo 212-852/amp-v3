@@ -50,20 +50,6 @@ export const adminNavigation: NavigationGroup[] = [
         allowedTiers: ["owner", "core"],
       },
       {
-        id: "pets",
-        label: "ペット一覧",
-        description: "犬種・猫種などのペット情報を管理します。",
-        section: "content",
-        allowedTiers: ["owner", "core"],
-      },
-      {
-        id: "gallery",
-        label: "写真アップロード",
-        description: "共通ギャラリーの写真と掲載先を管理します。",
-        section: "content",
-        allowedTiers: ["owner", "core"],
-      },
-      {
         id: "copyright",
         label: "コピーライト",
         description: "開始年とサービス別の表示名を管理します。",
@@ -82,6 +68,36 @@ export const adminNavigation: NavigationGroup[] = [
         label: "SEO",
         description: "各サービス固有の検索情報とJSON-LDを管理します。",
         section: "internal",
+        allowedTiers: ["owner", "core"],
+      },
+    ],
+  },
+  {
+    id: "pets",
+    label: "ペット一覧",
+    icon: "users",
+    href: "/main/admin/pets",
+    allowedTiers: ["owner", "core"],
+    pages: [
+      {
+        id: "pets",
+        label: "ペット一覧",
+        description: "犬種・猫種などのペット情報を管理します。",
+        allowedTiers: ["owner", "core"],
+      },
+    ],
+  },
+  {
+    id: "gallery",
+    label: "写真アップロード",
+    icon: "clipboard",
+    href: "/main/admin/gallery",
+    allowedTiers: ["owner", "core"],
+    pages: [
+      {
+        id: "gallery",
+        label: "写真アップロード",
+        description: "共通ギャラリーの写真と掲載先を管理します。",
         allowedTiers: ["owner", "core"],
       },
     ],

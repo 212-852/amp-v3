@@ -809,9 +809,9 @@ body:has(.driverApp) {
 .workspaceGroups, .workspacePages { display:flex; flex-direction:column; gap:6px; padding:18px 12px; border-right:1px solid #dedede; background:#f3f3f3; }
 .workspacePages { background:#fafafa; }
 .workspaceHeading { margin:0 8px 8px; color:#777; font-size:12px; font-weight:800; letter-spacing:.08em; }
-.workspaceGroups > button, .workspacePages > button:not(.workspaceBack) { display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; border:0; border-radius:10px; background:transparent; color:#444; text-align:left; cursor:pointer; }
-.workspaceGroups > button svg { width:20px; height:20px; flex:0 0 auto; }
-.workspaceGroups > button:not(:disabled):hover, .workspacePages > button:not(.workspaceBack):not(:disabled):hover, .workspaceGroups > button.isActive, .workspacePages > button.isActive { background:#dedede; color:#111; }
+.workspaceGroups > button, .workspaceGroups > a, .workspacePages > button:not(.workspaceBack) { display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; border:0; border-radius:10px; background:transparent; color:#444; text-align:left; text-decoration:none; cursor:pointer; }
+.workspaceGroups > button svg, .workspaceGroups > a svg { width:20px; height:20px; flex:0 0 auto; }
+.workspaceGroups > button:not(:disabled):hover, .workspaceGroups > a:hover, .workspacePages > button:not(.workspaceBack):not(:disabled):hover, .workspaceGroups > button.isActive, .workspaceGroups > a.isActive, .workspacePages > button.isActive { background:#dedede; color:#111; }
 .workspaceGroups > button:disabled, .workspacePages > button:not(.workspaceBack):disabled { opacity:.58; cursor:not-allowed; }
 .workspacePages > button:not(.workspaceBack) { align-items:flex-start; flex-direction:column; gap:3px; }
 .workspacePages small { color:#777; font-size:11px; line-height:1.45; }
@@ -841,12 +841,16 @@ body:has(.driverApp) {
 .portalWorkspaceCompact .workspaceGroups, .portalWorkspaceCompact .workspacePages { gap:0; border-right:0; background:#fff; padding:14px 0; }
 .portalWorkspaceCompact .workspaceHeading { margin:0 4px 8px; }
 .portalWorkspaceCompact .workspaceGroups > button,
+.portalWorkspaceCompact .workspaceGroups > a,
 .portalWorkspaceCompact .workspacePages > button:not(.workspaceBack) { min-height:52px; border-bottom:1px solid #e8e8e8; border-radius:0; padding:11px 8px; }
 .portalWorkspaceCompact .workspaceGroups > button:first-of-type,
+.portalWorkspaceCompact .workspaceGroups > a:first-of-type,
 .portalWorkspaceCompact .workspacePages > button:not(.workspaceBack):first-of-type { border-top:1px solid #e8e8e8; }
 .portalWorkspaceCompact .workspaceGroups > button:not(:disabled):hover,
+.portalWorkspaceCompact .workspaceGroups > a:hover,
 .portalWorkspaceCompact .workspacePages > button:not(.workspaceBack):not(:disabled):hover,
 .portalWorkspaceCompact .workspaceGroups > button.isActive,
+.portalWorkspaceCompact .workspaceGroups > a.isActive,
 .portalWorkspaceCompact .workspacePages > button.isActive { background:#f5f5f5; box-shadow:inset 3px 0 #555; }
 .portalWorkspaceCompact .workspaceBack { display:inline-flex; }
 .portalWorkspaceCompact .workspaceBack { margin-bottom:10px; padding:6px 2px; }

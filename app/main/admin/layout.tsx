@@ -48,7 +48,7 @@ export default async function AdminLayout({
           role="admin"
           tier={session.tier}
         />
-        <AdminTrail />
+        <AdminTrail language={session.language} />
       </header>
 
       <main className="adminMain">{children}</main>

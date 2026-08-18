@@ -14,6 +14,7 @@ export type NavigationGroup = {
   id: string;
   label: string;
   icon: "home" | "chat" | "bell" | "settings" | "wrench" | "calendar" | "truck" | "users" | "building" | "clipboard";
+  href?: string;
   allowedTiers?: readonly NavigationTier[];
   pages: NavigationPage[];
 };
