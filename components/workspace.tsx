@@ -2,7 +2,7 @@
 
 import type { FormEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, GripVertical, Home, ImageUp, LockKeyhole, MessageCircle, Plus, Settings, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
+import { Bell, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, GripVertical, Home, ImageUp, LockKeyhole, MessageCircle, PawPrint, Plus, Settings, SlidersHorizontal, Trash2, Truck, UsersRound, Wrench } from "lucide-react";
 import Link from "next/link";
 
 import { Address, type AddressValue } from "@/components/address";
@@ -20,7 +20,7 @@ import {
   type StructuredConfig,
 } from "@/lib/content";
 
-const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, wrench: Wrench, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList };
+const icons = { home: Home, chat: MessageCircle, bell: Bell, settings: Settings, wrench: Wrench, calendar: CalendarDays, truck: Truck, users: UsersRound, building: Building2, clipboard: ClipboardList, sliders: SlidersHorizontal, paw: PawPrint, image: ImageUp };
 
 type WorkspaceProps = {
   role: PortalRole;
@@ -30,6 +30,7 @@ type WorkspaceProps = {
   compact?: boolean;
   direct?: boolean;
   onGroupChange?: (group: NavigationGroup) => void;
+  onNavigate?: () => void;
 };
 
 type CompanyConfig = {
@@ -64,7 +65,7 @@ function countryFlag(code: string) {
   return String.fromCodePoint(...normalizedCode.split("").map((character) => 127397 + character.charCodeAt(0)));
 }
 
-export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, direct = false, onGroupChange }: WorkspaceProps) {
+export function Workspace({ role, children, groups: suppliedGroups, tier, compact = false, direct = false, onGroupChange, onNavigate }: WorkspaceProps) {
   const groups = useMemo(
     () => suppliedGroups ?? navigationDispatcher(role),
     [role, suppliedGroups],
@@ -512,7 +513,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
               const allowed = canAccessNavigation(item.allowedTiers, tier);
               return (
                 item.href && allowed ? (
-                  <Link className={item.id === group.id ? "isActive" : undefined} href={item.href} key={item.id}>
+                  <Link className={item.id === group.id ? "isActive" : undefined} href={item.href} key={item.id} onClick={onNavigate}>
                     <Icon aria-hidden="true" /><span>{item.label}</span>
                   </Link>
                 ) : (

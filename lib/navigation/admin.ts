@@ -4,7 +4,7 @@ export const adminNavigation: NavigationGroup[] = [
   {
     id: "languages",
     label: "アプリ管理",
-    icon: "wrench",
+    icon: "sliders",
     allowedTiers: ["owner", "core"],
     pages: [
       {
@@ -74,30 +74,15 @@ export const adminNavigation: NavigationGroup[] = [
   },
   {
     id: "pets",
-    label: "ペット一覧",
-    icon: "users",
+    label: "動物データベース",
+    icon: "paw",
     href: "/main/admin/pets",
     allowedTiers: ["owner", "core"],
     pages: [
       {
         id: "pets",
-        label: "ペット一覧",
-        description: "犬種・猫種などのペット情報を管理します。",
-        allowedTiers: ["owner", "core"],
-      },
-    ],
-  },
-  {
-    id: "gallery",
-    label: "写真アップロード",
-    icon: "clipboard",
-    href: "/main/admin/gallery",
-    allowedTiers: ["owner", "core"],
-    pages: [
-      {
-        id: "gallery",
-        label: "写真アップロード",
-        description: "共通ギャラリーの写真と掲載先を管理します。",
+        label: "動物データベース",
+        description: "犬・猫・うさぎ・亀など、動物の種類と関連情報を管理します。",
         allowedTiers: ["owner", "core"],
       },
     ],

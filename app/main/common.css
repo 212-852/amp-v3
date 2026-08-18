@@ -17,7 +17,9 @@ body:has(.driverApp) {
 .adminApp {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  height: 100dvh;
   min-height: 100dvh;
+  overflow: hidden;
   color: #151515;
   background: var(--portal-background, #f4f4f4);
   font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
@@ -27,6 +29,9 @@ body:has(.driverApp) {
 }
 
 .adminHeader {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 20px;
@@ -40,10 +45,14 @@ body:has(.driverApp) {
 .adminBreadcrumb {
   grid-column: 1 / -1;
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   gap: 8px;
   align-items: center;
+  flex-wrap: nowrap;
   color: #777;
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .adminHeader:has(.adminInboxButton) .adminBreadcrumb {
@@ -62,9 +71,13 @@ body:has(.driverApp) {
 }
 
 .adminBreadcrumb strong {
+  min-width: 0;
+  overflow: hidden;
   color: #222;
   font-size: 18px;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .adminIdentity {
@@ -219,7 +232,10 @@ body:has(.driverApp) {
 
 .adminMain {
   width: min(100% - 40px, 1200px);
+  min-height: 0;
   margin: 0 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 42px 0;
 }
 
@@ -242,7 +258,9 @@ body:has(.driverApp) {
 }
 
 .adminFooter {
-  position: relative;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
   display: grid;
   min-height: 44px;
   border-top: 1px solid #2b2b2b;
@@ -704,12 +722,12 @@ body:has(.driverApp) {
   }
 
   .adminBreadcrumb {
-    gap: 6px;
-    font-size: 14px;
+    gap: 5px;
+    font-size: 11px;
   }
 
   .adminBreadcrumb strong {
-    font-size: 17px;
+    font-size: 13px;
   }
 
   .adminIdentity {

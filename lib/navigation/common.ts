@@ -13,7 +13,7 @@ export type NavigationPage = {
 export type NavigationGroup = {
   id: string;
   label: string;
-  icon: "home" | "chat" | "bell" | "settings" | "wrench" | "calendar" | "truck" | "users" | "building" | "clipboard";
+  icon: "home" | "chat" | "bell" | "settings" | "wrench" | "calendar" | "truck" | "users" | "building" | "clipboard" | "sliders" | "paw" | "image";
   href?: string;
   allowedTiers?: readonly NavigationTier[];
   pages: NavigationPage[];

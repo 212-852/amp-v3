@@ -239,7 +239,7 @@ export function PortalToolbar({
             <Menu aria-hidden="true" />
             <strong>MENU</strong>
           </div>
-          <Workspace compact groups={managementGroups} role={role} tier={tier} />
+          <Workspace compact groups={managementGroups} role={role} tier={tier} onNavigate={() => setIsMenuOpen(false)} />
         </Modal>
       ) : null}
     </>
@@ -251,15 +251,12 @@ export function AdminTrail({ language = "ja" }: { language?: Language }) {
   const isInbox =
     pathname === "/main/admin/inbox" || pathname === "/admin/inbox";
   const isPets =
-    pathname === "/main/admin/pets" || pathname === "/admin/pets";
-  const isGallery =
+    pathname === "/main/admin/pets" || pathname === "/admin/pets" ||
     pathname === "/main/admin/gallery" || pathname === "/admin/gallery";
   const currentLabel = isInbox
     ? getTranslation({ ja: "受信トレイ", en: "Inbox" }, language)
     : isPets
-      ? getTranslation({ ja: "ペット一覧", en: "Pets" }, language)
-      : isGallery
-        ? getTranslation({ ja: "写真アップロード", en: "Photo upload" }, language)
+      ? getTranslation({ ja: "動物データベース", en: "Animal database" }, language)
         : "";
   const isSubpage = Boolean(currentLabel);
 
