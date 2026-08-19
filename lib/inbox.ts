@@ -47,7 +47,9 @@ function cleanText(value: string, maximum: number) {
 }
 
 function getResend() {
-  const apiKey = process.env.MAIL_RESEND_API_KEY ?? process.env.RESEND_API_KEY;
+  const apiKey = process.env.AMP_MAIL_RESEND_API_KEY
+    ?? process.env.MAIL_RESEND_API_KEY
+    ?? process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Resend server configuration is missing.");
   return new Resend(apiKey);
 }
