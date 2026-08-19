@@ -88,13 +88,25 @@ function wikiEvidence(page: WikiPage | null) {
   };
 }
 
+function animalPageScore(page: WikiPage, searchedName: string) {
+  const title = page.title ?? "";
+  const description = page.description ?? "";
+  const categories = (page.categories ?? []).map((category) => category.title ?? "").join(" ");
+  const text = `${title} ${description} ${categories}`;
+  if (/曖昧さ回避/.test(text)) return -100;
+  let score = title === searchedName ? 1 : 0;
+  if (/[（(](?:犬種|猫種)[）)]/.test(title)) score += 20;
+  if (/(?:犬|猫)の品種|犬種|猫種|原産の(?:犬|猫)/.test(text)) score += 10;
+  return score;
+}
+
 async function getJapanesePage(name: string) {
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
     gsrsearch: name,
     gsrnamespace: "0",
-    gsrlimit: "1",
+    gsrlimit: "5",
     prop: "pageterms|categories|langlinks|info|extracts|revisions",
     wbptterms: "description",
     cllimit: "20",
@@ -113,7 +125,7 @@ async function getJapanesePage(name: string) {
   const response = await fetch(`https://ja.wikipedia.org/w/api.php?${params}`, { headers, signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error("Wikipedia request failed");
   const result = await response.json() as WikiResponse;
-  return result.query?.pages?.[0] ?? null;
+  return [...(result.query?.pages ?? [])].sort((left, right) => animalPageScore(right, name) - animalPageScore(left, name))[0] ?? null;
 }
 
 function outputText(result: OpenAIResponse) {
