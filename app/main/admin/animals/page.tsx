@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
-import { isAnimalStatus, isEscapeRisk, slugify, splitCommaValues } from "@/lib/form";
+import { animalCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: {
@@ -36,7 +36,8 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
   const session = token ? await resolveSessionCached(token) : null;
   const language = session?.language === "en" ? "en" : "ja";
   const text = copy[language];
-  const animals = await identityDispatcher({ action: "list_animals", query });
+  const [animals, countriesConfig] = await Promise.all([identityDispatcher({ action: "list_animals", query }), identityDispatcher({ action: "get_countries_config" })]);
+  const countries = animalCountryOptions(countriesConfig);
   const existingTags = Array.from(new Set(animals.flatMap((animal) => animal.tags).map((tag) => tag.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, language));
   if (sort === "name") animals.sort((a, b) => (a.name[language] || a.name.ja).localeCompare(b.name[language] || b.name.ja, language));
   const isOwner = session?.role === "admin" && session.tier === "owner";
@@ -52,9 +53,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
     const values = (key: string) => splitCommaValues(value(key));
-    const escapeRisk = value("escapeRisk");
-    if (!isEscapeRisk(escapeRisk)) throw new Error("Invalid escape risk");
-    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", escapeRisk, transportMethod: { ja: value("transportJa"), en: value("transportEn") }, kote: { ja: value("koteJa"), en: value("koteEn") } };
+    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", transportMethod: { ja: value("transportJa"), en: value("transportEn") } };
     await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
     revalidatePath("/main/admin/animals");
   }
@@ -77,7 +76,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
       <div className="adminListTools">
         <details className="adminListSearch"><summary aria-label={text.search} title={text.search}><Search aria-hidden="true" /></summary><form method="get"><label><Search aria-hidden="true" /><span className="srOnly">{text.search}</span><input name="q" type="search" defaultValue={query} placeholder={text.search} /></label><button type="submit">{language === "ja" ? "検索" : "Search"}</button></form></details>
         <Link className="adminListSort" href={`?${query ? `q=${encodeURIComponent(query)}&` : ""}sort=${sort === "name" ? "newest" : "name"}`} aria-label={language === "ja" ? "並び替え" : "Sort"} title={language === "ja" ? "並び替え" : "Sort"}><ArrowDownUp aria-hidden="true" /></Link>
-        <AnimalForm action={createAnimal} existingTags={existingTags} language={language} modal text={text} />
+        <AnimalForm action={createAnimal} countries={countries} existingTags={existingTags} language={language} modal text={text} />
       </div>
       {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{language === "ja" ? "検索中" : "Searching"}</span><strong>{query}</strong><Link href={sort === "name" ? "?sort=name" : "?sort=newest"} aria-label={language === "ja" ? "検索を解除" : "Clear search"} title={language === "ja" ? "検索を解除" : "Clear search"}><X aria-hidden="true" /></Link></div> : null}
     </header>

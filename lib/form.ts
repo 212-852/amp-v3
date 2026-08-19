@@ -1,5 +1,21 @@
+import type { CountriesConfig } from "@/lib/content";
+
 export const animalStatuses = ["draft", "published", "archived"] as const;
-export const escapeRisks = ["low", "medium", "high"] as const;
+export const animalSizeOptions = [
+  { ja: "超小型", en: "Toy" },
+  { ja: "小型", en: "Small" },
+  { ja: "中型", en: "Medium" },
+  { ja: "大型", en: "Large" },
+  { ja: "超大型", en: "Giant" },
+] as const;
+
+export function animalCountryOptions(countries: CountriesConfig) {
+  const options = countries
+    .map((country) => ({ ja: country.name.ja.trim(), en: country.name.en.trim() }))
+    .filter((country) => country.ja && country.en);
+  if (!options.some((country) => country.en.toLocaleLowerCase() === "japan")) options.unshift({ ja: "日本", en: "Japan" });
+  return options;
+}
 
 export function normalizeComma(value: string) {
   return value
@@ -38,8 +54,4 @@ export function slugify(value: string) {
 
 export function isAnimalStatus(value: string): value is (typeof animalStatuses)[number] {
   return animalStatuses.some((status) => status === value);
-}
-
-export function isEscapeRisk(value: string): value is (typeof escapeRisks)[number] {
-  return escapeRisks.some((risk) => risk === value);
 }
