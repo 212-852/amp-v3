@@ -2,6 +2,7 @@
 
 import { Plus, Search, Save, Unlock, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { AnimalStatus } from "@/lib/identity";
 
@@ -147,11 +148,11 @@ export function AnimalForm({ action, existingTags, language, modal = false, text
 
   return <>
     <button className="adminPetAdd" type="button" aria-label={language === "ja" ? "新規登録" : "New entry"} title={language === "ja" ? "新規登録" : "New entry"} onClick={() => setModalOpen(true)}><Plus aria-hidden="true" /></button>
-    {modalOpen ? <div className="adminAnimalModal" role="presentation" onMouseDown={() => setModalOpen(false)}>
+    {modalOpen ? createPortal(<div className="adminAnimalModal" role="presentation" onMouseDown={() => setModalOpen(false)}>
       <section aria-label={language === "ja" ? "新規登録" : "New entry"} aria-modal="true" className="adminAnimalModalPanel" role="dialog" onMouseDown={(event) => event.stopPropagation()}>
         <header><h2>{language === "ja" ? "新規登録" : "New entry"}</h2><button type="button" aria-label={language === "ja" ? "閉じる" : "Close"} onClick={() => setModalOpen(false)}><X aria-hidden="true" /></button></header>
         {form}
       </section>
-    </div> : null}
+    </div>, document.body) : null}
   </>;
 }
