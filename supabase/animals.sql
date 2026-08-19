@@ -7,19 +7,18 @@ create table if not exists public.animals (
   summary jsonb not null default '{}'::jsonb check (jsonb_typeof(summary) = 'object'),
   transport jsonb not null default '{}'::jsonb check (jsonb_typeof(transport) = 'object'),
   crate_note jsonb not null default '{}'::jsonb check (jsonb_typeof(crate_note) = 'object'),
-  image_url text,
   status text not null default 'draft' check (status in ('draft','published','archived')),
-  created_by uuid references public.users(user_uuid) on delete set null,
+  profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""},"brachycephalic":false,"heatCaution":false,"escapeRisk":"medium","transportMethod":{"ja":"","en":""},"kote":{"ja":"","en":""}}'::jsonb check (jsonb_typeof(profile) = 'object'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.animals add column if not exists profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""},"brachycephalic":false,"heatCaution":false,"escapeRisk":"medium","transportMethod":{"ja":"","en":""},"kote":{"ja":"","en":""}}'::jsonb;
 
 create index if not exists animals_tags_idx on public.animals using gin (tags);
 create index if not exists animals_name_ja_idx on public.animals (lower(name->>'ja'));
 create index if not exists animals_name_en_idx on public.animals (lower(name->>'en'));
 create index if not exists animals_updated_idx on public.animals (updated_at desc);
-create index if not exists animals_created_by_idx on public.animals (created_by);
-
 alter table public.animals enable row level security;
 revoke all on table public.animals from anon, authenticated;
 grant select, insert, update, delete on table public.animals to service_role;

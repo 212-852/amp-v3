@@ -22,10 +22,11 @@ body:has(.driverApp) {
   overflow: hidden;
   color: #151515;
   background: var(--portal-background, #f4f4f4);
-  font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
+  font-family: var(--font-m-plus-rounded), "Hiragino Maru Gothic ProN",
     "Hiragino Kaku Gothic ProN", sans-serif;
   font-weight: 500;
-  letter-spacing: .01em;
+  line-height: 1.6;
+  letter-spacing: .025em;
 }
 
 .adminHeader {
@@ -428,7 +429,7 @@ body:has(.driverApp) {
 }
 
 .adminMenuModal {
-  font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
+  font-family: var(--font-m-plus-rounded), "Hiragino Maru Gothic ProN",
     "Hiragino Kaku Gothic ProN", sans-serif;
   font-weight: 500;
 }

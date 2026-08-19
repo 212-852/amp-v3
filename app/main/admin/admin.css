@@ -153,6 +153,68 @@
 .adminInboxHeading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .adminInboxHeading h1 { margin: 0; }
 
+.adminInboxHeading,
+.adminPetPage .adminContentHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.adminInboxHeading .adminListTools,
+.adminPetPage .adminContentHeading .adminListTools {
+  justify-self: end;
+  margin-top: 4px;
+}
+
+.adminPetPage .adminContentHeading h1 {
+  max-width: 100%;
+  margin-bottom: 0;
+  font-size: clamp(29px, 8vw, 44px);
+  white-space: nowrap;
+}
+
+.adminActiveSearch {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-self: end;
+  gap: 7px;
+  border: 1px solid #d7d7d7;
+  border-radius: 999px;
+  background: #fff;
+  padding: 7px 8px 7px 12px;
+  color: #666;
+  font-size: 12px;
+}
+
+.adminActiveSearch > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.adminActiveSearch strong {
+  max-width: min(52vw, 280px);
+  overflow: hidden;
+  color: #222;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminActiveSearch a {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border-radius: 50%;
+  background: #222;
+  color: #fff;
+}
+
+.adminActiveSearch a svg {
+  width: 14px;
+  height: 14px;
+}
+
 .adminInboxFilters {
   display: flex;
   gap: 8px;
@@ -209,60 +271,41 @@
   font: inherit;
 }
 
-.adminInboxWorkspace {
-  display: grid;
-  min-height: 360px;
-  grid-template-columns: 1fr;
-  overflow: hidden;
-  border: 1px solid #d8d8d8;
-  border-radius: 18px;
-  background: #fff;
-}
-
-.adminInboxList,
-.adminInboxDetail {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  padding: 36px;
-  text-align: center;
-}
-
-.adminInboxList {
-  background: #fff;
-}
-
-.adminInboxList svg,
-.adminInboxDetail svg {
-  width: 38px;
-  height: 38px;
-  margin-bottom: 14px;
-  color: #777;
-  stroke-width: 1.5;
-}
-
-.adminInboxList strong,
-.adminInboxDetail strong {
-  font-size: 17px;
-}
-
-.adminInboxList p,
-.adminInboxDetail p {
-  max-width: 360px;
-  font-size: 13px;
-}
-
-@media (max-width: 700px) {
-  .adminInboxWorkspace {
-    min-height: 340px;
-    grid-template-columns: 1fr;
-  }
-
-  .adminInboxList,
-  .adminInboxDetail {
-    padding: 28px 20px;
-  }
-}
+.adminInboxList { display: grid; overflow: hidden; border: 1px solid #d8d8d8; border-radius: 16px; background: #fff; }
+.adminInboxItem { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 13px; border-bottom: 1px solid #e5e5e5; padding: 15px; color: #333; text-decoration: none; }
+.adminInboxItem:last-child { border-bottom: 0; }
+.adminInboxItem.isUnread { background: #f2f2f2; }
+.adminInboxType { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
+.adminInboxType svg { width: 20px; }
+.adminInboxSummary { display: grid; min-width: 0; gap: 4px; }
+.adminInboxSummary > span { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; }
+.adminInboxSummary strong, .adminInboxSummary b, .adminInboxSummary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adminInboxSummary time, .adminInboxSummary small { color: #777; font-size: 12px; }
+.adminInboxSummary b { font-size: 14px; }
+.adminInboxEmpty { margin: 0; padding: 36px 20px; color: #777; text-align: center; }
+.adminMailPage { display: grid; gap: 20px; }
+.adminMailBack { display: inline-flex; width: max-content; align-items: center; gap: 8px; color: #333; font-weight: 800; text-decoration: none; }
+.adminMailBack svg { width: 19px; }
+.adminMailHeading { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 15px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
+.adminMailHeading > span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
+.adminMailHeading h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 34px); overflow-wrap: anywhere; }
+.adminMailHeading p, .adminMailHeading small { margin: 0; color: #666; overflow-wrap: anywhere; }
+.adminMailMessages { display: grid; gap: 14px; }
+.adminMailMessage { border: 1px solid #d8d8d8; border-radius: 16px; background: #fff; padding: 20px; }
+.adminMailMessage time { display: block; margin-bottom: 18px; color: #777; font-size: 12px; }
+.adminMailMessage div { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.adminMailCompose > summary { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #222; color: #fff; cursor: pointer; list-style: none; }
+.adminMailCompose > summary::-webkit-details-marker { display: none; }
+.adminMailCompose[open]::before { content: ""; position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / 34%); backdrop-filter: blur(3px); }
+.adminMailCompose[open] > form { position: fixed; top: 50dvh; left: 50vw; z-index: 41; display: grid; width: min(calc(100vw - 36px), 560px); max-height: calc(100dvh - 36px); gap: 14px; overflow: auto; border-radius: 20px; background: #fff; padding: 24px; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); transform: translate(-50%, -50%); animation: adminAnimalModalPop 180ms ease-out both; }
+.adminMailCompose h2 { margin: 0 0 4px; font-size: 24px; }
+.adminMailCompose label { display: grid; gap: 7px; font-weight: 800; }
+.adminMailCompose input, .adminMailCompose textarea { width: 100%; border: 1px solid #d2d2d2; border-radius: 12px; background: #fff; padding: 12px; color: #222; font: inherit; }
+.adminMailCompose input[readonly] { background: #f2f2f2; }
+.adminMailCompose textarea { resize: vertical; }
+.adminMailCompose form > button { min-height: 48px; border: 0; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminMailResult { width: 100%; margin: 4px 0 0; border-radius: 12px; background: #eee; padding: 11px 14px; color: #222; }
+.adminMailResult.isError { background: #fff0f0; color: #9c2424; }
 
 .workspaceLanguages {
   width: min(100%, 620px);
@@ -1016,15 +1059,30 @@
 .adminListTools > button, .adminListTools > a, .adminListSearch > summary { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
 .adminListTools svg { width: 20px; }
 .adminListTools .adminPetAdd { width: 52px; height: 52px; border-color: #222; background: #222; color: #fff; }
-.adminListSearch { position: relative; }
+.adminListSearch { position: static; }
 .adminListSearch > summary { list-style: none; }
 .adminListSearch > summary::-webkit-details-marker { display: none; }
-.adminListSearch[open] > form, .adminListSearch[open] > label { position: absolute; top: 54px; right: 0; z-index: 5; display: flex; width: min(82vw, 420px); gap: 8px; border: 1px solid #d5d5d5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 12px 30px rgb(0 0 0 / 12%); }
+.adminListSearch[open] > summary { position: relative; z-index: 22; }
+.adminListSearch[open]::before { content: ""; position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 24%); backdrop-filter: blur(2px); }
+.adminListSearch[open] > form, .adminListSearch[open] > label { position: fixed; top: 50dvh; left: 50vw; z-index: 21; display: flex; width: min(calc(100vw - 40px), 520px); gap: 8px; border: 1px solid #d5d5d5; border-radius: 18px; background: #fff; padding: 12px; box-shadow: 0 22px 60px rgb(0 0 0 / 22%); transform: translate(-50%, -50%); transform-origin: center; animation: adminSearchPop 180ms ease-out both; }
+@keyframes adminSearchPop { from { opacity: 0; transform: translate(-50%, -50%) scale(.82); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 .adminListSearch label { display: flex; min-width: 0; flex: 1; align-items: center; gap: 8px; padding: 0 8px; }
 .adminListSearch input { width: 100%; min-height: 42px; border: 0; outline: 0; font: inherit; }
 .adminListSearch form > button { border: 0; border-radius: 10px; background: #222; padding: 0 16px; color: #fff; font: inherit; font-weight: 700; }
 .adminListSort { text-decoration: none; }
 .adminPetAdd svg, .adminPetBack svg { width: 19px; }
+.adminPetAddFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; width: 58px; height: 58px; min-height: 58px; box-shadow: 0 10px 28px rgb(0 0 0 / 22%); }
+.adminAnimalModal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgb(0 0 0 / 36%); padding: 22px; backdrop-filter: blur(3px); }
+.adminAnimalModalPanel { width: min(760px, 100%); max-height: calc(100dvh - 44px); overflow: auto; border-radius: 22px; background: #f7f7f7; padding: 24px; font-family: var(--font-m-plus-rounded), "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", sans-serif; font-weight: 500; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: adminAnimalModalPop 180ms ease-out both; }
+.adminAnimalModalPanel input,
+.adminAnimalModalPanel select,
+.adminAnimalModalPanel textarea,
+.adminAnimalModalPanel button { font-family: inherit; }
+@keyframes adminAnimalModalPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+.adminAnimalModalPanel > header { position: sticky; top: -24px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -24px -24px 22px; border-bottom: 1px solid #ddd; background: #fff; padding: 18px 24px; }
+.adminAnimalModalPanel > header h2 { margin: 0; font-size: 25px; }
+.adminAnimalModalPanel > header button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #222; cursor: pointer; }
+.adminAnimalModalPanel > header svg { width: 19px; }
 .adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .adminPetSearch select,
 .adminPetSearch button {
@@ -1041,12 +1099,15 @@
 .adminPetThumb { display: grid; width: 72px; height: 72px; place-items: center; overflow: hidden; border: 1px solid #ddd; border-radius: 14px; background: #f1f1f1 center / cover no-repeat; color: #666; }
 .adminPetThumb svg { width: 28px; }
 .adminPetResultBody { min-width: 0; }
-.adminPetResultTitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adminPetResultTitle { display: flex; align-items: center; gap: 14px; }
 .adminPetResultTitle > span { color: #666; font-size: 12px; font-weight: 800; }
 .adminPetResultTitle h2 { margin: 0; font-size: 20px; }
-.adminPetResultTitle small { margin-left: auto; border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
+.adminPetResultTitle small { border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
 .adminPetResultTitle small.status-published { background: #e7f4e9; color: #245d31; }
 .adminPetActions { display: flex; align-items: center; gap: 7px; }
+.adminPetDetail { min-width: 0; flex: 1; }
+.adminPetDetail h2 { display: inline; margin-right: 9px; }
+.adminPetDetail p { display: -webkit-box; overflow: hidden; margin: 7px 0 0; color: #666; font-size: 13px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .adminPetActions form { margin: 0; }
 .adminPetActions a, .adminPetActions button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
 .adminPetActions button { color: #8c2f2f; }
@@ -1065,10 +1126,71 @@
 .adminPetForm legend { padding: 0 8px; font-size: 19px; font-weight: 800; }
 .adminPetFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .adminPetFields label { display: grid; align-content: start; gap: 8px; color: #333; font-size: 14px; font-weight: 800; }
-.adminPetFields input, .adminPetFields select, .adminPetFields textarea { width: 100%; min-height: 48px; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 13px; color: #222; font: inherit; resize: vertical; }
+.adminPetFields input, .adminPetFields select, .adminPetFields textarea { width: 100%; min-height: 48px; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 13px; color: #111; -webkit-text-fill-color: #111; font: inherit; font-weight: 600; opacity: 1; resize: vertical; }
+.adminPetForm input::placeholder, .adminPetForm textarea::placeholder { color: #999; -webkit-text-fill-color: #999; font-weight: 400; opacity: 1; }
 .adminPetFields small { color: #777; font-weight: 500; }
+.adminPetForm fieldset.isLocked { opacity: 1; }
+.adminPetForm fieldset:disabled input,
+.adminPetForm fieldset:disabled textarea,
+.adminPetForm fieldset:disabled select,
+.adminPetForm input:disabled,
+.adminPetForm textarea:disabled,
+.adminPetForm select:disabled {
+  background: #ededed;
+  color: #111;
+  -webkit-text-fill-color: #111;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.adminAnimalStatus,
+.adminAnimalSource { grid-column: 1 / -1; margin: 0; color: #666; font-size: 13px; }
+.adminAnimalSource a { color: #222; font-weight: 800; }
+.adminAnimalDebug { display: grid; grid-column: 1 / -1; gap: 9px; border: 1px solid #ccc; border-radius: 12px; background: #f4f4f4; padding: 12px; color: #333; font-size: 12px; }
+.adminAnimalDebug strong { font-size: 13px; }
+.adminAnimalDebug dl { display: grid; gap: 6px; margin: 0; }
+.adminAnimalDebug dl > div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; }
+.adminAnimalDebug dt { color: #777; }
+.adminAnimalDebug dd { margin: 0; overflow-wrap: anywhere; font-weight: 700; }
+.adminAnimalTagsField { grid-column: 1 / -1; }
+.adminExistingTags { display: grid; gap: 9px; margin-top: 8px; border-top: 1px solid #ddd; padding-top: 12px; }
+.adminExistingTags b { color: #666; font-size: 12px; }
+.adminExistingTags > span { display: flex; flex-wrap: wrap; gap: 7px; }
+.adminExistingTags button { min-height: 32px; border: 1px solid #ccc; border-radius: 999px; background: #fff; padding: 5px 11px; color: #444; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.adminExistingTags button.isSelected { border-color: #222; background: #222; color: #fff; }
+.adminSuggestedTags { border: 1px solid #d5d5d5; border-radius: 12px; background: #f7f7f7; padding: 12px; }
+.adminSuggestedTags b { color: #222; }
+.adminLanguageEditor { position: relative; display: grid; grid-column: 1 / -1; gap: 18px; margin-top: 22px; border-top: 1px solid #ddd; padding-top: 22px; }
+.adminAnimalNameEditor { margin-top: 0; border-top: 0; padding-top: 0; }
+.adminAnimalLookupBlock { display: grid; gap: 14px; }
+.adminAnimalLookupBlock > label { display: grid; gap: 8px; font-weight: 800; }
+.adminAnimalLookupBlock input { min-height: 48px; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 0 13px; color: #111; -webkit-text-fill-color: #111; font: inherit; font-weight: 600; opacity: 1; }
+.adminAnimalLookupBlock small { color: #777; font-size: 12px; font-weight: 500; }
+.adminAnimalDivider { height: 1px; margin: 24px 0; background: #d8d8d8; }
+.adminPetForm fieldset.adminAnimalDetails { margin: 0; border: 0; border-radius: 0; background: transparent; padding: 0; }
+.adminLanguageEditor > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.adminLanguageTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; border-radius: 13px; background: #ededed; padding: 5px; }
+.adminLanguageTabs label { display: grid; min-height: 43px; place-items: center; border-radius: 10px; color: #666; font-weight: 800; cursor: pointer; }
+.adminLanguageEditor > input[value="ja"]:checked ~ .adminLanguageTabs label:first-child,
+.adminLanguageEditor > input[value="en"]:checked ~ .adminLanguageTabs label:last-child { background: #222; color: #fff; }
+.adminLanguagePanel { display: none; }
+.adminLanguagePanel,
+.adminLanguagePanel input,
+.adminLanguagePanel select,
+.adminLanguagePanel textarea { font-family: var(--font-m-plus-rounded), "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", sans-serif; }
+.adminLanguageEditor > input[value="ja"]:checked ~ .adminLanguagePanels .adminLanguagePanel--ja,
+.adminLanguageEditor > input[value="en"]:checked ~ .adminLanguagePanels .adminLanguagePanel--en { display: block; }
+.adminLanguagePanel a { color: #222; }
 .adminPetSave { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 13px; background: #222; padding: 0 24px; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminPetSave:disabled { opacity: .4; cursor: not-allowed; }
 .adminPetSave svg { width: 19px; }
+.adminAnimalStatusOverlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgb(0 0 0 / 38%); padding: 22px; backdrop-filter: blur(3px); }
+.adminAnimalStatusDialog { display: grid; width: min(100%, 390px); gap: 16px; border-radius: 20px; background: #fff; padding: 26px; box-shadow: 0 24px 70px rgb(0 0 0 / 28%); text-align: center; animation: adminAnimalModalPop 180ms ease-out both; }
+.adminAnimalStatusDialog h3 { margin: 0; font-size: 24px; }
+.adminAnimalStatusDialog p { margin: 0; color: #666; font-size: 14px; }
+.adminAnimalStatusDialog > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.adminAnimalStatusDialog button { min-height: 48px; border: 1px solid #222; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.adminAnimalStatusDialog > div button:last-child { background: #fff; color: #222; }
+.adminAnimalStatusDialog .adminAnimalStatusCancel { min-height: 40px; border-color: transparent; background: transparent; color: #666; }
 
 @media (max-width: 760px) {
   .adminContentPage { padding: 0; }
@@ -1086,6 +1208,11 @@
   .adminPetThumb { width: 56px; height: 56px; }
   .adminPetResultIcon { width: 46px; height: 46px; }
   .adminPetResultTitle small { margin-left: 0; }
+  .adminPetResultTitle { align-items: flex-start; }
+  .adminPetActions { flex-direction: column; }
   .adminPetResult dl { grid-template-columns: 1fr; gap: 4px; }
   .adminPetFields { grid-template-columns: 1fr; }
+  .adminAnimalModal { padding: 0; }
+  .adminAnimalModalPanel { width: 100%; max-height: 100dvh; min-height: 100dvh; border-radius: 0; padding: 20px; }
+  .adminAnimalModalPanel > header { top: -20px; margin: -20px -20px 20px; padding: 16px 20px; }
 }

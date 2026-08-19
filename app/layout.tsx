@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import {
   Geist_Mono,
   Hachi_Maru_Pop,
   Klee_One,
+  M_PLUS_Rounded_1c,
   Zen_Maru_Gothic,
 } from "next/font/google";
 import "./globals.css";
@@ -28,12 +30,19 @@ const zenMaruGothic = Zen_Maru_Gothic({
   preload: false,
 });
 
+const mPlusRounded = M_PLUS_Rounded_1c({
+  variable: "--font-m-plus-rounded",
+  weight: ["400", "500", "700"],
+  display: "swap",
+  preload: false,
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+const defaultMetadata: Metadata = {
   title: "PET TAXI",
   description: "PET TAXI Web App",
   applicationName: "PET TAXI",
@@ -71,6 +80,27 @@ export const metadata: Metadata = {
   },
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  const hostname = (await headers()).get("host")?.split(":")[0];
+
+  if (hostname !== "paws-flight.com") {
+    return defaultMetadata;
+  }
+
+  return {
+    ...defaultMetadata,
+    icons: {
+      icon: [
+        {
+          url: "/icons/paws_icon.svg",
+          sizes: "any",
+          type: "image/svg+xml",
+        },
+      ],
+    },
+  };
+}
+
 export const viewport: Viewport = {
   themeColor: "#ead7c0",
   width: "device-width",
@@ -84,7 +114,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${kleeOne.variable} ${hachiMaruPop.variable} ${zenMaruGothic.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${kleeOne.variable} ${hachiMaruPop.variable} ${zenMaruGothic.variable} ${mPlusRounded.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

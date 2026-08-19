@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { cache } from "react";
 
 import {
   DEFAULT_LANGUAGE,
@@ -155,13 +156,21 @@ export type IdentityRequest =
   | {
       action: "create_animal";
       animal: AnimalInput;
-      createdBy: string;
     }
   | { action: "get_animal"; animalUuid: string }
   | { action: "update_animal"; animalUuid: string; animal: AnimalInput }
   | { action: "delete_animal"; animalUuid: string };
 
 export type AnimalStatus = "draft" | "published" | "archived";
+export type AnimalProfile = {
+  species: { ja: string; en: string };
+  scientificName: string;
+  origin: { ja: string; en: string };
+  sizeClass: { ja: string; en: string };
+  weightGuide: { ja: string; en: string };
+  lifespanGuide: { ja: string; en: string };
+  traits: { ja: string; en: string };
+};
 export type AnimalInput = {
   tags: string[];
   slug: string;
@@ -170,8 +179,8 @@ export type AnimalInput = {
   summary: { ja: string; en: string };
   transport: { ja: string; en: string };
   crateNote: { ja: string; en: string };
-  imageUrl: string | null;
   status: AnimalStatus;
+  profile: AnimalProfile;
 };
 export type AnimalRecord = AnimalInput & {
   animalUuid: string;
@@ -235,9 +244,16 @@ export type CompanyConfig = {
   legal: {
     seller: Record<string, string>;
     operationsManager: Record<string, string>;
+    serviceName: Record<string, string>;
+    serviceDescription: Record<string, string>;
     price: Record<string, string>;
     additionalFees: Record<string, string>;
     paymentMethods: Record<string, string>;
+    paymentTiming: Record<string, string>;
+    serviceTiming: Record<string, string>;
+    cancellationChanges: Record<string, string>;
+    refunds: Record<string, string>;
+    applicationDeadline: Record<string, string>;
     cancellationRefunds: Record<string, string>;
   };
 };
@@ -254,9 +270,16 @@ function emptyCompanyConfig(): CompanyConfig {
     legal: {
       seller: emptyLocalizedText(),
       operationsManager: emptyLocalizedText(),
+      serviceName: emptyLocalizedText(),
+      serviceDescription: emptyLocalizedText(),
       price: emptyLocalizedText(),
       additionalFees: emptyLocalizedText(),
       paymentMethods: emptyLocalizedText(),
+      paymentTiming: emptyLocalizedText(),
+      serviceTiming: emptyLocalizedText(),
+      cancellationChanges: emptyLocalizedText(),
+      refunds: emptyLocalizedText(),
+      applicationDeadline: emptyLocalizedText(),
       cancellationRefunds: emptyLocalizedText(),
     },
   };
@@ -488,7 +511,7 @@ export async function identityDispatcher(request: IdentityRequest) {
       return listAnimals(request.query);
 
     case "create_animal":
-      return createAnimal(request.animal, request.createdBy);
+      return createAnimal(request.animal);
 
     case "get_animal":
       return getAnimal(request.animalUuid);
@@ -507,6 +530,8 @@ export async function identityDispatcher(request: IdentityRequest) {
 }
 
 function mapAnimal(row: Record<string, unknown>): AnimalRecord {
+  const rawProfile = row.profile && typeof row.profile === "object" && !Array.isArray(row.profile) ? row.profile as Partial<AnimalProfile> : {};
+  const localized = (value: unknown) => value && typeof value === "object" && !Array.isArray(value) ? { ja: String((value as Record<string, unknown>).ja ?? ""), en: String((value as Record<string, unknown>).en ?? "") } : { ja: "", en: "" };
   return {
     animalUuid: String(row.animal_uuid),
     tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
@@ -516,8 +541,16 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
     summary: row.summary as AnimalInput["summary"],
     transport: row.transport as AnimalInput["transport"],
     crateNote: row.crate_note as AnimalInput["crateNote"],
-    imageUrl: typeof row.image_url === "string" ? row.image_url : null,
     status: row.status as AnimalStatus,
+    profile: {
+      species: localized(rawProfile.species),
+      scientificName: typeof rawProfile.scientificName === "string" ? rawProfile.scientificName : "",
+      origin: localized(rawProfile.origin),
+      sizeClass: localized(rawProfile.sizeClass),
+      weightGuide: localized(rawProfile.weightGuide),
+      lifespanGuide: localized(rawProfile.lifespanGuide),
+      traits: localized(rawProfile.traits),
+    },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -535,7 +568,7 @@ async function listAnimals(query?: string) {
   return (data ?? []).map((row) => mapAnimal(row));
 }
 
-async function createAnimal(animal: AnimalInput, createdBy: string) {
+async function createAnimal(animal: AnimalInput) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("animals").insert({
     tags: animal.tags,
@@ -545,9 +578,8 @@ async function createAnimal(animal: AnimalInput, createdBy: string) {
     summary: animal.summary,
     transport: animal.transport,
     crate_note: animal.crateNote,
-    image_url: animal.imageUrl,
     status: animal.status,
-    created_by: createdBy,
+    profile: animal.profile,
   }).select("*").single();
   if (error) throw new Error(`Animal registration failed: ${error.message}`);
   return mapAnimal(data);
@@ -565,7 +597,7 @@ async function updateAnimal(animalUuid: string, animal: AnimalInput) {
   const { data, error } = await supabase.from("animals").update({
     tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
     summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
-    image_url: animal.imageUrl, status: animal.status, updated_at: new Date().toISOString(),
+    status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
   }).eq("animal_uuid", animalUuid).select("*").single();
   if (error) throw new Error(`Animal update failed: ${error.message}`);
   return mapAnimal(data);
@@ -1080,7 +1112,7 @@ async function resolveSession(
   const sessionTokenHash = await hashSessionToken(sessionToken);
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("user_uuid")
+    .select("user_uuid, expires_at")
     .eq("session_token_hash", sessionTokenHash)
     .is("revoked_at", null)
     .gt("expires_at", new Date().toISOString())
@@ -1094,15 +1126,19 @@ async function resolveSession(
     return null;
   }
 
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
-  const { error: renewalError } = await supabase
-    .from("sessions")
-    .update({ expires_at: expiresAt })
-    .eq("session_token_hash", sessionTokenHash)
-    .is("revoked_at", null);
+  let expiresAt = String(session.expires_at);
+  const renewalThreshold = Date.now() + (SESSION_MAX_AGE * 1_000) / 2;
+  if (new Date(expiresAt).getTime() < renewalThreshold) {
+    expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
+    const { error: renewalError } = await supabase
+      .from("sessions")
+      .update({ expires_at: expiresAt })
+      .eq("session_token_hash", sessionTokenHash)
+      .is("revoked_at", null);
 
-  if (renewalError) {
-    throw new Error(`Session renewal failed: ${renewalError.message}`);
+    if (renewalError) {
+      throw new Error(`Session renewal failed: ${renewalError.message}`);
+    }
   }
 
   const { data: user, error: userError } = await supabase
@@ -1139,6 +1175,8 @@ async function resolveSession(
       }
     : null;
 }
+
+export const resolveSessionCached = cache((sessionToken: string) => resolveSession(sessionToken));
 
 async function resolveSessionUser(userUuid: string) {
   const supabase = getSupabaseAdmin();
@@ -1402,9 +1440,16 @@ function normalizeCompanyConfig(company: unknown): CompanyConfig {
     legal: {
       seller: localized("seller" in rawLegal ? rawLegal.seller : null),
       operationsManager: localized("operationsManager" in rawLegal ? rawLegal.operationsManager : null),
+      serviceName: localized("serviceName" in rawLegal ? rawLegal.serviceName : null),
+      serviceDescription: localized("serviceDescription" in rawLegal ? rawLegal.serviceDescription : null),
       price: localized("price" in rawLegal ? rawLegal.price : null),
       additionalFees: localized("additionalFees" in rawLegal ? rawLegal.additionalFees : null),
       paymentMethods: localized("paymentMethods" in rawLegal ? rawLegal.paymentMethods : null),
+      paymentTiming: localized("paymentTiming" in rawLegal ? rawLegal.paymentTiming : null),
+      serviceTiming: localized("serviceTiming" in rawLegal ? rawLegal.serviceTiming : null),
+      cancellationChanges: localized("cancellationChanges" in rawLegal ? rawLegal.cancellationChanges : null),
+      refunds: localized("refunds" in rawLegal ? rawLegal.refunds : null),
+      applicationDeadline: localized("applicationDeadline" in rawLegal ? rawLegal.applicationDeadline : null),
       cancellationRefunds: localized("cancellationRefunds" in rawLegal ? rawLegal.cancellationRefunds : null),
     },
   };
