@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
 import { AnimalForm } from "@/components/animalform";
-import { animalCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: { title: "動物データを新規登録", back: "動物データベースへ戻る", basic: "基本情報", details: "公開情報", nameJa: "名称（日本語）", nameEn: "名称（英語）", tags: "タグ", slug: "URL用の名前", aliases: "別名・検索語", summaryJa: "特徴（日本語）", summaryEn: "特徴（英語）", crateJa: "クレート目安（日本語）", crateEn: "クレート目安（英語）", status: "公開状態", save: "登録する", hint: "カンマ区切りで複数入力できます。例：犬, 大型犬, 長毛", statuses: { draft: "下書き", published: "公開中", archived: "非公開" } },
@@ -18,8 +18,8 @@ export default async function NewAnimalPage() {
   const session = token ? await resolveSessionCached(token) : null;
   const language = session?.language === "en" ? "en" : "ja";
   const text = copy[language];
-  const [animals, countriesConfig] = await Promise.all([identityDispatcher({ action: "list_animals", query: "" }), identityDispatcher({ action: "get_countries_config" })]);
-  const countries = animalCountryOptions(countriesConfig);
+  const animals = await identityDispatcher({ action: "list_animals", query: "" });
+  const countries = animalWorldCountryOptions();
   const existingTags = Array.from(new Set(animals.flatMap((animal) => animal.tags).map((tag) => tag.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, language));
 
   async function create(formData: FormData) {

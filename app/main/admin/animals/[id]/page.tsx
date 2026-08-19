@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalInput, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
-import { animalCountryOptions, animalSizeOptions, animalSpeciesOptions, animalStatuses, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalSizeOptions, animalSpeciesOptions, animalStatuses, animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const statuses: AnimalStatus[] = [...animalStatuses];
 
@@ -13,9 +13,9 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
   const store = await cookies();
   const token = store.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await resolveSessionCached(token) : null;
-  const [animal, countriesConfig] = await Promise.all([identityDispatcher({ action: "get_animal", animalUuid: id }), identityDispatcher({ action: "get_countries_config" })]);
+  const animal = await identityDispatcher({ action: "get_animal", animalUuid: id });
   if (!animal) notFound();
-  const countries = animalCountryOptions(countriesConfig);
+  const countries = animalWorldCountryOptions();
   const en = session?.language === "en";
 
   async function update(formData: FormData) {
