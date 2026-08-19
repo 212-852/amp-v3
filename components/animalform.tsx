@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { AnimalStatus } from "@/lib/identity";
-import { animalSizeOptions, animalSpeciesOptions, normalizeComma, normalizeTagInput } from "@/lib/form";
+import { animalSizeOptions, animalSpeciesOptions, matchAnimalOption, normalizeComma, normalizeTagInput } from "@/lib/form";
 
 type Text = {
   basic: string;
@@ -91,18 +91,18 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
       lastRequestedName.current = resolvedName;
       setNameJa(resolvedName);
       setNameEn(result.suggestion.nameEn);
-      const matchedSpecies = animalSpeciesOptions.find((species) => species.ja === result.suggestion?.speciesJa || species.en === result.suggestion?.speciesEn);
+      const matchedSpecies = matchAnimalOption(animalSpeciesOptions, result.suggestion.speciesJa, result.suggestion.speciesEn);
       if (matchedSpecies) {
         setSpeciesJa(matchedSpecies.ja);
         setSpeciesEn(matchedSpecies.en);
       }
       setScientificName(result.suggestion.scientificName);
-      const matchedCountry = countries.find((country) => country.ja === result.suggestion?.originJa || country.en === result.suggestion?.originEn);
+      const matchedCountry = matchAnimalOption(countries, result.suggestion.originJa, result.suggestion.originEn);
       if (matchedCountry) {
         setOriginJa(matchedCountry.ja);
         setOriginEn(matchedCountry.en);
       }
-      const matchedSize = animalSizeOptions.find((size) => size.ja === result.suggestion?.sizeJa || size.en === result.suggestion?.sizeEn);
+      const matchedSize = matchAnimalOption(animalSizeOptions, result.suggestion.sizeJa, result.suggestion.sizeEn);
       if (matchedSize) {
         setSizeJa(matchedSize.ja);
         setSizeEn(matchedSize.en);
