@@ -12,6 +12,7 @@ type WikiPage = {
   categories?: Array<{ title?: string }>;
   langlinks?: Array<{ title?: string }>;
   fullurl?: string;
+  revisions?: Array<{ slots?: { main?: { content?: string } } }>;
 };
 
 type WikiResponse = {
@@ -75,6 +76,18 @@ const headers = {
   "User-Agent": "WanDaNya-AnimalDatabase/1.0 (mail@wan.da-nya.com)",
 };
 
+function wikiEvidence(page: WikiPage | null) {
+  if (!page) return null;
+  return {
+    title: page.title ?? "",
+    description: page.description ?? "",
+    extract: page.extract ?? "",
+    categories: (page.categories ?? []).map((category) => category.title ?? "").filter(Boolean),
+    sourceText: page.revisions?.[0]?.slots?.main?.content?.slice(0, 24_000) ?? "",
+    sourceUrl: page.fullurl ?? "",
+  };
+}
+
 async function getJapanesePage(name: string) {
   const params = new URLSearchParams({
     action: "query",
@@ -82,7 +95,7 @@ async function getJapanesePage(name: string) {
     gsrsearch: name,
     gsrnamespace: "0",
     gsrlimit: "1",
-    prop: "pageterms|categories|langlinks|info|extracts",
+    prop: "pageterms|categories|langlinks|info|extracts|revisions",
     wbptterms: "description",
     cllimit: "20",
     clshow: "!hidden",
@@ -91,6 +104,8 @@ async function getJapanesePage(name: string) {
     inprop: "url",
     explaintext: "1",
     exintro: "1",
+    rvprop: "content",
+    rvslots: "main",
     redirects: "1",
     format: "json",
     formatversion: "2",
@@ -105,7 +120,7 @@ function outputText(result: OpenAIResponse) {
   return result.output?.flatMap((item) => item.content ?? []).find((item) => item.type === "output_text")?.text ?? "";
 }
 
-async function enrichWithGemini(name: string, page: WikiPage, fallback: AnimalSuggestion, fallbackReason: string): Promise<AnimalSuggestion> {
+async function enrichWithGemini(name: string, page: WikiPage, englishPage: WikiPage | null, fallback: AnimalSuggestion, fallbackReason: string): Promise<AnimalSuggestion> {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_MODEL || "gemini-3.7-flash";
   if (!apiKey) {
@@ -124,7 +139,7 @@ async function enrichWithGemini(name: string, page: WikiPage, fallback: AnimalSu
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: "You extract verified animal breed data from the supplied Wikipedia evidence. Return Japanese and English values. Do not guess unsupported facts; use an empty string when evidence is insufficient. Tags must be short reusable labels without category prefixes." }] },
-        contents: [{ parts: [{ text: JSON.stringify({ searchedName: name, wikipediaTitle: page.title ?? "", wikipediaDescription: page.description ?? "", wikipediaExtract: page.extract ?? "", wikipediaCategories: (page.categories ?? []).map((category) => category.title ?? "").filter(Boolean), fallback }) }] }],
+        contents: [{ parts: [{ text: JSON.stringify({ searchedName: name, japaneseWikipedia: wikiEvidence(page), englishWikipedia: wikiEvidence(englishPage), fallback }) }] }],
         generationConfig: { responseFormat: { text: { mimeType: "application/json", schema: animalSchema } } },
       }),
       signal: AbortSignal.timeout(25_000),
@@ -168,7 +183,7 @@ async function enrichWithGemini(name: string, page: WikiPage, fallback: AnimalSu
   }
 }
 
-async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSuggestion): Promise<AnimalSuggestion> {
+async function enrichWithAI(name: string, page: WikiPage, englishPage: WikiPage | null, fallback: AnimalSuggestion): Promise<AnimalSuggestion> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
   if (!apiKey) {
@@ -177,7 +192,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_configuration_missing",
       data: { name, model, httpStatus: null, providerCode: "AI_CONFIG_MISSING", requestId: null, message: "OPENAI_API_KEY is not configured" },
     });
-    return enrichWithGemini(name, page, fallback, "AI_CONFIG_MISSING");
+    return enrichWithGemini(name, page, englishPage, fallback, "AI_CONFIG_MISSING");
   }
 
   let response: Response;
@@ -190,7 +205,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
         reasoning: { effort: "low" },
         input: [
           { role: "system", content: "You extract verified animal breed data from the supplied Wikipedia evidence. Return Japanese and English values. Do not guess unsupported facts; use an empty string when evidence is insufficient. Tags must be short reusable labels without category prefixes." },
-          { role: "user", content: JSON.stringify({ searchedName: name, wikipediaTitle: page.title ?? "", wikipediaDescription: page.description ?? "", wikipediaExtract: page.extract ?? "", wikipediaCategories: (page.categories ?? []).map((category) => category.title ?? "").filter(Boolean), fallback }) },
+          { role: "user", content: JSON.stringify({ searchedName: name, japaneseWikipedia: wikiEvidence(page), englishWikipedia: wikiEvidence(englishPage), fallback }) },
         ],
         text: { format: { type: "json_schema", name: "animal_profile", strict: true, schema: animalSchema } },
       }),
@@ -202,7 +217,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_request_failed",
       data: { name, model, httpStatus: null, providerCode: error instanceof DOMException && error.name === "TimeoutError" ? "AI_TIMEOUT" : "AI_NETWORK_ERROR", requestId: null, message: error instanceof Error ? error.message : "Unknown error" },
     });
-    return enrichWithGemini(name, page, fallback, error instanceof DOMException && error.name === "TimeoutError" ? "AI_TIMEOUT" : "AI_NETWORK_ERROR");
+    return enrichWithGemini(name, page, englishPage, fallback, error instanceof DOMException && error.name === "TimeoutError" ? "AI_TIMEOUT" : "AI_NETWORK_ERROR");
   }
 
   const requestId = response.headers.get("x-request-id");
@@ -213,7 +228,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_response_error",
       data: { name, model, httpStatus: response.status, providerCode: result.error?.code ?? `HTTP_${response.status}`, providerType: result.error?.type ?? null, providerParam: result.error?.param ?? null, requestId, message: result.error?.message ?? response.statusText },
     });
-    return enrichWithGemini(name, page, fallback, result.error?.code ?? `OPENAI_HTTP_${response.status}`);
+    return enrichWithGemini(name, page, englishPage, fallback, result.error?.code ?? `OPENAI_HTTP_${response.status}`);
   }
 
   try {
@@ -230,7 +245,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_parse_failed",
       data: { name, model: result.model ?? model, httpStatus: response.status, providerCode: "AI_OUTPUT_PARSE_FAILED", requestId, message: error instanceof Error ? error.message : "Unknown error" },
     });
-    return enrichWithGemini(name, page, fallback, "AI_OUTPUT_PARSE_FAILED");
+    return enrichWithGemini(name, page, englishPage, fallback, "AI_OUTPUT_PARSE_FAILED");
   }
 }
 
@@ -238,8 +253,15 @@ async function getEnglishPage(title: string) {
   const params = new URLSearchParams({
     action: "query",
     titles: title,
-    prop: "info",
+    prop: "pageterms|categories|info|extracts|revisions",
+    wbptterms: "description",
+    cllimit: "20",
+    clshow: "!hidden",
     inprop: "url",
+    explaintext: "1",
+    exintro: "1",
+    rvprop: "content",
+    rvslots: "main",
     redirects: "1",
     format: "json",
     formatversion: "2",
@@ -302,7 +324,7 @@ export async function POST(request: Request) {
         traitsEn: "",
         sourceUrl: ja.fullurl ?? `https://ja.wikipedia.org/wiki/${encodeURIComponent(ja.title)}`,
     };
-    const suggestion = await enrichWithAI(name, ja, fallback);
+    const suggestion = await enrichWithAI(name, ja, en, fallback);
     const autoFilled = [
       suggestion.nameEn && "nameEn",
       suggestion.tags.length > 0 && "tags",
