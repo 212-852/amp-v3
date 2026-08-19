@@ -14,6 +14,18 @@ export const animalSpeciesOptions = [
   { ja: "猫", en: "Cat" },
 ] as const;
 
+function normalizeOption(value: string) {
+  return value.normalize("NFKC").toLocaleLowerCase().replace(/(?:原産|originating in|country of origin)/g, "").replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+export function matchAnimalOption<T extends { ja: string; en: string }>(options: readonly T[], ja: string, en: string) {
+  const candidates = [normalizeOption(ja), normalizeOption(en)].filter(Boolean);
+  return options.find((option) => {
+    const values = [normalizeOption(option.ja), normalizeOption(option.en)].filter(Boolean);
+    return candidates.some((candidate) => values.some((value) => candidate === value || (value.length >= 2 && candidate.includes(value))));
+  });
+}
+
 export function animalCountryOptions(countries: CountriesConfig) {
   const options = countries
     .map((country) => ({ ja: country.name.ja.trim(), en: country.name.en.trim() }))
