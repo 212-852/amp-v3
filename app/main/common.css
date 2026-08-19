@@ -236,7 +236,7 @@ body:has(.driverApp) {
   margin: 0 auto;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 42px 0;
+  padding: 18px 0;
 }
 
 .adminMain .routePage {
@@ -787,7 +787,7 @@ body:has(.driverApp) {
 
   .adminMain {
     width: min(100% - 32px, 1200px);
-    padding: 28px 0;
+    padding: 14px 0;
   }
 
   .adminFooter {

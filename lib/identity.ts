@@ -156,7 +156,10 @@ export type IdentityRequest =
       action: "create_animal";
       animal: AnimalInput;
       createdBy: string;
-    };
+    }
+  | { action: "get_animal"; animalUuid: string }
+  | { action: "update_animal"; animalUuid: string; animal: AnimalInput }
+  | { action: "delete_animal"; animalUuid: string };
 
 export type AnimalStatus = "draft" | "published" | "archived";
 export type AnimalInput = {
@@ -361,6 +364,15 @@ export function identityDispatcher(
 export function identityDispatcher(
   request: Extract<IdentityRequest, { action: "create_animal" }>,
 ): Promise<AnimalRecord>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "get_animal" }>,
+): Promise<AnimalRecord | null>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "update_animal" }>,
+): Promise<AnimalRecord>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "delete_animal" }>,
+): Promise<{ deleted: boolean }>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -478,6 +490,15 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "create_animal":
       return createAnimal(request.animal, request.createdBy);
 
+    case "get_animal":
+      return getAnimal(request.animalUuid);
+
+    case "update_animal":
+      return updateAnimal(request.animalUuid, request.animal);
+
+    case "delete_animal":
+      return deleteAnimal(request.animalUuid);
+
     default: {
       const exhaustiveCheck: never = request;
       return exhaustiveCheck;
@@ -530,6 +551,31 @@ async function createAnimal(animal: AnimalInput, createdBy: string) {
   }).select("*").single();
   if (error) throw new Error(`Animal registration failed: ${error.message}`);
   return mapAnimal(data);
+}
+
+async function getAnimal(animalUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("animals").select("*").eq("animal_uuid", animalUuid).maybeSingle();
+  if (error) throw new Error(`Animal lookup failed: ${error.message}`);
+  return data ? mapAnimal(data) : null;
+}
+
+async function updateAnimal(animalUuid: string, animal: AnimalInput) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("animals").update({
+    tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
+    summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
+    image_url: animal.imageUrl, status: animal.status, updated_at: new Date().toISOString(),
+  }).eq("animal_uuid", animalUuid).select("*").single();
+  if (error) throw new Error(`Animal update failed: ${error.message}`);
+  return mapAnimal(data);
+}
+
+async function deleteAnimal(animalUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const { error, count } = await supabase.from("animals").delete({ count: "exact" }).eq("animal_uuid", animalUuid);
+  if (error) throw new Error(`Animal deletion failed: ${error.message}`);
+  return { deleted: count === 1 };
 }
 
 async function createAuthToken(
