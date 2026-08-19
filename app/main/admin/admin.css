@@ -1026,7 +1026,7 @@
 }
 .adminPetAdd { justify-content: center; border-radius: 13px; background: #222; padding: 0 18px; color: #fff; }
 .adminPetAdd svg, .adminPetBack svg { width: 19px; }
-.adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) 190px auto; gap: 10px; }
+.adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .adminPetSearch select,
 .adminPetSearch button {
   min-height: 48px; border: 1px solid #d5d5d5; border-radius: 12px; background: #fff; padding: 0 14px; color: #222; font: inherit; font-weight: 700;
@@ -1046,6 +1046,9 @@
 .adminPetResultTitle small.status-published { background: #e7f4e9; color: #245d31; }
 .adminPetResultBody > p { margin: 9px 0 0; color: #555; line-height: 1.7; }
 .adminPetResultBody .adminPetEnglish { margin-top: 3px; color: #777; font-size: 13px; }
+.adminPetTags { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.adminPetTags svg { width: 17px; color: #777; }
+.adminPetTags span { border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-size: 12px; font-weight: 700; }
 .adminPetResult dl { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin: 14px 0 0; border-top: 1px solid #ededed; padding-top: 13px; font-size: 13px; }
 .adminPetResult dt { font-weight: 800; }
 .adminPetResult dd { margin: 0; color: #666; }

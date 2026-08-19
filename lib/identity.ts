@@ -151,7 +151,6 @@ export type IdentityRequest =
   | {
       action: "list_animals";
       query?: string;
-      category?: AnimalCategory;
     }
   | {
       action: "create_animal";
@@ -159,10 +158,9 @@ export type IdentityRequest =
       createdBy: string;
     };
 
-export type AnimalCategory = "dog" | "cat" | "rabbit" | "bird" | "reptile" | "other";
 export type AnimalStatus = "draft" | "published" | "archived";
 export type AnimalInput = {
-  category: AnimalCategory;
+  tags: string[];
   slug: string;
   name: { ja: string; en: string };
   aliases: { ja: string[]; en: string[] };
@@ -475,7 +473,7 @@ export async function identityDispatcher(request: IdentityRequest) {
       return consumeAuthToken(request);
 
     case "list_animals":
-      return listAnimals(request.query, request.category);
+      return listAnimals(request.query);
 
     case "create_animal":
       return createAnimal(request.animal, request.createdBy);
@@ -490,7 +488,7 @@ export async function identityDispatcher(request: IdentityRequest) {
 function mapAnimal(row: Record<string, unknown>): AnimalRecord {
   return {
     animalUuid: String(row.animal_uuid),
-    category: row.category as AnimalCategory,
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
     slug: String(row.slug),
     name: row.name as AnimalInput["name"],
     aliases: row.aliases as AnimalInput["aliases"],
@@ -504,13 +502,12 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
   };
 }
 
-async function listAnimals(query?: string, category?: AnimalCategory) {
+async function listAnimals(query?: string) {
   const supabase = getSupabaseAdmin();
   let request = supabase.from("animals").select("*").order("updated_at", { ascending: false }).limit(100);
-  if (category) request = request.eq("category", category);
-  const term = query?.trim().replace(/[,%()]/g, " ").slice(0, 80);
+  const term = query?.trim().replace(/[,{}%()\"']/g, " ").slice(0, 80);
   if (term) {
-    request = request.or(`name->>ja.ilike.%${term}%,name->>en.ilike.%${term}%,slug.ilike.%${term}%,aliases->>ja.ilike.%${term}%,aliases->>en.ilike.%${term}%`);
+    request = request.or(`name->>ja.ilike.%${term}%,name->>en.ilike.%${term}%,slug.ilike.%${term}%,aliases->>ja.ilike.%${term}%,aliases->>en.ilike.%${term}%,tags.cs.{${term}}`);
   }
   const { data, error } = await request;
   if (error) throw new Error(`Animal search failed: ${error.message}`);
@@ -520,7 +517,7 @@ async function listAnimals(query?: string, category?: AnimalCategory) {
 async function createAnimal(animal: AnimalInput, createdBy: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("animals").insert({
-    category: animal.category,
+    tags: animal.tags,
     slug: animal.slug,
     name: animal.name,
     aliases: animal.aliases,
