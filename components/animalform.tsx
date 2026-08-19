@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Save, Unlock } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AnimalStatus } from "@/lib/identity";
 
@@ -18,7 +18,6 @@ type Text = {
   transportEn: string;
   crateJa: string;
   crateEn: string;
-  image: string;
   status: string;
   save: string;
   hint: string;
@@ -52,20 +51,25 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const lastRequestedName = useRef("");
 
-  async function suggest() {
-    if (!nameJa.trim()) return;
+  const suggest = useCallback(async (force = false) => {
+    const lookupName = nameJa.trim();
+    if (!lookupName || (!force && lastRequestedName.current === lookupName)) return;
+    lastRequestedName.current = lookupName;
     setLoading(true);
     setMessage(language === "ja" ? "Wikipediaから取得中…" : "Getting information from Wikipedia…");
     try {
-      const response = await fetch("/api/animals/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nameJa }) });
+      const response = await fetch("/api/animals/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: lookupName }) });
       const result = await response.json() as { suggestion?: Suggestion; error?: string };
       if (!response.ok || !result.suggestion) {
         setMessage(result.error ?? (language === "ja" ? "情報を取得できませんでした。" : "Information could not be retrieved."));
         return;
       }
       setSuggestion(result.suggestion);
-      setNameJa(result.suggestion.nameJa || nameJa);
+      const resolvedName = result.suggestion.nameJa || lookupName;
+      lastRequestedName.current = resolvedName;
+      setNameJa(resolvedName);
       setNameEn(result.suggestion.nameEn);
       setTags(normalizeTags(result.suggestion.tags.join("、"), existingTags).join("、"));
       setUnlocked(true);
@@ -75,15 +79,27 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
     } finally {
       setLoading(false);
     }
-  }
+  }, [existingTags, language, nameJa]);
+
+  useEffect(() => {
+    if (!nameJa.trim()) return;
+    const timer = window.setTimeout(() => void suggest(), 700);
+    return () => window.clearTimeout(timer);
+  }, [nameJa, suggest]);
 
   function addExistingTag(tag: string) {
     setTags(normalizeTags([tags, tag].filter(Boolean).join("、"), existingTags).join("、"));
   }
 
   return <form action={action} className="adminPetForm">
-    <fieldset><legend>{text.basic}</legend><div className="adminPetFields">
-      <label>{text.nameJa}<span className="adminAnimalLookup"><input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setUnlocked(false); }} /><button disabled={loading || !nameJa.trim()} onClick={() => void suggest()} type="button"><Search aria-hidden="true" />{loading ? (language === "ja" ? "取得中" : "Loading") : (language === "ja" ? "情報取得" : "Get information")}</button></span></label>
+    <fieldset><legend>{text.basic}</legend><div className="adminLanguageEditor adminAnimalNameEditor">
+      <input defaultChecked id="animalNameLanguageJa" name="nameEditorLanguage" type="radio" value="ja" /><input id="animalNameLanguageEn" name="nameEditorLanguage" type="radio" value="en" />
+      <div className="adminLanguageTabs"><label htmlFor="animalNameLanguageJa">日本語</label><label htmlFor="animalNameLanguageEn">English</label></div>
+      <div className="adminLanguagePanels">
+        <div className="adminLanguagePanel adminLanguagePanel--ja"><label>{text.nameJa}<span className="adminAnimalLookup"><input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setUnlocked(false); setMessage(""); }} /><button disabled={loading || !nameJa.trim()} onClick={() => void suggest(true)} type="button"><Search aria-hidden="true" />{loading ? (language === "ja" ? "取得中" : "Loading") : (language === "ja" ? "情報取得" : "Get information")}</button></span></label></div>
+        <div className="adminLanguagePanel adminLanguagePanel--en"><label>{text.nameEn}<input disabled={!unlocked} name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></label></div>
+      </div>
+    </div><div className="adminPetFields">
       <button className="adminAnimalUnlock" type="button" onClick={() => setUnlocked(true)}><Unlock aria-hidden="true" />{language === "ja" ? "手入力を解放" : "Unlock manual entry"}</button>
       {message ? <p className="adminAnimalStatus" role="status">{message}</p> : null}
       {suggestion.sourceUrl ? <p className="adminAnimalSource">{language === "ja" ? "取得元" : "Source"}: <a href={suggestion.sourceUrl} rel="noreferrer" target="_blank">Wikipedia</a></p> : null}
@@ -111,7 +127,6 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
           <label>コテ<input name="koteJa" placeholder="内容が決まり次第入力" /></label>
         </div></div>
         <div className="adminLanguagePanel adminLanguagePanel--en"><div className="adminPetFields">
-          <label>{text.nameEn}<input name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /><small>{nameEn ? `${language === "ja" ? "URL用の名前" : "URL name"}: ${nameEn.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}` : null}</small></label>
           <label>Animal type<input name="speciesEn" required placeholder="Dog" /></label>
           <label>{text.aliases}（English）<input name="aliasesEn" defaultValue={suggestion.aliasesEn.join(", ")} /></label>
           <label>Origin<input name="originEn" required placeholder="Japan" /></label>

@@ -16,7 +16,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
   const session = token ? await identityDispatcher({ action: "resolve_session", sessionToken: token }) : null;
   const animal = await identityDispatcher({ action: "get_animal", animalUuid: id });
   if (!animal) notFound();
-  const preserved = { summary: animal.summary, transport: animal.transport, crateNote: animal.crateNote, imageUrl: animal.imageUrl };
+  const preserved = { summary: animal.summary, transport: animal.transport, crateNote: animal.crateNote };
   const en = session?.language === "en";
 
   async function update(formData: FormData) {
@@ -32,7 +32,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
     const escapeRisk = value("escapeRisk") as AnimalProfile["escapeRisk"];
     if (!["low", "medium", "high"].includes(escapeRisk)) throw new Error("Invalid escape risk");
     const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", escapeRisk, transportMethod: { ja: value("transportJa"), en: value("transportEn") }, kote: { ja: value("koteJa"), en: value("koteEn") } };
-    const input: AnimalInput = { tags: split(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: split(value("aliasesJa")), en: split(value("aliasesEn")) }, summary: preserved.summary, transport: preserved.transport, crateNote: preserved.crateNote, imageUrl: preserved.imageUrl, profile };
+    const input: AnimalInput = { tags: split(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: split(value("aliasesJa")), en: split(value("aliasesEn")) }, summary: preserved.summary, transport: preserved.transport, crateNote: preserved.crateNote, profile };
     await identityDispatcher({ action: "update_animal", animalUuid: id, animal: input });
     redirect("/main/admin/animals");
   }

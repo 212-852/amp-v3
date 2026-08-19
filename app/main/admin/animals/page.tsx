@@ -54,19 +54,19 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
       <div className="adminListTools">
         <details className="adminListSearch"><summary aria-label={text.search} title={text.search}><Search aria-hidden="true" /></summary><form method="get"><label><Search aria-hidden="true" /><span className="srOnly">{text.search}</span><input name="q" type="search" defaultValue={query} placeholder={text.search} /></label><button type="submit">{language === "ja" ? "検索" : "Search"}</button></form></details>
         <Link className="adminListSort" href={`?${query ? `q=${encodeURIComponent(query)}&` : ""}sort=${sort === "name" ? "newest" : "name"}`} aria-label={language === "ja" ? "並び替え" : "Sort"} title={language === "ja" ? "並び替え" : "Sort"}><ArrowDownUp aria-hidden="true" /></Link>
+        <Link className="adminPetAdd" href="/main/admin/animals/new" aria-label={text.add} title={text.add}><Plus aria-hidden="true" /></Link>
       </div>
       {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{language === "ja" ? "検索中" : "Searching"}</span><strong>{query}</strong><Link href={sort === "name" ? "?sort=name" : "?sort=newest"} aria-label={language === "ja" ? "検索を解除" : "Clear search"} title={language === "ja" ? "検索を解除" : "Clear search"}><X aria-hidden="true" /></Link></div> : null}
     </header>
 
     {animals.length ? <div className="adminPetResults">
       {animals.map((animal) => <article className="adminPetResult" key={animal.animalUuid}>
-        <div className="adminPetThumb" style={animal.imageUrl ? { backgroundImage: `url(${JSON.stringify(animal.imageUrl).slice(1, -1)})` } : undefined}>{animal.imageUrl ? null : <PawPrint aria-hidden="true" />}</div>
+        <div className="adminPetThumb"><PawPrint aria-hidden="true" /></div>
         <div className="adminPetResultBody">
           <div className="adminPetResultTitle"><div className="adminPetDetail"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><p>{animal.summary[language] || animal.summary.ja || animal.tags.join(" · ") || "—"}</p></div><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
           {animal.name.en && language === "ja" ? <p className="adminPetEnglish">{animal.name.en}</p> : null}
         </div>
       </article>)}
     </div> : <div className="adminContentEmpty adminPetEmpty"><Search aria-hidden="true" /><strong>{text.empty}</strong></div>}
-    <Link className="adminPetAdd adminPetAddFloating" href="/main/admin/animals/new" aria-label={text.add} title={text.add}><Plus aria-hidden="true" /></Link>
   </section>;
 }

@@ -155,7 +155,6 @@ export type IdentityRequest =
   | {
       action: "create_animal";
       animal: AnimalInput;
-      createdBy: string;
     }
   | { action: "get_animal"; animalUuid: string }
   | { action: "update_animal"; animalUuid: string; animal: AnimalInput }
@@ -184,7 +183,6 @@ export type AnimalInput = {
   summary: { ja: string; en: string };
   transport: { ja: string; en: string };
   crateNote: { ja: string; en: string };
-  imageUrl: string | null;
   status: AnimalStatus;
   profile: AnimalProfile;
 };
@@ -517,7 +515,7 @@ export async function identityDispatcher(request: IdentityRequest) {
       return listAnimals(request.query);
 
     case "create_animal":
-      return createAnimal(request.animal, request.createdBy);
+      return createAnimal(request.animal);
 
     case "get_animal":
       return getAnimal(request.animalUuid);
@@ -547,7 +545,6 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
     summary: row.summary as AnimalInput["summary"],
     transport: row.transport as AnimalInput["transport"],
     crateNote: row.crate_note as AnimalInput["crateNote"],
-    imageUrl: typeof row.image_url === "string" ? row.image_url : null,
     status: row.status as AnimalStatus,
     profile: {
       species: localized(rawProfile.species),
@@ -580,7 +577,7 @@ async function listAnimals(query?: string) {
   return (data ?? []).map((row) => mapAnimal(row));
 }
 
-async function createAnimal(animal: AnimalInput, createdBy: string) {
+async function createAnimal(animal: AnimalInput) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("animals").insert({
     tags: animal.tags,
@@ -590,10 +587,8 @@ async function createAnimal(animal: AnimalInput, createdBy: string) {
     summary: animal.summary,
     transport: animal.transport,
     crate_note: animal.crateNote,
-    image_url: animal.imageUrl,
     status: animal.status,
     profile: animal.profile,
-    created_by: createdBy,
   }).select("*").single();
   if (error) throw new Error(`Animal registration failed: ${error.message}`);
   return mapAnimal(data);
@@ -611,7 +606,7 @@ async function updateAnimal(animalUuid: string, animal: AnimalInput) {
   const { data, error } = await supabase.from("animals").update({
     tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
     summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
-    image_url: animal.imageUrl, status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
+    status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
   }).eq("animal_uuid", animalUuid).select("*").single();
   if (error) throw new Error(`Animal update failed: ${error.message}`);
   return mapAnimal(data);
