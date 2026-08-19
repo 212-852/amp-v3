@@ -4,6 +4,7 @@ import { Plus, Save, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { Toast } from "@/components/toast";
 import type { AnimalStatus } from "@/lib/identity";
 import { animalSizeOptions, animalSpeciesOptions, matchAnimalOption, normalizeComma, normalizeTagInput } from "@/lib/form";
 
@@ -68,6 +69,8 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
   const [suggestion, setSuggestion] = useState(emptySuggestion);
   const [unlocked, setUnlocked] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingDismissed, setLoadingDismissed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -78,7 +81,9 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
     const lookupName = nameJa.trim();
     if (!lookupName || lastRequestedName.current === lookupName) return;
     lastRequestedName.current = lookupName;
-    setMessage(language === "ja" ? "Wikipediaから取得中…" : "Getting information from Wikipedia…");
+    setMessage("");
+    setLoading(true);
+    setLoadingDismissed(false);
     try {
       const response = await fetch("/api/animals/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: lookupName }) });
       const result = await response.json() as { suggestion?: Suggestion; error?: string };
@@ -117,6 +122,8 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
       setMessage(language === "ja" ? "取得しました。内容を確認・修正してください。" : "Information retrieved. Review and edit it before saving.");
     } catch {
       setMessage(language === "ja" ? "情報を取得できませんでした。" : "Information could not be retrieved.");
+    } finally {
+      setLoading(false);
     }
   }, [countries, language, nameJa]);
 
@@ -176,7 +183,9 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
     {statusOpen ? <div className="adminAnimalStatusOverlay" role="presentation" onMouseDown={() => setStatusOpen(false)}><section aria-label={language === "ja" ? "公開状況を選択" : "Choose publishing status"} aria-modal="true" className="adminAnimalStatusDialog" role="dialog" onMouseDown={(event) => event.stopPropagation()}><h3>{language === "ja" ? "公開状況" : "Publishing status"}</h3><p>{language === "ja" ? "登録後の公開状況を選んでください。" : "Choose the status after registration."}</p><div><button type="button" onClick={() => submitWithStatus("published")}>{language === "ja" ? "公開" : "Publish"}</button><button type="button" onClick={() => submitWithStatus("draft")}>{language === "ja" ? "下書き" : "Draft"}</button></div><button className="adminAnimalStatusCancel" type="button" onClick={() => setStatusOpen(false)}>{language === "ja" ? "戻る" : "Back"}</button></section></div> : null}
   </form>;
 
-  if (!modal) return form;
+  const loadingToast = <Toast message={loading && !loadingDismissed ? (language === "ja" ? "Wikipediaから情報を取得しています…" : "Getting information from Wikipedia…") : null} onClose={() => setLoadingDismissed(true)} persistent />;
+
+  if (!modal) return <>{form}{loadingToast}</>;
 
   return <>
     <button className="adminPetAdd" type="button" aria-label={language === "ja" ? "新規登録" : "New entry"} title={language === "ja" ? "新規登録" : "New entry"} onClick={() => setModalOpen(true)}><Plus aria-hidden="true" /></button>
@@ -186,5 +195,6 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
         {form}
       </section>
     </div>, document.body) : null}
+    {loadingToast}
   </>;
 }
