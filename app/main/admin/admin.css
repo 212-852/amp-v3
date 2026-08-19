@@ -302,9 +302,11 @@
 .adminMailCompose[open]::before { content: ""; position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / 34%); backdrop-filter: blur(3px); }
 .adminMailCompose[open] > form { position: fixed; top: 50dvh; left: 50vw; z-index: 41; display: grid; width: min(calc(100vw - 36px), 560px); max-height: calc(100dvh - 36px); gap: 14px; overflow: auto; border-radius: 20px; background: #fff; padding: 24px; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); transform: translate(-50%, -50%); animation: adminMailComposePop 180ms ease-out both; }
 @keyframes adminMailComposePop { from { opacity: 0; transform: translate(-50%, -50%) scale(.92); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+html:has(.adminMailCompose[open]) .adminHeader,
+html:has(.adminMailCompose[open]) .adminFooter { z-index: 0; }
 .adminMailCompose h2 { margin: 0 0 4px; font-size: 24px; }
 .adminMailCompose label { display: grid; gap: 7px; font-weight: 800; }
-.adminMailCompose input, .adminMailCompose textarea { width: 100%; border: 1px solid #d2d2d2; border-radius: 12px; background: #fff; padding: 12px; color: #222; font: inherit; }
+.adminMailCompose input, .adminMailCompose select, .adminMailCompose textarea { width: 100%; border: 1px solid #d2d2d2; border-radius: 12px; background: #fff; padding: 12px; color: #222; font: inherit; }
 .adminMailCompose input[readonly] { background: #f2f2f2; }
 .adminMailCompose textarea { resize: vertical; }
 .adminMailCompose form > button { min-height: 48px; border: 0; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }

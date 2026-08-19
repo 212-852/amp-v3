@@ -58,6 +58,20 @@ function isEmailAddress(value: string) {
   return /^\S+@\S+\.\S+$/.test(value);
 }
 
+export async function listSendMailboxes(userUuid: string, tier: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("inbox_mailboxes")
+    .select("address, mailbox_type, owner_user_uuid")
+    .order("address");
+  if (error) throw new Error("Outgoing mailboxes could not be loaded.");
+  return (data ?? [])
+    .filter((mailbox) => mailbox.mailbox_type === "personal"
+      ? mailbox.owner_user_uuid === userUuid
+      : ["owner", "core"].includes(tier))
+    .map((mailbox) => String(mailbox.address));
+}
+
 async function getMailboxRecipients(address: string) {
   const supabase = getSupabaseAdmin();
   const normalized = normalizeEmail(address);
@@ -138,6 +152,7 @@ export async function createContactMessage(input: {
 
 export async function sendInboxEmail(input: {
   senderUserUuid: string;
+  senderTier: string;
   mailboxAddress: string;
   recipientAddress: string;
   subject: string;
@@ -150,13 +165,14 @@ export async function sendInboxEmail(input: {
   if (!isEmailAddress(recipientAddress) || !subject || !message) {
     throw new Error("Outgoing email is invalid.");
   }
-  if (mailboxAddress !== "info@paws-flight.com") {
+  const availableMailboxes = await listSendMailboxes(input.senderUserUuid, input.senderTier);
+  if (!availableMailboxes.includes(mailboxAddress)) {
     throw new Error("Outgoing mailbox is not available.");
   }
 
   const resend = getResend();
   const { data, error } = await resend.emails.send({
-    from: `PawsFlight Japan <${mailboxAddress}>`,
+    from: `${mailboxAddress === "info@paws-flight.com" ? "PawsFlight Japan" : "わんだにゃー株式会社"} <${mailboxAddress}>`,
     to: [recipientAddress],
     subject,
     text: message,

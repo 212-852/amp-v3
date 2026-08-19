@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
-import { listInbox } from "@/lib/inbox";
+import { listInbox, listSendMailboxes } from "@/lib/inbox";
 
 const copy = {
   ja: {
@@ -49,6 +49,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
   const session = sessionToken ? await resolveSessionCached(sessionToken) : null;
   const text = copy[session?.language === "en" ? "en" : "ja"];
   const items = session ? await listInbox(session.userUuid, query, sort) : [];
+  const mailboxes = session ? await listSendMailboxes(session.userUuid, session.tier) : [];
 
   return (
     <section className="adminInboxPage">
@@ -74,7 +75,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
         <summary aria-label={text.compose} title={text.compose}><Plus aria-hidden="true" /></summary>
         <form action="/api/inbox/send" method="post">
           <h2>{text.compose}</h2>
-          <label><span>{text.from}</span><input value="info@paws-flight.com" readOnly /></label>
+          <label><span>{text.from}</span><select name="from" defaultValue={mailboxes[0] ?? ""} required>{mailboxes.length === 0 ? <option value="">{session?.language === "en" ? "No sender available" : "送信元がありません"}</option> : null}{mailboxes.map((address) => <option value={address} key={address}>{address}</option>)}</select></label>
           <label><span>{text.to}</span><input name="to" type="email" autoComplete="email" required /></label>
           <label><span>{text.subject}</span><input name="subject" maxLength={240} required /></label>
           <label><span>{text.message}</span><textarea name="message" rows={8} maxLength={50000} required /></label>

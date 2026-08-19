@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   try {
     const result = await sendInboxEmail({
       senderUserUuid: session.userUuid,
-      mailboxAddress: "info@paws-flight.com",
+      senderTier: session.tier,
+      mailboxAddress: String(form.get("from") ?? ""),
       recipientAddress: String(form.get("to") ?? ""),
       subject: String(form.get("subject") ?? ""),
       message: String(form.get("message") ?? ""),
