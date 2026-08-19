@@ -170,9 +170,6 @@ export type AnimalProfile = {
   weightGuide: { ja: string; en: string };
   lifespanGuide: { ja: string; en: string };
   traits: { ja: string; en: string };
-  brachycephalic: boolean;
-  heatCaution: boolean;
-  transportMethod: { ja: string; en: string };
 };
 export type AnimalInput = {
   tags: string[];
@@ -553,9 +550,6 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
       weightGuide: localized(rawProfile.weightGuide),
       lifespanGuide: localized(rawProfile.lifespanGuide),
       traits: localized(rawProfile.traits),
-      brachycephalic: rawProfile.brachycephalic === true,
-      heatCaution: rawProfile.heatCaution === true,
-      transportMethod: localized(rawProfile.transportMethod),
     },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),

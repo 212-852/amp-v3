@@ -1127,6 +1127,10 @@
 .adminLanguageEditor > input[value="ja"]:checked ~ .adminLanguageTabs label:first-child,
 .adminLanguageEditor > input[value="en"]:checked ~ .adminLanguageTabs label:last-child { background: #222; color: #fff; }
 .adminLanguagePanel { display: none; }
+.adminLanguagePanel,
+.adminLanguagePanel input,
+.adminLanguagePanel select,
+.adminLanguagePanel textarea { font-family: var(--font-m-plus-rounded), "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", sans-serif; }
 .adminLanguageEditor > input[value="ja"]:checked ~ .adminLanguagePanels .adminLanguagePanel--ja,
 .adminLanguageEditor > input[value="en"]:checked ~ .adminLanguagePanels .adminLanguagePanel--en { display: block; }
 .adminLanguagePanel a { color: #222; }
