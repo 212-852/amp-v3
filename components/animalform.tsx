@@ -35,6 +35,8 @@ type Suggestion = {
   sourceUrl: string;
 };
 
+type FetchDebug = { source: string; ai: boolean; code: string };
+
 const emptySuggestion: Suggestion = { nameJa: "", nameEn: "", tags: [], aliasesJa: [], aliasesEn: [], originJa: "", sizeJa: "", sourceUrl: "" };
 
 export function AnimalForm({ action, countries, existingTags, language, modal = false, text }: { action: (formData: FormData) => void | Promise<void>; countries: Array<{ ja: string; en: string }>; existingTags: string[]; language: "ja" | "en"; modal?: boolean; text: Text }) {
@@ -50,6 +52,7 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
   const [suggestion, setSuggestion] = useState(emptySuggestion);
   const [unlocked, setUnlocked] = useState(false);
   const [message, setMessage] = useState("");
+  const [fetchDebug, setFetchDebug] = useState<FetchDebug | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -63,7 +66,8 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
     setMessage(language === "ja" ? "Wikipediaから取得中…" : "Getting information from Wikipedia…");
     try {
       const response = await fetch("/api/animals/suggest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: lookupName }) });
-      const result = await response.json() as { suggestion?: Suggestion; error?: string };
+      const result = await response.json() as { suggestion?: Suggestion; error?: string; debug?: FetchDebug };
+      setFetchDebug(result.debug ?? { source: "Wikipedia API", ai: false, code: `HTTP_${response.status}` });
       if (!response.ok || !result.suggestion) {
         setMessage(result.error ?? (language === "ja" ? "情報を取得できませんでした。" : "Information could not be retrieved."));
         return;
@@ -86,6 +90,7 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
       setUnlocked(true);
       setMessage(language === "ja" ? "取得しました。内容を確認・修正してください。" : "Information retrieved. Review and edit it before saving.");
     } catch {
+      setFetchDebug({ source: "Wikipedia API", ai: false, code: "NETWORK_OR_RESPONSE_ERROR" });
       setMessage(language === "ja" ? "情報を取得できませんでした。" : "Information could not be retrieved.");
     }
   }, [countries, language, nameJa]);
@@ -109,10 +114,11 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
   const form = <form action={action} className="adminPetForm" ref={formRef} onSubmit={() => { if (modal) setModalOpen(false); }}>
     <input name="status" ref={statusRef} type="hidden" defaultValue="draft" />
     <fieldset><legend>{text.basic}</legend><div className="adminAnimalLookupBlock">
-      <label>{language === "ja" ? "名称（日本語）" : "Name (Japanese)"}<input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setUnlocked(false); setMessage(""); }} /><small>{language === "ja" ? "入力後、自動で情報を取得します。" : "Information is retrieved automatically after entry."}</small></label>
+      <label>{language === "ja" ? "名称（日本語）" : "Name (Japanese)"}<input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setSuggestion(emptySuggestion); setUnlocked(false); setMessage(""); setFetchDebug(null); }} /><small>{language === "ja" ? "入力後、自動で情報を取得します。" : "Information is retrieved automatically after entry."}</small></label>
       <label>{language === "ja" ? "名称（英語）" : "Name (English)"}<input disabled={!unlocked} name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></label>
       {message ? <p className="adminAnimalStatus" role="status">{message}</p> : null}
       {suggestion.sourceUrl ? <p className="adminAnimalSource">{language === "ja" ? "取得したページ" : "Retrieved page"}: <a href={suggestion.sourceUrl} rel="noreferrer" target="_blank">{suggestion.nameJa}（Wikipedia）</a></p> : null}
+      {fetchDebug ? <aside className="adminAnimalDebug" role="status"><strong>{language === "ja" ? "取得状況" : "Fetch status"}</strong><dl><div><dt>{language === "ja" ? "取得元" : "Source"}</dt><dd>{fetchDebug.source}</dd></div><div><dt>AI</dt><dd>{fetchDebug.ai ? (language === "ja" ? "接続済み" : "Connected") : (language === "ja" ? "未接続" : "Not connected")}</dd></div><div><dt>{language === "ja" ? "結果" : "Result"}</dt><dd>{fetchDebug.code}</dd></div><div><dt>{language === "ja" ? "自動入力" : "Auto-filled"}</dt><dd>{[suggestion.nameEn && (language === "ja" ? "英語名" : "English name"), suggestion.tags.length && (language === "ja" ? "タグ候補" : "Tag suggestions"), suggestion.originJa && (language === "ja" ? "原産国" : "Origin"), suggestion.sizeJa && (language === "ja" ? "サイズ" : "Size")].filter(Boolean).join("、") || (language === "ja" ? "なし" : "None")}</dd></div><div><dt>{language === "ja" ? "未取得" : "Not retrieved"}</dt><dd>{language === "ja" ? "学名・体重・寿命・特徴（AI接続後に対応）" : "Scientific name, weight, lifespan, and traits (requires AI)"}</dd></div></dl></aside> : null}
     </div><div className="adminAnimalDivider" />
     <fieldset disabled={!unlocked} className={`adminAnimalDetails${!unlocked ? " isLocked" : ""}`}><div className="adminPetFields adminPetFieldsCommon">
       <label className="adminAnimalTagsField">{text.tags}<input name="tags" required value={tags} onBlur={() => setTags(normalizeTagInput(tags, existingTags))} onChange={(event) => setTags(normalizeComma(event.target.value))} placeholder={language === "ja" ? "犬, 大型犬, 長毛" : "dog, large, long-haired"} /><small>{text.hint}</small>{suggestion.tags.length ? <span className="adminExistingTags adminSuggestedTags"><b>{language === "ja" ? "タグ候補（クリックして追加）" : "Suggested tags (click to add)"}</b><span>{suggestion.tags.map((tag) => <button className={normalizeTagInput(tags, existingTags).split(", ").some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}{existingTags.length ? <span className="adminExistingTags"><b>{language === "ja" ? "登録済みタグ" : "Existing tags"}</b><span>{existingTags.map((tag) => <button className={normalizeTagInput(tags, existingTags).split(", ").some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}</label>
