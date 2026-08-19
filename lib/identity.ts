@@ -235,9 +235,16 @@ export type CompanyConfig = {
   legal: {
     seller: Record<string, string>;
     operationsManager: Record<string, string>;
+    serviceName: Record<string, string>;
+    serviceDescription: Record<string, string>;
     price: Record<string, string>;
     additionalFees: Record<string, string>;
     paymentMethods: Record<string, string>;
+    paymentTiming: Record<string, string>;
+    serviceTiming: Record<string, string>;
+    cancellationChanges: Record<string, string>;
+    refunds: Record<string, string>;
+    applicationDeadline: Record<string, string>;
     cancellationRefunds: Record<string, string>;
   };
 };
@@ -254,9 +261,16 @@ function emptyCompanyConfig(): CompanyConfig {
     legal: {
       seller: emptyLocalizedText(),
       operationsManager: emptyLocalizedText(),
+      serviceName: emptyLocalizedText(),
+      serviceDescription: emptyLocalizedText(),
       price: emptyLocalizedText(),
       additionalFees: emptyLocalizedText(),
       paymentMethods: emptyLocalizedText(),
+      paymentTiming: emptyLocalizedText(),
+      serviceTiming: emptyLocalizedText(),
+      cancellationChanges: emptyLocalizedText(),
+      refunds: emptyLocalizedText(),
+      applicationDeadline: emptyLocalizedText(),
       cancellationRefunds: emptyLocalizedText(),
     },
   };
@@ -1402,9 +1416,16 @@ function normalizeCompanyConfig(company: unknown): CompanyConfig {
     legal: {
       seller: localized("seller" in rawLegal ? rawLegal.seller : null),
       operationsManager: localized("operationsManager" in rawLegal ? rawLegal.operationsManager : null),
+      serviceName: localized("serviceName" in rawLegal ? rawLegal.serviceName : null),
+      serviceDescription: localized("serviceDescription" in rawLegal ? rawLegal.serviceDescription : null),
       price: localized("price" in rawLegal ? rawLegal.price : null),
       additionalFees: localized("additionalFees" in rawLegal ? rawLegal.additionalFees : null),
       paymentMethods: localized("paymentMethods" in rawLegal ? rawLegal.paymentMethods : null),
+      paymentTiming: localized("paymentTiming" in rawLegal ? rawLegal.paymentTiming : null),
+      serviceTiming: localized("serviceTiming" in rawLegal ? rawLegal.serviceTiming : null),
+      cancellationChanges: localized("cancellationChanges" in rawLegal ? rawLegal.cancellationChanges : null),
+      refunds: localized("refunds" in rawLegal ? rawLegal.refunds : null),
+      applicationDeadline: localized("applicationDeadline" in rawLegal ? rawLegal.applicationDeadline : null),
       cancellationRefunds: localized("cancellationRefunds" in rawLegal ? rawLegal.cancellationRefunds : null),
     },
   };

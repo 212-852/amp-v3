@@ -1016,15 +1016,19 @@
 .adminListTools > button, .adminListTools > a, .adminListSearch > summary { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
 .adminListTools svg { width: 20px; }
 .adminListTools .adminPetAdd { width: 52px; height: 52px; border-color: #222; background: #222; color: #fff; }
-.adminListSearch { position: relative; }
+.adminListSearch { position: static; }
 .adminListSearch > summary { list-style: none; }
 .adminListSearch > summary::-webkit-details-marker { display: none; }
-.adminListSearch[open] > form, .adminListSearch[open] > label { position: absolute; top: 54px; right: 0; z-index: 5; display: flex; width: min(82vw, 420px); gap: 8px; border: 1px solid #d5d5d5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 12px 30px rgb(0 0 0 / 12%); }
+.adminListSearch[open] > summary { position: relative; z-index: 22; }
+.adminListSearch[open]::before { content: ""; position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 24%); backdrop-filter: blur(2px); }
+.adminListSearch[open] > form, .adminListSearch[open] > label { position: fixed; top: 50%; left: 50%; z-index: 21; display: flex; width: min(calc(100vw - 40px), 520px); gap: 8px; border: 1px solid #d5d5d5; border-radius: 18px; background: #fff; padding: 12px; box-shadow: 0 22px 60px rgb(0 0 0 / 22%); transform: translate(-50%, -50%); transform-origin: center; animation: adminSearchPop 180ms ease-out both; }
+@keyframes adminSearchPop { from { opacity: 0; transform: translate(-50%, -50%) scale(.82); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 .adminListSearch label { display: flex; min-width: 0; flex: 1; align-items: center; gap: 8px; padding: 0 8px; }
 .adminListSearch input { width: 100%; min-height: 42px; border: 0; outline: 0; font: inherit; }
 .adminListSearch form > button { border: 0; border-radius: 10px; background: #222; padding: 0 16px; color: #fff; font: inherit; font-weight: 700; }
 .adminListSort { text-decoration: none; }
 .adminPetAdd svg, .adminPetBack svg { width: 19px; }
+.adminPetAddFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; width: 58px; height: 58px; min-height: 58px; box-shadow: 0 10px 28px rgb(0 0 0 / 22%); }
 .adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .adminPetSearch select,
 .adminPetSearch button {
@@ -1041,12 +1045,15 @@
 .adminPetThumb { display: grid; width: 72px; height: 72px; place-items: center; overflow: hidden; border: 1px solid #ddd; border-radius: 14px; background: #f1f1f1 center / cover no-repeat; color: #666; }
 .adminPetThumb svg { width: 28px; }
 .adminPetResultBody { min-width: 0; }
-.adminPetResultTitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adminPetResultTitle { display: flex; align-items: center; gap: 14px; }
 .adminPetResultTitle > span { color: #666; font-size: 12px; font-weight: 800; }
 .adminPetResultTitle h2 { margin: 0; font-size: 20px; }
-.adminPetResultTitle small { margin-left: auto; border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
+.adminPetResultTitle small { border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
 .adminPetResultTitle small.status-published { background: #e7f4e9; color: #245d31; }
 .adminPetActions { display: flex; align-items: center; gap: 7px; }
+.adminPetDetail { min-width: 0; flex: 1; }
+.adminPetDetail h2 { display: inline; margin-right: 9px; }
+.adminPetDetail p { display: -webkit-box; overflow: hidden; margin: 7px 0 0; color: #666; font-size: 13px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .adminPetActions form { margin: 0; }
 .adminPetActions a, .adminPetActions button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
 .adminPetActions button { color: #8c2f2f; }
@@ -1070,6 +1077,15 @@
 .adminPetSave { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 13px; background: #222; padding: 0 24px; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
 .adminPetSave svg { width: 19px; }
 
+.adminInboxTypes { display: flex; flex-wrap: wrap; gap: 10px; }
+.adminInboxTypes > span { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; border: 1px solid #d8d8d8; border-radius: 12px; background: #fff; padding: 7px 12px; color: #444; font-size: 12px; }
+.adminInboxTypeIcon { position: relative; display: grid; width: 26px; height: 26px; place-items: center; color: #222; }
+.adminInboxTypeIcon > svg { width: 21px; height: 21px; }
+.adminInboxTypeIcon > svg + svg { position: absolute; right: -3px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; padding: 1px; }
+.adminInboxTypeIcon--shared { border-radius: 7px; background: #222; color: #fff; }
+.adminInboxTypeIcon--shared > svg { width: 17px; }
+.adminInboxTypeIcon--shared > svg + svg { background: #222; }
+
 @media (max-width: 760px) {
   .adminContentPage { padding: 0; }
   .adminContentHeading { display: flex; }
@@ -1086,6 +1102,8 @@
   .adminPetThumb { width: 56px; height: 56px; }
   .adminPetResultIcon { width: 46px; height: 46px; }
   .adminPetResultTitle small { margin-left: 0; }
+  .adminPetResultTitle { align-items: flex-start; }
+  .adminPetActions { flex-direction: column; }
   .adminPetResult dl { grid-template-columns: 1fr; gap: 4px; }
   .adminPetFields { grid-template-columns: 1fr; }
 }
