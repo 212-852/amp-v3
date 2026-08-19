@@ -126,20 +126,21 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
   const touchedCountryTargetIndex = useRef<number | null>(null);
   const group = groups.find((item) => item.id === groupId) ?? groups[0];
   const page = group?.pages.find((item) => item.id === pageId) ?? group?.pages[0];
+  const isAdminManagement = role === "admin" && (group?.id === "display" || group?.id === "internal");
   const showLanguages =
-    role === "admin" && group?.id === "languages" && page?.id === "supported";
+    isAdminManagement && page?.id === "supported";
   const showCompany =
-    role === "admin" && group?.id === "languages" && page?.id === "company";
+    isAdminManagement && page?.id === "company";
   const showLegal =
-    role === "admin" && group?.id === "languages" && page?.id === "legal";
+    isAdminManagement && page?.id === "legal";
   const showCancellation =
-    role === "admin" && group?.id === "languages" && page?.id === "cancellation";
+    isAdminManagement && page?.id === "cancellation";
   const showCopyright =
-    role === "admin" && group?.id === "languages" && page?.id === "copyright";
+    isAdminManagement && page?.id === "copyright";
   const showStructured =
-    role === "admin" && group?.id === "languages" && page?.id === "structured";
+    isAdminManagement && page?.id === "structured";
   const showCountries =
-    role === "admin" && group?.id === "languages" && page?.id === "countries";
+    isAdminManagement && page?.id === "countries";
 
   const loadLanguages = useCallback(async () => {
     const response = await fetch("/api/session?resource=languages", { cache: "no-store" });
