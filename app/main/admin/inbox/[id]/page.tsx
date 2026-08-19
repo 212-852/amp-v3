@@ -18,7 +18,7 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
 
   return (
     <article className="adminMailPage">
-      <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Inbox" : "受信トレイ"}</Link>
+      <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Message box" : "メッセージボックス"}</Link>
       <header className="adminMailHeading"><span><Mail aria-hidden="true" /></span><div><h1>{thread.subject}</h1><p>{thread.senderName} &lt;{thread.senderAddress}&gt;</p><small>{language === "en" ? "To" : "宛先"}：{thread.mailboxAddress}</small></div></header>
       <section className="adminMailMessages">
         {thread.messages.map((message) => <div className="adminMailMessage" key={message.messageUuid}><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time><div>{message.bodyText}</div></div>)}

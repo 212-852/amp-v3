@@ -170,10 +170,10 @@ export function PortalToolbar({
         <Link
           className="adminInboxButton"
           href={inboxHref}
-          aria-label="受信トレイを開く"
+          aria-label="メッセージを開く"
         >
           <Inbox aria-hidden="true" />
-          <span>受信トレイ</span>
+          <span>メッセージ</span>
         </Link>
       ) : null}
 
@@ -254,7 +254,7 @@ export function AdminTrail({ language = "ja" }: { language?: Language }) {
     pathname.startsWith("/main/admin/animals") || pathname.startsWith("/admin/animals") ||
     pathname.startsWith("/main/admin/gallery") || pathname.startsWith("/admin/gallery");
   const currentLabel = isInbox
-    ? getTranslation({ ja: "受信トレイ", en: "Inbox" }, language)
+    ? getTranslation({ ja: "メッセージボックス", en: "Message box" }, language)
     : isPets
       ? getTranslation({ ja: "動物データベース", en: "Animal database" }, language)
         : "";

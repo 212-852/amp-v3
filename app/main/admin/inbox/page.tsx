@@ -7,7 +7,7 @@ import { listInbox } from "@/lib/inbox";
 
 const copy = {
   ja: {
-    title: "受信トレイ",
+    title: "メッセージボックス",
     search: "名前・件名・メッセージを検索",
     sort: "並び替え",
     compose: "新規メール",
@@ -20,7 +20,7 @@ const copy = {
     sendError: "メールを送信できませんでした。",
   },
   en: {
-    title: "Inbox",
+    title: "Message box",
     search: "Search names, subjects, or messages",
     sort: "Sort",
     compose: "New email",
@@ -35,7 +35,7 @@ const copy = {
 } as const;
 
 export const metadata = {
-  title: "受信トレイ | Admin",
+  title: "メッセージボックス | Admin",
 };
 
 export default async function InboxPage({ searchParams }: PageProps<"/main/admin/inbox">) {

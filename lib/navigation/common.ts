@@ -44,7 +44,7 @@ export const commonNavigation: NavigationGroup[] = [
     { id: "overview", label: "概要", description: "現在の状況を確認します。" },
   ] },
   { id: "chat", label: "チャット", icon: "chat", pages: [
-    { id: "inbox", label: "受信トレイ", description: "届いたメッセージを確認します。" },
+    { id: "inbox", label: "メッセージボックス", description: "メールやチャットなどのメッセージを確認します。" },
     { id: "robot", label: "Robo NEKOに相談", description: "Robo NEKOと対話しながら操作を進めます。" },
   ] },
   { id: "notifications", label: "通知", icon: "bell", pages: [
