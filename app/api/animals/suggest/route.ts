@@ -77,10 +77,14 @@ export async function POST(request: Request) {
     if (!ja?.title) return Response.json({ error: "Wikipediaに一致する情報が見つかりませんでした。" }, { status: 404 });
     const enTitle = ja.langlinks?.[0]?.title ?? "";
     const en = enTitle ? await getEnglishPage(enTitle) : null;
-    const tags = (ja.categories ?? [])
+    const categoryTags = (ja.categories ?? [])
       .map((category) => category.title?.replace(/^カテゴリ:/, "").trim() ?? "")
-      .filter((category) => category && !/記事|出典|識別子|プロジェクト|テンプレート/.test(category))
-      .slice(0, 8);
+      .filter((category) => category && !/記事|出典|識別子|プロジェクト|テンプレート/.test(category));
+    const categoryText = categoryTags.join(" ");
+    const originJa = categoryTags.map((tag) => tag.match(/^(.+?)原産の(?:犬|猫)/)?.[1] ?? "").find(Boolean) ?? "";
+    const sizeJa = ["超大型", "超小型", "大型", "中型", "小型"].find((size) => categoryText.includes(`${size}犬`) || categoryText.includes(`${size}猫`)) ?? "";
+    const speciesTag = /犬種|犬の品種|原産の犬/.test(categoryText) ? "犬" : /猫種|猫の品種|原産の猫/.test(categoryText) ? "猫" : "";
+    const tags = Array.from(new Set([speciesTag, originJa ? `${originJa}原産` : "", sizeJa, ...categoryTags].filter(Boolean))).slice(0, 10);
 
     return Response.json({
       suggestion: {
@@ -89,6 +93,8 @@ export async function POST(request: Request) {
         tags,
         aliasesJa: ja.title === name ? [] : [name],
         aliasesEn: [],
+        originJa,
+        sizeJa,
         sourceUrl: ja.fullurl ?? `https://ja.wikipedia.org/wiki/${encodeURIComponent(ja.title)}`,
       },
     });

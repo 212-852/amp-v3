@@ -9,6 +9,11 @@ export const animalSizeOptions = [
   { ja: "超大型", en: "Giant" },
 ] as const;
 
+export const animalSpeciesOptions = [
+  { ja: "犬", en: "Dog" },
+  { ja: "猫", en: "Cat" },
+] as const;
+
 export function animalCountryOptions(countries: CountriesConfig) {
   const options = countries
     .map((country) => ({ ja: country.name.ja.trim(), en: country.name.en.trim() }))

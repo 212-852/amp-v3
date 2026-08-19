@@ -12,14 +12,14 @@ const copy = {
     title: "動物データベース",
     search: "名称・別名・タグを検索", add: "新規登録",
     empty: "条件に一致する動物データがありません。", result: "件の登録",
-    basic: "基本情報", details: "公開・輸送情報", nameJa: "名称（日本語）", nameEn: "名称（英語）", tags: "タグ", aliases: "別名・検索語", summaryJa: "特徴（日本語）", summaryEn: "特徴（英語）", transportJa: "輸送条件（日本語）", transportEn: "輸送条件（英語）", crateJa: "クレート目安（日本語）", crateEn: "クレート目安（英語）", status: "公開状態", save: "登録する", hint: "カンマ区切りで複数入力できます。例：犬, 大型犬, 長毛",
+    basic: "基本情報", details: "公開情報", nameJa: "名称（日本語）", nameEn: "名称（英語）", tags: "タグ", aliases: "別名・検索語", summaryJa: "特徴（日本語）", summaryEn: "特徴（英語）", crateJa: "クレート目安（日本語）", crateEn: "クレート目安（英語）", status: "公開状態", save: "登録する", hint: "カンマ区切りで複数入力できます。例：犬, 大型犬, 長毛",
     statuses: { draft: "下書き", published: "公開中", archived: "非公開" },
   },
   en: {
     title: "Animal database",
     search: "Search names, aliases, or tags", add: "New entry",
     empty: "No animal records match your search.", result: "records",
-    basic: "Basic information", details: "Public & transport information", nameJa: "Japanese name", nameEn: "English name", tags: "Tags", aliases: "Aliases / keywords", summaryJa: "Japanese profile", summaryEn: "English profile", transportJa: "Japanese transport guidance", transportEn: "English transport guidance", crateJa: "Japanese crate guidance", crateEn: "English crate guidance", status: "Status", save: "Save record", hint: "Separate multiple tags with commas.",
+    basic: "Basic information", details: "Public information", nameJa: "Japanese name", nameEn: "English name", tags: "Tags", aliases: "Aliases / keywords", summaryJa: "Japanese profile", summaryEn: "English profile", crateJa: "Japanese crate guidance", crateEn: "English crate guidance", status: "Status", save: "Save record", hint: "Separate multiple tags with commas.",
     statuses: { draft: "Draft", published: "Published", archived: "Archived" },
   },
 } as const;
@@ -53,7 +53,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
     const values = (key: string) => splitCommaValues(value(key));
-    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", transportMethod: { ja: value("transportJa"), en: value("transportEn") } };
+    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
     await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
     revalidatePath("/main/admin/animals");
   }
