@@ -332,7 +332,7 @@ export async function PATCH(request: NextRequest) {
       isLocalizedText(address.detail);
 
     const isContact = Boolean(contact) && !Array.isArray(contact) && typeof contact?.phone === "string" && typeof contact.email === "string";
-    const isLegal = Boolean(legal) && !Array.isArray(legal) && ["seller", "operationsManager", "price", "additionalFees", "paymentMethods", "cancellationRefunds"].every((key) => isLocalizedText(legal?.[key]));
+    const isLegal = Boolean(legal) && !Array.isArray(legal) && ["seller", "operationsManager", "serviceName", "serviceDescription", "price", "additionalFees", "paymentMethods", "paymentTiming", "serviceTiming", "cancellationChanges", "refunds", "applicationDeadline", "cancellationRefunds"].every((key) => isLocalizedText(legal?.[key]));
 
     if (!isLocalizedText(company.name) || !isLocalizedText(company.representative) || !isLocalizedText(company.business) || !isContact || !isAddress || !isLegal) {
       return Response.json({ error: "Invalid company configuration." }, { status: 400 });

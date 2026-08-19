@@ -42,9 +42,16 @@ type CompanyConfig = {
   legal: {
     seller: Record<string, string>;
     operationsManager: Record<string, string>;
+    serviceName: Record<string, string>;
+    serviceDescription: Record<string, string>;
     price: Record<string, string>;
     additionalFees: Record<string, string>;
     paymentMethods: Record<string, string>;
+    paymentTiming: Record<string, string>;
+    serviceTiming: Record<string, string>;
+    cancellationChanges: Record<string, string>;
+    refunds: Record<string, string>;
+    applicationDeadline: Record<string, string>;
     cancellationRefunds: Record<string, string>;
   };
 };
@@ -87,9 +94,16 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
     legal: {
       seller: { ja: "", en: "" },
       operationsManager: { ja: "", en: "" },
+      serviceName: { ja: "", en: "" },
+      serviceDescription: { ja: "", en: "" },
       price: { ja: "", en: "" },
       additionalFees: { ja: "", en: "" },
       paymentMethods: { ja: "", en: "" },
+      paymentTiming: { ja: "", en: "" },
+      serviceTiming: { ja: "", en: "" },
+      cancellationChanges: { ja: "", en: "" },
+      refunds: { ja: "", en: "" },
+      applicationDeadline: { ja: "", en: "" },
       cancellationRefunds: { ja: "", en: "" },
     },
   });
@@ -578,7 +592,7 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
               <section className="workspaceCompany">
                 <header>
                   <h1>{showLegal ? "特商法" : showCancellation ? "キャンセルポリシー" : "会社概要"}</h1>
-                  <p>{showLegal ? "特定商取引法に基づく表示内容です。" : showCancellation ? "キャンセル・返金条件を管理します。" : "ウェブアプリで共通利用する会社情報です。"}</p>
+                  <p>{showLegal ? "全サービス共通の事業者情報と、PawsFlight Japanの取引条件を管理します。" : showCancellation ? "キャンセル・返金条件を管理します。" : "ウェブアプリで共通利用する会社情報です。"}</p>
                 </header>
                 <form onSubmit={saveCompany}>
                   <div className="workspaceCompanyTabs" role="tablist" aria-label="編集言語">
@@ -603,11 +617,19 @@ export function Workspace({ role, children, groups: suppliedGroups, tier, compac
                   </fieldset> : null}
                   {showLegal ? <fieldset>
                     <legend>{companyLanguage === "ja" ? "特定商取引法に基づく表記" : "Commercial transactions disclosure"}</legend>
-                    <label>{companyLanguage === "ja" ? "販売事業者" : "Service provider"}<input value={company.legal.seller[companyLanguage] ?? ""} onChange={(event) => updateLegalText("seller", event.target.value)} /></label>
-                    <label>{companyLanguage === "ja" ? "運営責任者" : "Operations manager"}<input value={company.legal.operationsManager[companyLanguage] ?? ""} onChange={(event) => updateLegalText("operationsManager", event.target.value)} /></label>
-                    <label>{companyLanguage === "ja" ? "料金" : "Prices"}<textarea value={company.legal.price[companyLanguage] ?? ""} onChange={(event) => updateLegalText("price", event.target.value)} /></label>
-                    <label>{companyLanguage === "ja" ? "追加費用" : "Additional fees"}<textarea value={company.legal.additionalFees[companyLanguage] ?? ""} onChange={(event) => updateLegalText("additionalFees", event.target.value)} /></label>
-                    <label>{companyLanguage === "ja" ? "支払方法" : "Payment methods"}<textarea value={company.legal.paymentMethods[companyLanguage] ?? ""} onChange={(event) => updateLegalText("paymentMethods", event.target.value)} /></label>
+                    <p className="workspaceCompanyHint">{companyLanguage === "ja" ? "会社名・所在地・電話番号・メールアドレスは「会社概要」の登録内容を共通利用します。" : "Company name, address, phone number, and email are shared with Company Profile."}</p>
+                    <label>{companyLanguage === "ja" ? "販売事業者／役務提供事業者" : "Service provider"}<input placeholder={companyLanguage === "ja" ? "わんだにゃー株式会社" : "Wan Da Nya Inc."} value={company.legal.seller[companyLanguage] ?? ""} onChange={(event) => updateLegalText("seller", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "運営責任者" : "Operations manager"}<input placeholder={companyLanguage === "ja" ? "代表取締役 沖野真記" : "Maki Okino, Representative Director"} value={company.legal.operationsManager[companyLanguage] ?? ""} onChange={(event) => updateLegalText("operationsManager", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "サービス名" : "Service name"}<input placeholder="PawsFlight Japan" value={company.legal.serviceName[companyLanguage] ?? ""} onChange={(event) => updateLegalText("serviceName", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "サービス内容" : "Service description"}<textarea placeholder={companyLanguage === "ja" ? "国際ペット輸送、ハンドキャリー、検疫・輸出入手続支援、国内輸送等" : "International pet transport, hand carry, quarantine and import/export support, domestic transport, etc."} value={company.legal.serviceDescription[companyLanguage] ?? ""} onChange={(event) => updateLegalText("serviceDescription", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "販売価格・サービス料金" : "Prices and service fees"}<textarea placeholder={companyLanguage === "ja" ? "各サービスページまたは見積書に表示" : "Shown on each service page or quotation"} value={company.legal.price[companyLanguage] ?? ""} onChange={(event) => updateLegalText("price", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "料金以外の必要費用" : "Additional costs"}<textarea placeholder={companyLanguage === "ja" ? "航空運賃、検疫・通関関連費用、輸送費、駐車料金、実費等" : "Airfare, quarantine and customs costs, transport, parking, and other actual costs"} value={company.legal.additionalFees[companyLanguage] ?? ""} onChange={(event) => updateLegalText("additionalFees", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "支払方法" : "Payment methods"}<textarea placeholder={companyLanguage === "ja" ? "クレジットカード、銀行振込等" : "Credit card, bank transfer, etc."} value={company.legal.paymentMethods[companyLanguage] ?? ""} onChange={(event) => updateLegalText("paymentMethods", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "支払時期" : "Payment timing"}<textarea placeholder={companyLanguage === "ja" ? "申込時、予約確定時または請求書記載期限" : "At application, booking confirmation, or by the invoice due date"} value={company.legal.paymentTiming[companyLanguage] ?? ""} onChange={(event) => updateLegalText("paymentTiming", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "サービス提供時期" : "Service delivery timing"}<textarea placeholder={companyLanguage === "ja" ? "予約確定後、合意した日時に提供" : "Provided at the agreed date and time after booking confirmation"} value={company.legal.serviceTiming[companyLanguage] ?? ""} onChange={(event) => updateLegalText("serviceTiming", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "キャンセル・変更" : "Cancellation and changes"}<textarea placeholder={companyLanguage === "ja" ? "キャンセル料が発生する時期・割合・変更条件" : "When cancellation fees apply, rates, and change conditions"} value={company.legal.cancellationChanges[companyLanguage] ?? ""} onChange={(event) => updateLegalText("cancellationChanges", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "返金条件" : "Refund policy"}<textarea placeholder={companyLanguage === "ja" ? "キャンセル、航空便欠航、検疫不可等の場合の取扱い" : "Treatment of cancellations, flight cancellations, quarantine rejection, etc."} value={company.legal.refunds[companyLanguage] ?? ""} onChange={(event) => updateLegalText("refunds", event.target.value)} /></label>
+                    <label>{companyLanguage === "ja" ? "申込期限（該当する場合）" : "Application deadline (if applicable)"}<textarea placeholder={companyLanguage === "ja" ? "期限を設けない場合は空欄" : "Leave blank if no deadline applies"} value={company.legal.applicationDeadline[companyLanguage] ?? ""} onChange={(event) => updateLegalText("applicationDeadline", event.target.value)} /></label>
                   </fieldset> : null}
                   {showCancellation ? <fieldset>
                     <legend>{companyLanguage === "ja" ? "キャンセル・返金条件" : "Cancellation and refund policy"}</legend>
