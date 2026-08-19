@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalInput, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
-import { animalSizeOptions, animalSpeciesOptions, animalStatuses, animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalSizeOptions, animalSource, animalSpeciesOptions, animalStatuses, animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const statuses: AnimalStatus[] = [...animalStatuses];
 
@@ -15,6 +15,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
   const session = token ? await resolveSessionCached(token) : null;
   const animal = await identityDispatcher({ action: "get_animal", animalUuid: id });
   if (!animal) notFound();
+  const sourceRetrievedAt = animal.profile.source.retrievedAt;
   const countries = animalWorldCountryOptions();
   const en = session?.language === "en";
 
@@ -28,7 +29,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
     const status = value("status");
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal");
-    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
+    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, source: animalSource(value("sourceUrl"), sourceRetrievedAt) };
     const input: AnimalInput = { tags: splitCommaValues(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: splitCommaValues(value("aliasesJa")), en: splitCommaValues(value("aliasesEn")) }, profile };
     await identityDispatcher({ action: "update_animal", animalUuid: id, animal: input });
     redirect("/main/admin/animals");
@@ -43,6 +44,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
         <label>名称（日本語）<input name="nameJa" required maxLength={80} defaultValue={animal.name.ja} /></label>
         <label>タグ<input name="tags" required defaultValue={animal.tags.join("、")} /></label><label>公開状態<select name="status" defaultValue={animal.status}>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
         <label>学名<input name="scientificName" required defaultValue={animal.profile.scientificName} /></label>
+        <label>{en ? "Source URL" : "参照URL"}<input name="sourceUrl" type="url" defaultValue={animal.profile.source.url} /></label>
       </div></fieldset>
       <fieldset><legend>{label.basic}</legend><div className="adminLanguageEditor">
         <input defaultChecked id="editAnimalLanguageJa" name="editorLanguage" type="radio" value="ja" /><input id="editAnimalLanguageEn" name="editorLanguage" type="radio" value="en" />
