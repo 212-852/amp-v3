@@ -25,7 +25,8 @@ body:has(.driverApp) {
   font-family: var(--font-zen-maru-gothic), "Hiragino Maru Gothic ProN",
     "Hiragino Kaku Gothic ProN", sans-serif;
   font-weight: 500;
-  letter-spacing: .01em;
+  line-height: 1.6;
+  letter-spacing: .025em;
 }
 
 .adminHeader {

@@ -172,9 +172,7 @@ export type AnimalProfile = {
   traits: { ja: string; en: string };
   brachycephalic: boolean;
   heatCaution: boolean;
-  escapeRisk: "low" | "medium" | "high";
   transportMethod: { ja: string; en: string };
-  kote: { ja: string; en: string };
 };
 export type AnimalInput = {
   tags: string[];
@@ -557,9 +555,7 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
       traits: localized(rawProfile.traits),
       brachycephalic: rawProfile.brachycephalic === true,
       heatCaution: rawProfile.heatCaution === true,
-      escapeRisk: ["low", "medium", "high"].includes(String(rawProfile.escapeRisk)) ? rawProfile.escapeRisk as AnimalProfile["escapeRisk"] : "medium",
       transportMethod: localized(rawProfile.transportMethod),
-      kote: localized(rawProfile.kote),
     },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
