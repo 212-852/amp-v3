@@ -46,6 +46,13 @@ type OpenAIResponse = {
   output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
 };
 
+type GeminiResponse = {
+  error?: { code?: number; details?: Array<Record<string, unknown>>; message?: string; status?: string };
+  modelVersion?: string;
+  responseId?: string;
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+};
+
 const animalSchema = {
   type: "object",
   properties: {
@@ -98,16 +105,79 @@ function outputText(result: OpenAIResponse) {
   return result.output?.flatMap((item) => item.content ?? []).find((item) => item.type === "output_text")?.text ?? "";
 }
 
+async function enrichWithGemini(name: string, page: WikiPage, fallback: AnimalSuggestion, fallbackReason: string): Promise<AnimalSuggestion> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL || "gemini-3.7-flash";
+  if (!apiKey) {
+    await debugDispatcher({
+      level: "error",
+      event: "animal_gemini_configuration_missing",
+      data: { name, model, fallbackReason, httpStatus: null, providerCode: "GEMINI_CONFIG_MISSING", requestId: null, message: "GEMINI_API_KEY is not configured" },
+    });
+    return fallback;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: "You extract verified animal breed data from the supplied Wikipedia evidence. Return Japanese and English values. Do not guess unsupported facts; use an empty string when evidence is insufficient. Tags must be short reusable labels without category prefixes." }] },
+        contents: [{ parts: [{ text: JSON.stringify({ searchedName: name, wikipediaTitle: page.title ?? "", wikipediaDescription: page.description ?? "", wikipediaExtract: page.extract ?? "", wikipediaCategories: (page.categories ?? []).map((category) => category.title ?? "").filter(Boolean), fallback }) }] }],
+        generationConfig: { responseFormat: { text: { mimeType: "application/json", schema: animalSchema } } },
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+  } catch (error) {
+    await debugDispatcher({
+      level: "error",
+      event: "animal_gemini_request_failed",
+      data: { name, model, fallbackReason, httpStatus: null, providerCode: error instanceof DOMException && error.name === "TimeoutError" ? "GEMINI_TIMEOUT" : "GEMINI_NETWORK_ERROR", requestId: null, message: error instanceof Error ? error.message : "Unknown error" },
+    });
+    return fallback;
+  }
+
+  const result = await response.json().catch(() => ({})) as GeminiResponse;
+  const requestId = response.headers.get("x-request-id") ?? response.headers.get("x-goog-request-id") ?? result.responseId ?? null;
+  if (!response.ok) {
+    await debugDispatcher({
+      level: "error",
+      event: "animal_gemini_response_error",
+      data: { name, model, fallbackReason, httpStatus: response.status, providerCode: result.error?.status ?? `HTTP_${response.status}`, providerNumericCode: result.error?.code ?? null, providerDetails: result.error?.details ?? null, requestId, message: result.error?.message ?? response.statusText },
+    });
+    return fallback;
+  }
+
+  try {
+    const text = result.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === "string")?.text ?? "";
+    const parsed = JSON.parse(text) as Omit<AnimalSuggestion, "sourceUrl">;
+    const suggestion = { ...fallback, ...parsed, sourceUrl: fallback.sourceUrl };
+    await debugDispatcher({
+      event: "animal_gemini_fetch_succeeded",
+      data: { name, model: result.modelVersion ?? model, fallbackReason, httpStatus: response.status, providerCode: "GEMINI_OK", requestId, sourceUrl: fallback.sourceUrl },
+    });
+    return suggestion;
+  } catch (error) {
+    await debugDispatcher({
+      level: "error",
+      event: "animal_gemini_parse_failed",
+      data: { name, model: result.modelVersion ?? model, fallbackReason, httpStatus: response.status, providerCode: "GEMINI_OUTPUT_PARSE_FAILED", requestId, message: error instanceof Error ? error.message : "Unknown error" },
+    });
+    return fallback;
+  }
+}
+
 async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSuggestion): Promise<AnimalSuggestion> {
   const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_ANIMAL_MODEL || "gpt-5.6-luna";
+  const model = process.env.OPENAI_MODEL || "gpt-5.6-luna";
   if (!apiKey) {
     await debugDispatcher({
       level: "error",
       event: "animal_ai_configuration_missing",
       data: { name, model, httpStatus: null, providerCode: "AI_CONFIG_MISSING", requestId: null, message: "OPENAI_API_KEY is not configured" },
     });
-    return fallback;
+    return enrichWithGemini(name, page, fallback, "AI_CONFIG_MISSING");
   }
 
   let response: Response;
@@ -132,7 +202,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_request_failed",
       data: { name, model, httpStatus: null, providerCode: error instanceof DOMException && error.name === "TimeoutError" ? "AI_TIMEOUT" : "AI_NETWORK_ERROR", requestId: null, message: error instanceof Error ? error.message : "Unknown error" },
     });
-    return fallback;
+    return enrichWithGemini(name, page, fallback, error instanceof DOMException && error.name === "TimeoutError" ? "AI_TIMEOUT" : "AI_NETWORK_ERROR");
   }
 
   const requestId = response.headers.get("x-request-id");
@@ -143,7 +213,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_response_error",
       data: { name, model, httpStatus: response.status, providerCode: result.error?.code ?? `HTTP_${response.status}`, providerType: result.error?.type ?? null, providerParam: result.error?.param ?? null, requestId, message: result.error?.message ?? response.statusText },
     });
-    return fallback;
+    return enrichWithGemini(name, page, fallback, result.error?.code ?? `OPENAI_HTTP_${response.status}`);
   }
 
   try {
@@ -160,7 +230,7 @@ async function enrichWithAI(name: string, page: WikiPage, fallback: AnimalSugges
       event: "animal_ai_parse_failed",
       data: { name, model: result.model ?? model, httpStatus: response.status, providerCode: "AI_OUTPUT_PARSE_FAILED", requestId, message: error instanceof Error ? error.message : "Unknown error" },
     });
-    return fallback;
+    return enrichWithGemini(name, page, fallback, "AI_OUTPUT_PARSE_FAILED");
   }
 }
 
@@ -238,15 +308,24 @@ export async function POST(request: Request) {
       suggestion.tags.length > 0 && "tags",
       suggestion.originJa && "origin",
       suggestion.sizeJa && "size",
+      suggestion.scientificName && "scientificName",
+      suggestion.weightJa && suggestion.weightEn && "weight",
+      suggestion.lifespanJa && suggestion.lifespanEn && "lifespan",
+      suggestion.traitsJa && suggestion.traitsEn && "traits",
     ].filter(Boolean);
     await debugDispatcher({
-      event: "animal_wikipedia_fetch_succeeded",
+      event: "animal_lookup_completed",
       data: {
         name,
-        source: "Wikipedia API + OpenAI Responses API",
+        source: "Wikipedia API with AI fallback chain",
         code: "ANIMAL_LOOKUP_COMPLETED",
         autoFilled,
-        missing: ["scientificName", "weight", "lifespan", "traits"],
+        missing: [
+          !suggestion.scientificName && "scientificName",
+          (!suggestion.weightJa || !suggestion.weightEn) && "weight",
+          (!suggestion.lifespanJa || !suggestion.lifespanEn) && "lifespan",
+          (!suggestion.traitsJa || !suggestion.traitsEn) && "traits",
+        ].filter(Boolean),
         sourceUrl: suggestion.sourceUrl,
       },
     });
