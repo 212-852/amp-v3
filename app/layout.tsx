@@ -3,6 +3,7 @@ import {
   Geist_Mono,
   Hachi_Maru_Pop,
   Klee_One,
+  M_PLUS_Rounded_1c,
   Zen_Maru_Gothic,
 } from "next/font/google";
 import "./globals.css";
@@ -23,6 +24,13 @@ const hachiMaruPop = Hachi_Maru_Pop({
 
 const zenMaruGothic = Zen_Maru_Gothic({
   variable: "--font-zen-maru-gothic",
+  weight: ["400", "500", "700"],
+  display: "swap",
+  preload: false,
+});
+
+const mPlusRounded = M_PLUS_Rounded_1c({
+  variable: "--font-m-plus-rounded",
   weight: ["400", "500", "700"],
   display: "swap",
   preload: false,
@@ -84,7 +92,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${kleeOne.variable} ${hachiMaruPop.variable} ${zenMaruGothic.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${kleeOne.variable} ${hachiMaruPop.variable} ${zenMaruGothic.variable} ${mPlusRounded.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
