@@ -251,7 +251,7 @@ export function AdminTrail({ language = "ja" }: { language?: Language }) {
   const isInbox =
     pathname === "/main/admin/inbox" || pathname === "/admin/inbox";
   const isPets =
-    pathname === "/main/admin/pets" || pathname === "/admin/pets" ||
+    pathname === "/main/admin/animals" || pathname === "/admin/animals" ||
     pathname === "/main/admin/gallery" || pathname === "/admin/gallery";
   const currentLabel = isInbox
     ? getTranslation({ ja: "受信トレイ", en: "Inbox" }, language)

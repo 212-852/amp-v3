@@ -147,7 +147,34 @@ export type IdentityRequest =
       action: "consume_auth_token";
       tokenUuid: string;
       tokenHash: string;
+    }
+  | {
+      action: "list_animals";
+      query?: string;
+    }
+  | {
+      action: "create_animal";
+      animal: AnimalInput;
+      createdBy: string;
     };
+
+export type AnimalStatus = "draft" | "published" | "archived";
+export type AnimalInput = {
+  tags: string[];
+  slug: string;
+  name: { ja: string; en: string };
+  aliases: { ja: string[]; en: string[] };
+  summary: { ja: string; en: string };
+  transport: { ja: string; en: string };
+  crateNote: { ja: string; en: string };
+  imageUrl: string | null;
+  status: AnimalStatus;
+};
+export type AnimalRecord = AnimalInput & {
+  animalUuid: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -328,6 +355,12 @@ export function identityDispatcher(
   displayName: string | null;
   pictureUrl: string | null;
 } | null>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "list_animals" }>,
+): Promise<AnimalRecord[]>;
+export function identityDispatcher(
+  request: Extract<IdentityRequest, { action: "create_animal" }>,
+): Promise<AnimalRecord>;
 export function identityDispatcher(request: IdentityRequest): Promise<unknown>;
 export async function identityDispatcher(request: IdentityRequest) {
   switch (request.action) {
@@ -439,11 +472,64 @@ export async function identityDispatcher(request: IdentityRequest) {
     case "consume_auth_token":
       return consumeAuthToken(request);
 
+    case "list_animals":
+      return listAnimals(request.query);
+
+    case "create_animal":
+      return createAnimal(request.animal, request.createdBy);
+
     default: {
       const exhaustiveCheck: never = request;
       return exhaustiveCheck;
     }
   }
+}
+
+function mapAnimal(row: Record<string, unknown>): AnimalRecord {
+  return {
+    animalUuid: String(row.animal_uuid),
+    tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
+    slug: String(row.slug),
+    name: row.name as AnimalInput["name"],
+    aliases: row.aliases as AnimalInput["aliases"],
+    summary: row.summary as AnimalInput["summary"],
+    transport: row.transport as AnimalInput["transport"],
+    crateNote: row.crate_note as AnimalInput["crateNote"],
+    imageUrl: typeof row.image_url === "string" ? row.image_url : null,
+    status: row.status as AnimalStatus,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+async function listAnimals(query?: string) {
+  const supabase = getSupabaseAdmin();
+  let request = supabase.from("animals").select("*").order("updated_at", { ascending: false }).limit(100);
+  const term = query?.trim().replace(/[,{}%()\"']/g, " ").slice(0, 80);
+  if (term) {
+    request = request.or(`name->>ja.ilike.%${term}%,name->>en.ilike.%${term}%,slug.ilike.%${term}%,aliases->>ja.ilike.%${term}%,aliases->>en.ilike.%${term}%,tags.cs.{${term}}`);
+  }
+  const { data, error } = await request;
+  if (error) throw new Error(`Animal search failed: ${error.message}`);
+  return (data ?? []).map((row) => mapAnimal(row));
+}
+
+async function createAnimal(animal: AnimalInput, createdBy: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("animals").insert({
+    tags: animal.tags,
+    slug: animal.slug,
+    name: animal.name,
+    aliases: animal.aliases,
+    summary: animal.summary,
+    transport: animal.transport,
+    crate_note: animal.crateNote,
+    image_url: animal.imageUrl,
+    status: animal.status,
+    created_by: createdBy,
+  }).select("*").single();
+  if (error) throw new Error(`Animal registration failed: ${error.message}`);
+  return mapAnimal(data);
 }
 
 async function createAuthToken(
