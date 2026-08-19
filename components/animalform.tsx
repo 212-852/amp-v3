@@ -30,22 +30,40 @@ type Suggestion = {
   tags: string[];
   aliasesJa: string[];
   aliasesEn: string[];
+  speciesJa: string;
+  speciesEn: string;
+  scientificName: string;
   originJa: string;
+  originEn: string;
   sizeJa: string;
+  sizeEn: string;
+  weightJa: string;
+  weightEn: string;
+  lifespanJa: string;
+  lifespanEn: string;
+  traitsJa: string;
+  traitsEn: string;
   sourceUrl: string;
 };
 
-const emptySuggestion: Suggestion = { nameJa: "", nameEn: "", tags: [], aliasesJa: [], aliasesEn: [], originJa: "", sizeJa: "", sourceUrl: "" };
+const emptySuggestion: Suggestion = { nameJa: "", nameEn: "", tags: [], aliasesJa: [], aliasesEn: [], speciesJa: "", speciesEn: "", scientificName: "", originJa: "", originEn: "", sizeJa: "", sizeEn: "", weightJa: "", weightEn: "", lifespanJa: "", lifespanEn: "", traitsJa: "", traitsEn: "", sourceUrl: "" };
 
 export function AnimalForm({ action, countries, existingTags, language, modal = false, text }: { action: (formData: FormData) => void | Promise<void>; countries: Array<{ ja: string; en: string }>; existingTags: string[]; language: "ja" | "en"; modal?: boolean; text: Text }) {
   const [nameJa, setNameJa] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [speciesJa, setSpeciesJa] = useState("");
   const [speciesEn, setSpeciesEn] = useState("");
+  const [scientificName, setScientificName] = useState("");
   const [originJa, setOriginJa] = useState("");
   const [originEn, setOriginEn] = useState("");
   const [sizeJa, setSizeJa] = useState("");
   const [sizeEn, setSizeEn] = useState("");
+  const [weightJa, setWeightJa] = useState("");
+  const [weightEn, setWeightEn] = useState("");
+  const [lifespanJa, setLifespanJa] = useState("");
+  const [lifespanEn, setLifespanEn] = useState("");
+  const [traitsJa, setTraitsJa] = useState("");
+  const [traitsEn, setTraitsEn] = useState("");
   const [tags, setTags] = useState("");
   const [suggestion, setSuggestion] = useState(emptySuggestion);
   const [unlocked, setUnlocked] = useState(false);
@@ -73,16 +91,28 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
       lastRequestedName.current = resolvedName;
       setNameJa(resolvedName);
       setNameEn(result.suggestion.nameEn);
-      const matchedCountry = countries.find((country) => country.ja === result.suggestion?.originJa || country.en === result.suggestion?.originJa);
+      const matchedSpecies = animalSpeciesOptions.find((species) => species.ja === result.suggestion?.speciesJa || species.en === result.suggestion?.speciesEn);
+      if (matchedSpecies) {
+        setSpeciesJa(matchedSpecies.ja);
+        setSpeciesEn(matchedSpecies.en);
+      }
+      setScientificName(result.suggestion.scientificName);
+      const matchedCountry = countries.find((country) => country.ja === result.suggestion?.originJa || country.en === result.suggestion?.originEn);
       if (matchedCountry) {
         setOriginJa(matchedCountry.ja);
         setOriginEn(matchedCountry.en);
       }
-      const matchedSize = animalSizeOptions.find((size) => size.ja === result.suggestion?.sizeJa || size.en === result.suggestion?.sizeJa);
+      const matchedSize = animalSizeOptions.find((size) => size.ja === result.suggestion?.sizeJa || size.en === result.suggestion?.sizeEn);
       if (matchedSize) {
         setSizeJa(matchedSize.ja);
         setSizeEn(matchedSize.en);
       }
+      setWeightJa(result.suggestion.weightJa);
+      setWeightEn(result.suggestion.weightEn);
+      setLifespanJa(result.suggestion.lifespanJa);
+      setLifespanEn(result.suggestion.lifespanEn);
+      setTraitsJa(result.suggestion.traitsJa);
+      setTraitsEn(result.suggestion.traitsEn);
       setUnlocked(true);
       setMessage(language === "ja" ? "取得しました。内容を確認・修正してください。" : "Information retrieved. Review and edit it before saving.");
     } catch {
@@ -112,11 +142,10 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
       <label>{language === "ja" ? "名称（日本語）" : "Name (Japanese)"}<input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setSuggestion(emptySuggestion); setUnlocked(false); setMessage(""); }} /><small>{language === "ja" ? "入力後、自動で情報を取得します。" : "Information is retrieved automatically after entry."}</small></label>
       <label>{language === "ja" ? "名称（英語）" : "Name (English)"}<input disabled={!unlocked} name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></label>
       {message ? <p className="adminAnimalStatus" role="status">{message}</p> : null}
-      {suggestion.sourceUrl ? <p className="adminAnimalSource">{language === "ja" ? "取得したページ" : "Retrieved page"}: <a href={suggestion.sourceUrl} rel="noreferrer" target="_blank">{suggestion.nameJa}（Wikipedia）</a></p> : null}
     </div><div className="adminAnimalDivider" />
     <fieldset disabled={!unlocked} className={`adminAnimalDetails${!unlocked ? " isLocked" : ""}`}><div className="adminPetFields adminPetFieldsCommon">
       <label className="adminAnimalTagsField">{text.tags}<input name="tags" required value={tags} onBlur={() => setTags(normalizeTagInput(tags, existingTags))} onChange={(event) => setTags(normalizeComma(event.target.value))} placeholder={language === "ja" ? "犬, 大型犬, 長毛" : "dog, large, long-haired"} /><small>{text.hint}</small>{suggestion.tags.length ? <span className="adminExistingTags adminSuggestedTags"><b>{language === "ja" ? "タグ候補（クリックして追加）" : "Suggested tags (click to add)"}</b><span>{suggestion.tags.map((tag) => <button className={normalizeTagInput(tags, existingTags).split(", ").some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}{existingTags.length ? <span className="adminExistingTags"><b>{language === "ja" ? "登録済みタグ" : "Existing tags"}</b><span>{existingTags.map((tag) => <button className={normalizeTagInput(tags, existingTags).split(", ").some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}</label>
-      <label>{language === "ja" ? "学名" : "Scientific name"}<input name="scientificName" required placeholder="Canis lupus familiaris" /></label>
+      <label>{language === "ja" ? "学名" : "Scientific name"}<input name="scientificName" required value={scientificName} onChange={(event) => setScientificName(event.target.value)} placeholder="Canis lupus familiaris" /></label>
     </div><div className="adminLanguageEditor" key={suggestion.nameEn}>
       <input defaultChecked id="animalLanguageJa" name="editorLanguage" type="radio" value="ja" /><input id="animalLanguageEn" name="editorLanguage" type="radio" value="en" />
       <div className="adminLanguageTabs"><label htmlFor="animalLanguageJa">{language === "ja" ? "日本語" : "Japanese"}</label><label htmlFor="animalLanguageEn">English</label></div>
@@ -126,18 +155,18 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
           <label>{text.aliases}（日本語）<input name="aliasesJa" defaultValue={suggestion.aliasesJa.join("、")} /></label>
           <label>原産国<select name="originJa" required value={originJa} onChange={(event) => { const selected = countries.find((country) => country.ja === event.target.value); setOriginJa(event.target.value); setOriginEn(selected?.en ?? ""); }}><option disabled value="">選択してください</option>{countries.map((country) => <option key={`${country.ja}-${country.en}`} value={country.ja}>{country.ja}</option>)}</select></label>
           <label>サイズ区分<select name="sizeJa" required value={sizeJa} onChange={(event) => { const selected = animalSizeOptions.find((size) => size.ja === event.target.value); setSizeJa(event.target.value); setSizeEn(selected?.en ?? ""); }}><option disabled value="">選択してください</option>{animalSizeOptions.map((size) => <option key={size.ja} value={size.ja}>{size.ja}</option>)}</select></label>
-          <label>体重目安<input name="weightJa" required placeholder="約7〜11kg" /></label>
-          <label>寿命目安<input name="lifespanJa" required placeholder="約12〜15年" /></label>
-          <label>特徴<textarea name="traitsJa" required rows={4} placeholder="警戒心が強い、独立心が強い、活発など" /></label>
+          <label>体重目安<input name="weightJa" required value={weightJa} onChange={(event) => setWeightJa(event.target.value)} placeholder="約7〜11kg" /></label>
+          <label>寿命目安<input name="lifespanJa" required value={lifespanJa} onChange={(event) => setLifespanJa(event.target.value)} placeholder="約12〜15年" /></label>
+          <label>特徴<textarea name="traitsJa" required rows={4} value={traitsJa} onChange={(event) => setTraitsJa(event.target.value)} placeholder="警戒心が強い、独立心が強い、活発など" /></label>
         </div></div>
         <div className="adminLanguagePanel adminLanguagePanel--en"><div className="adminPetFields">
           <label>Animal type<select name="speciesEn" required value={speciesEn} onChange={(event) => { const selected = animalSpeciesOptions.find((species) => species.en === event.target.value); setSpeciesEn(event.target.value); setSpeciesJa(selected?.ja ?? ""); }}><option disabled value="">Select</option>{animalSpeciesOptions.map((species) => <option key={species.en} value={species.en}>{species.en}</option>)}</select></label>
           <label>{text.aliases}（English）<input name="aliasesEn" defaultValue={suggestion.aliasesEn.join(", ")} /></label>
           <label>Country of origin<select name="originEn" required value={originEn} onChange={(event) => { const selected = countries.find((country) => country.en === event.target.value); setOriginEn(event.target.value); setOriginJa(selected?.ja ?? ""); }}><option disabled value="">Select</option>{countries.map((country) => <option key={`${country.en}-${country.ja}`} value={country.en}>{country.en}</option>)}</select></label>
           <label>Size class<select name="sizeEn" required value={sizeEn} onChange={(event) => { const selected = animalSizeOptions.find((size) => size.en === event.target.value); setSizeEn(event.target.value); setSizeJa(selected?.ja ?? ""); }}><option disabled value="">Select</option>{animalSizeOptions.map((size) => <option key={size.en} value={size.en}>{size.en}</option>)}</select></label>
-          <label>Weight guide<input name="weightEn" required placeholder="Approx. 7–11 kg" /></label>
-          <label>Lifespan guide<input name="lifespanEn" required placeholder="Approx. 12–15 years" /></label>
-          <label>Traits<textarea name="traitsEn" required rows={4} placeholder="Alert, independent, active" /></label>
+          <label>Weight guide<input name="weightEn" required value={weightEn} onChange={(event) => setWeightEn(event.target.value)} placeholder="Approx. 7–11 kg" /></label>
+          <label>Lifespan guide<input name="lifespanEn" required value={lifespanEn} onChange={(event) => setLifespanEn(event.target.value)} placeholder="Approx. 12–15 years" /></label>
+          <label>Traits<textarea name="traitsEn" required rows={4} value={traitsEn} onChange={(event) => setTraitsEn(event.target.value)} placeholder="Alert, independent, active" /></label>
         </div></div>
       </div>
     </div></fieldset></fieldset>
