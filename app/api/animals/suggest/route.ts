@@ -180,10 +180,6 @@ async function enrichWithGemini(name: string, page: WikiPage, englishPage: WikiP
     const text = result.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === "string")?.text ?? "";
     const parsed = JSON.parse(text) as Omit<AnimalSuggestion, "sourceUrl">;
     const suggestion = { ...fallback, ...parsed, sourceUrl: fallback.sourceUrl };
-    await debugDispatcher({
-      event: "animal_gemini_fetch_succeeded",
-      data: { name, model: result.modelVersion ?? model, fallbackReason, httpStatus: response.status, providerCode: "GEMINI_OK", requestId, sourceUrl: fallback.sourceUrl },
-    });
     return suggestion;
   } catch (error) {
     await debugDispatcher({
@@ -246,10 +242,6 @@ async function enrichWithAI(name: string, page: WikiPage, englishPage: WikiPage 
   try {
     const parsed = JSON.parse(outputText(result)) as Omit<AnimalSuggestion, "sourceUrl">;
     const suggestion = { ...fallback, ...parsed, sourceUrl: fallback.sourceUrl };
-    await debugDispatcher({
-      event: "animal_ai_fetch_succeeded",
-      data: { name, model: result.model ?? model, httpStatus: response.status, providerCode: "AI_OK", requestId, sourceUrl: fallback.sourceUrl },
-    });
     return suggestion;
   } catch (error) {
     await debugDispatcher({
@@ -337,32 +329,6 @@ export async function POST(request: Request) {
         sourceUrl: ja.fullurl ?? `https://ja.wikipedia.org/wiki/${encodeURIComponent(ja.title)}`,
     };
     const suggestion = await enrichWithAI(name, ja, en, fallback);
-    const autoFilled = [
-      suggestion.nameEn && "nameEn",
-      suggestion.tags.length > 0 && "tags",
-      suggestion.originJa && "origin",
-      suggestion.sizeJa && "size",
-      suggestion.scientificName && "scientificName",
-      suggestion.weightJa && suggestion.weightEn && "weight",
-      suggestion.lifespanJa && suggestion.lifespanEn && "lifespan",
-      suggestion.traitsJa && suggestion.traitsEn && "traits",
-    ].filter(Boolean);
-    await debugDispatcher({
-      event: "animal_lookup_completed",
-      data: {
-        name,
-        source: "Wikipedia API with AI fallback chain",
-        code: "ANIMAL_LOOKUP_COMPLETED",
-        autoFilled,
-        missing: [
-          !suggestion.scientificName && "scientificName",
-          (!suggestion.weightJa || !suggestion.weightEn) && "weight",
-          (!suggestion.lifespanJa || !suggestion.lifespanEn) && "lifespan",
-          (!suggestion.traitsJa || !suggestion.traitsEn) && "traits",
-        ].filter(Boolean),
-        sourceUrl: suggestion.sourceUrl,
-      },
-    });
     return Response.json({ suggestion });
   } catch (error) {
     await debugDispatcher({
