@@ -16,7 +16,6 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
   const [animal, countriesConfig] = await Promise.all([identityDispatcher({ action: "get_animal", animalUuid: id }), identityDispatcher({ action: "get_countries_config" })]);
   if (!animal) notFound();
   const countries = animalCountryOptions(countriesConfig);
-  const preserved = { summary: animal.summary, transport: animal.transport, crateNote: animal.crateNote };
   const en = session?.language === "en";
 
   async function update(formData: FormData) {
@@ -30,7 +29,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal");
     const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
-    const input: AnimalInput = { tags: splitCommaValues(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: splitCommaValues(value("aliasesJa")), en: splitCommaValues(value("aliasesEn")) }, summary: preserved.summary, transport: preserved.transport, crateNote: preserved.crateNote, profile };
+    const input: AnimalInput = { tags: splitCommaValues(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: splitCommaValues(value("aliasesJa")), en: splitCommaValues(value("aliasesEn")) }, profile };
     await identityDispatcher({ action: "update_animal", animalUuid: id, animal: input });
     redirect("/main/admin/animals");
   }

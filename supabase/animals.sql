@@ -4,16 +4,39 @@ create table if not exists public.animals (
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   name jsonb not null default '{}'::jsonb check (jsonb_typeof(name) = 'object' and nullif(btrim(name->>'ja'), '') is not null),
   aliases jsonb not null default '{"ja":[],"en":[]}'::jsonb check (jsonb_typeof(aliases) = 'object'),
-  summary jsonb not null default '{}'::jsonb check (jsonb_typeof(summary) = 'object'),
-  transport jsonb not null default '{}'::jsonb check (jsonb_typeof(transport) = 'object'),
-  crate_note jsonb not null default '{}'::jsonb check (jsonb_typeof(crate_note) = 'object'),
   status text not null default 'draft' check (status in ('draft','published','archived')),
-  profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""},"brachycephalic":false,"heatCaution":false,"escapeRisk":"medium","transportMethod":{"ja":"","en":""},"kote":{"ja":"","en":""}}'::jsonb check (jsonb_typeof(profile) = 'object'),
+  profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""}}'::jsonb check (jsonb_typeof(profile) = 'object'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-alter table public.animals add column if not exists profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""},"brachycephalic":false,"heatCaution":false,"escapeRisk":"medium","transportMethod":{"ja":"","en":""},"kote":{"ja":"","en":""}}'::jsonb;
+alter table public.animals add column if not exists profile jsonb not null default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""}}'::jsonb;
+alter table public.animals alter column profile set default '{"species":{"ja":"","en":""},"scientificName":"","origin":{"ja":"","en":""},"sizeClass":{"ja":"","en":""},"weightGuide":{"ja":"","en":""},"lifespanGuide":{"ja":"","en":""},"traits":{"ja":"","en":""}}'::jsonb;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'animals' and column_name = 'summary'
+  ) then
+    update public.animals
+    set profile = jsonb_set(
+      profile - 'brachycephalic' - 'heatCaution' - 'escapeRisk' - 'transportMethod' - 'kote',
+      '{traits}',
+      jsonb_build_object(
+        'ja', coalesce(nullif(profile #>> '{traits,ja}', ''), summary->>'ja', ''),
+        'en', coalesce(nullif(profile #>> '{traits,en}', ''), summary->>'en', '')
+      )
+    );
+  else
+    update public.animals
+    set profile = profile - 'brachycephalic' - 'heatCaution' - 'escapeRisk' - 'transportMethod' - 'kote';
+  end if;
+end $$;
+alter table public.animals drop constraint if exists animals_profile_check;
+alter table public.animals add constraint animals_profile_check check (jsonb_typeof(profile) = 'object');
+alter table public.animals drop column if exists summary;
+alter table public.animals drop column if exists transport;
+alter table public.animals drop column if exists crate_note;
 
 create index if not exists animals_tags_idx on public.animals using gin (tags);
 create index if not exists animals_name_ja_idx on public.animals (lower(name->>'ja'));

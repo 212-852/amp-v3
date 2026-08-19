@@ -54,7 +54,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
     const values = (key: string) => splitCommaValues(value(key));
     const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
-    await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
+    await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, profile } });
     revalidatePath("/main/admin/animals");
   }
 
@@ -85,7 +85,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
       {animals.map((animal) => <article className="adminPetResult" key={animal.animalUuid}>
         <div className="adminPetThumb"><PawPrint aria-hidden="true" /></div>
         <div className="adminPetResultBody">
-          <div className="adminPetResultTitle"><div className="adminPetDetail"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><p>{animal.summary[language] || animal.summary.ja || animal.tags.join(" · ") || "—"}</p></div><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
+          <div className="adminPetResultTitle"><div className="adminPetDetail"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><p>{animal.profile.traits[language] || animal.profile.traits.ja || animal.tags.join(" · ") || "—"}</p></div><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
           {animal.name.en && language === "ja" ? <p className="adminPetEnglish">{animal.name.en}</p> : null}
         </div>
       </article>)}

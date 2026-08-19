@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { debugDispatcher } from "@/lib/debug";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 
 type WikiPage = {
@@ -70,11 +71,18 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null) as { name?: unknown } | null;
   const name = typeof body?.name === "string" ? body.name.trim().slice(0, 80) : "";
-  if (!name) return Response.json({ error: "名称を入力してください。", debug: { source: "Wikipedia API", ai: false, code: "EMPTY_NAME" } }, { status: 400 });
+  if (!name) return Response.json({ error: "名称を入力してください。" }, { status: 400 });
 
   try {
     const ja = await getJapanesePage(name);
-    if (!ja?.title) return Response.json({ error: "Wikipediaに一致する情報が見つかりませんでした。", debug: { source: "Wikipedia API", ai: false, code: "WIKIPEDIA_NOT_FOUND" } }, { status: 404 });
+    if (!ja?.title) {
+      await debugDispatcher({
+        level: "warn",
+        event: "animal_wikipedia_not_found",
+        data: { name, source: "Wikipedia API", ai: false, code: "WIKIPEDIA_NOT_FOUND" },
+      });
+      return Response.json({ error: "Wikipediaに一致する情報が見つかりませんでした。" }, { status: 404 });
+    }
     const enTitle = ja.langlinks?.[0]?.title ?? "";
     const en = enTitle ? await getEnglishPage(enTitle) : null;
     const categoryTags = (ja.categories ?? [])
@@ -86,8 +94,7 @@ export async function POST(request: Request) {
     const speciesTag = /犬種|犬の品種|原産の犬/.test(categoryText) ? "犬" : /猫種|猫の品種|原産の猫/.test(categoryText) ? "猫" : "";
     const tags = Array.from(new Set([speciesTag, originJa ? `${originJa}原産` : "", sizeJa, ...categoryTags].filter(Boolean))).slice(0, 10);
 
-    return Response.json({
-      suggestion: {
+    const suggestion = {
         nameJa: ja.title,
         nameEn: en?.title ?? enTitle,
         tags,
@@ -96,10 +103,38 @@ export async function POST(request: Request) {
         originJa,
         sizeJa,
         sourceUrl: ja.fullurl ?? `https://ja.wikipedia.org/wiki/${encodeURIComponent(ja.title)}`,
+    };
+    const autoFilled = [
+      suggestion.nameEn && "nameEn",
+      suggestion.tags.length > 0 && "tags",
+      suggestion.originJa && "origin",
+      suggestion.sizeJa && "size",
+    ].filter(Boolean);
+    await debugDispatcher({
+      event: "animal_wikipedia_fetch_succeeded",
+      data: {
+        name,
+        source: "Wikipedia API",
+        ai: false,
+        code: "WIKIPEDIA_OK",
+        autoFilled,
+        missing: ["scientificName", "weight", "lifespan", "traits"],
+        sourceUrl: suggestion.sourceUrl,
       },
-      debug: { source: "Wikipedia API", ai: false, code: "WIKIPEDIA_OK" },
     });
-  } catch {
-    return Response.json({ error: "Wikipediaから情報を取得できませんでした。時間をおいて再度お試しください。", debug: { source: "Wikipedia API", ai: false, code: "WIKIPEDIA_REQUEST_FAILED" } }, { status: 502 });
+    return Response.json({ suggestion });
+  } catch (error) {
+    await debugDispatcher({
+      level: "error",
+      event: "animal_wikipedia_fetch_failed",
+      data: {
+        name,
+        source: "Wikipedia API",
+        ai: false,
+        code: "WIKIPEDIA_REQUEST_FAILED",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+    return Response.json({ error: "Wikipediaから情報を取得できませんでした。時間をおいて再度お試しください。" }, { status: 502 });
   }
 }

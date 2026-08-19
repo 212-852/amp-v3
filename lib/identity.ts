@@ -176,9 +176,6 @@ export type AnimalInput = {
   slug: string;
   name: { ja: string; en: string };
   aliases: { ja: string[]; en: string[] };
-  summary: { ja: string; en: string };
-  transport: { ja: string; en: string };
-  crateNote: { ja: string; en: string };
   status: AnimalStatus;
   profile: AnimalProfile;
 };
@@ -538,9 +535,6 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
     slug: String(row.slug),
     name: row.name as AnimalInput["name"],
     aliases: row.aliases as AnimalInput["aliases"],
-    summary: row.summary as AnimalInput["summary"],
-    transport: row.transport as AnimalInput["transport"],
-    crateNote: row.crate_note as AnimalInput["crateNote"],
     status: row.status as AnimalStatus,
     profile: {
       species: localized(rawProfile.species),
@@ -575,9 +569,6 @@ async function createAnimal(animal: AnimalInput) {
     slug: animal.slug,
     name: animal.name,
     aliases: animal.aliases,
-    summary: animal.summary,
-    transport: animal.transport,
-    crate_note: animal.crateNote,
     status: animal.status,
     profile: animal.profile,
   }).select("*").single();
@@ -596,7 +587,6 @@ async function updateAnimal(animalUuid: string, animal: AnimalInput) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("animals").update({
     tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
-    summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
     status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
   }).eq("animal_uuid", animalUuid).select("*").single();
   if (error) throw new Error(`Animal update failed: ${error.message}`);
