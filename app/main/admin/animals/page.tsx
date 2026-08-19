@@ -4,16 +4,15 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
-import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
-
-const slugify = (value: string) => value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
+import { isAnimalStatus, isEscapeRisk, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: {
     title: "動物データベース",
     search: "名称・別名・タグを検索", add: "新規登録",
     empty: "条件に一致する動物データがありません。", result: "件の登録",
-    basic: "基本情報", details: "公開・輸送情報", nameJa: "名称（日本語）", nameEn: "名称（英語）", tags: "タグ", aliases: "別名・検索語", summaryJa: "特徴（日本語）", summaryEn: "特徴（英語）", transportJa: "輸送条件（日本語）", transportEn: "輸送条件（英語）", crateJa: "クレート目安（日本語）", crateEn: "クレート目安（英語）", status: "公開状態", save: "登録する", hint: "カンマ区切りで複数入力できます。例：犬、大型犬、長毛",
+    basic: "基本情報", details: "公開・輸送情報", nameJa: "名称（日本語）", nameEn: "名称（英語）", tags: "タグ", aliases: "別名・検索語", summaryJa: "特徴（日本語）", summaryEn: "特徴（英語）", transportJa: "輸送条件（日本語）", transportEn: "輸送条件（英語）", crateJa: "クレート目安（日本語）", crateEn: "クレート目安（英語）", status: "公開状態", save: "登録する", hint: "カンマ区切りで複数入力できます。例：犬, 大型犬, 長毛",
     statuses: { draft: "下書き", published: "公開中", archived: "非公開" },
   },
   en: {
@@ -49,14 +48,14 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     const current = sessionToken ? await identityDispatcher({ action: "resolve_session", sessionToken }) : null;
     if (!current || current.role !== "admin") throw new Error("Forbidden");
     const value = (key: string) => String(formData.get(key) ?? "").trim();
-    const status = value("status") as AnimalStatus;
+    const status = value("status");
     const slug = slugify(value("nameEn"));
-    if (!["draft", "published", "archived"].includes(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
-    const split = (key: string) => Array.from(new Map(value(key).split(/[,、]/).map((item) => item.trim()).filter(Boolean).map((item) => [item.toLocaleLowerCase(), item])).values()).slice(0, 20);
-    const escapeRisk = value("escapeRisk") as AnimalProfile["escapeRisk"];
-    if (!["low", "medium", "high"].includes(escapeRisk)) throw new Error("Invalid escape risk");
+    if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
+    const values = (key: string) => splitCommaValues(value(key));
+    const escapeRisk = value("escapeRisk");
+    if (!isEscapeRisk(escapeRisk)) throw new Error("Invalid escape risk");
     const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", escapeRisk, transportMethod: { ja: value("transportJa"), en: value("transportEn") }, kote: { ja: value("koteJa"), en: value("koteEn") } };
-    await identityDispatcher({ action: "create_animal", animal: { tags: split("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: split("aliasesJa"), en: split("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
+    await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
     revalidatePath("/main/admin/animals");
   }
 

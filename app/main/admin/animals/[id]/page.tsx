@@ -4,10 +4,9 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalInput, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
+import { animalStatuses, isAnimalStatus, isEscapeRisk, slugify, splitCommaValues } from "@/lib/form";
 
-const statuses: AnimalStatus[] = ["draft", "published", "archived"];
-const split = (value: string) => value.split(/[,、]/).map((item) => item.trim()).filter(Boolean).slice(0, 20);
-const slugify = (value: string) => value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+const statuses: AnimalStatus[] = [...animalStatuses];
 
 export default async function EditAnimalPage({ params }: PageProps<"/main/admin/animals/[id]">) {
   const { id } = await params;
@@ -26,13 +25,13 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
     const current = sessionToken ? await identityDispatcher({ action: "resolve_session", sessionToken }) : null;
     if (!current || current.role !== "admin") throw new Error("Forbidden");
     const value = (key: string) => String(formData.get(key) ?? "").trim();
-    const status = value("status") as AnimalStatus;
+    const status = value("status");
     const slug = slugify(value("nameEn"));
-    if (!statuses.includes(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal");
-    const escapeRisk = value("escapeRisk") as AnimalProfile["escapeRisk"];
-    if (!["low", "medium", "high"].includes(escapeRisk)) throw new Error("Invalid escape risk");
+    if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal");
+    const escapeRisk = value("escapeRisk");
+    if (!isEscapeRisk(escapeRisk)) throw new Error("Invalid escape risk");
     const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, brachycephalic: value("brachycephalic") === "yes", heatCaution: value("heatCaution") === "yes", escapeRisk, transportMethod: { ja: value("transportJa"), en: value("transportEn") }, kote: { ja: value("koteJa"), en: value("koteEn") } };
-    const input: AnimalInput = { tags: split(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: split(value("aliasesJa")), en: split(value("aliasesEn")) }, summary: preserved.summary, transport: preserved.transport, crateNote: preserved.crateNote, profile };
+    const input: AnimalInput = { tags: splitCommaValues(value("tags")), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: splitCommaValues(value("aliasesJa")), en: splitCommaValues(value("aliasesEn")) }, summary: preserved.summary, transport: preserved.transport, crateNote: preserved.crateNote, profile };
     await identityDispatcher({ action: "update_animal", animalUuid: id, animal: input });
     redirect("/main/admin/animals");
   }

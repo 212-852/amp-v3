@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { AnimalStatus } from "@/lib/identity";
+import { animalStatuses, normalizeComma, normalizeTagInput } from "@/lib/form";
 
 type Text = {
   basic: string;
@@ -36,14 +37,6 @@ type Suggestion = {
 
 const emptySuggestion: Suggestion = { nameJa: "", nameEn: "", tags: [], aliasesJa: [], aliasesEn: [], sourceUrl: "" };
 
-function normalizeTags(value: string, existingTags: string[]) {
-  const existing = new Map(existingTags.map((tag) => [tag.toLocaleLowerCase(), tag]));
-  return Array.from(new Map(value.split(/[,、]/).map((tag) => tag.trim()).filter(Boolean).map((tag) => {
-    const canonical = existing.get(tag.toLocaleLowerCase()) ?? tag;
-    return [canonical.toLocaleLowerCase(), canonical];
-  })).values());
-}
-
 export function AnimalForm({ action, existingTags, language, modal = false, text }: { action: (formData: FormData) => void | Promise<void>; existingTags: string[]; language: "ja" | "en"; modal?: boolean; text: Text }) {
   const [nameJa, setNameJa] = useState("");
   const [nameEn, setNameEn] = useState("");
@@ -71,7 +64,7 @@ export function AnimalForm({ action, existingTags, language, modal = false, text
       lastRequestedName.current = resolvedName;
       setNameJa(resolvedName);
       setNameEn(result.suggestion.nameEn);
-      setTags(normalizeTags(result.suggestion.tags.join("、"), existingTags).join("、"));
+      setTags(normalizeTagInput(result.suggestion.tags.join(", "), existingTags));
       setUnlocked(true);
       setMessage(language === "ja" ? "取得しました。内容を確認・修正してください。" : "Information retrieved. Review and edit it before saving.");
     } catch {
@@ -86,20 +79,21 @@ export function AnimalForm({ action, existingTags, language, modal = false, text
   }, [nameJa, suggest]);
 
   function addExistingTag(tag: string) {
-    setTags(normalizeTags([tags, tag].filter(Boolean).join("、"), existingTags).join("、"));
+    setTags(normalizeTagInput([tags, tag].filter(Boolean).join(", "), existingTags));
   }
 
   const form = <form action={action} className="adminPetForm" onSubmit={() => { if (modal) setModalOpen(false); }}>
     <fieldset><legend>{text.basic}</legend><div className="adminAnimalLookupBlock">
-      <label>{language === "ja" ? "名称" : "Name"}<input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setUnlocked(false); setMessage(""); }} /><small>{language === "ja" ? "入力後、自動で情報を取得します。" : "Information is retrieved automatically after entry."}</small></label>
+      <label>{language === "ja" ? "名称（日本語）" : "Name (Japanese)"}<input name="nameJa" required maxLength={80} value={nameJa} onChange={(event) => { setNameJa(event.target.value); setUnlocked(false); setMessage(""); }} /><small>{language === "ja" ? "入力後、自動で情報を取得します。" : "Information is retrieved automatically after entry."}</small></label>
+      <label>{language === "ja" ? "名称（英語）" : "Name (English)"}<input disabled={!unlocked} name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></label>
       <button className="adminAnimalUnlock" type="button" onClick={() => setUnlocked(true)}><Unlock aria-hidden="true" />{language === "ja" ? "手入力を解放" : "Unlock manual entry"}</button>
       {message ? <p className="adminAnimalStatus" role="status">{message}</p> : null}
       {suggestion.sourceUrl ? <p className="adminAnimalSource">{language === "ja" ? "取得元" : "Source"}: <a href={suggestion.sourceUrl} rel="noreferrer" target="_blank">Wikipedia</a></p> : null}
     </div><div className="adminAnimalDivider" />
     <fieldset disabled={!unlocked} className={`adminAnimalDetails${!unlocked ? " isLocked" : ""}`}><div className="adminPetFields adminPetFieldsCommon">
-      <label className="adminAnimalTagsField">{text.tags}<input name="tags" required value={tags} onBlur={() => setTags(normalizeTags(tags, existingTags).join("、"))} onChange={(event) => setTags(event.target.value)} placeholder={language === "ja" ? "犬、大型犬、長毛" : "dog, large, long-haired"} /><small>{text.hint}</small>{existingTags.length ? <span className="adminExistingTags"><b>{language === "ja" ? "登録済みタグ" : "Existing tags"}</b><span>{existingTags.map((tag) => <button className={normalizeTags(tags, existingTags).some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}</label>
+      <label className="adminAnimalTagsField">{text.tags}<input name="tags" required value={tags} onBlur={() => setTags(normalizeTagInput(tags, existingTags))} onChange={(event) => setTags(normalizeComma(event.target.value))} placeholder={language === "ja" ? "犬, 大型犬, 長毛" : "dog, large, long-haired"} /><small>{text.hint}</small>{existingTags.length ? <span className="adminExistingTags"><b>{language === "ja" ? "登録済みタグ" : "Existing tags"}</b><span>{existingTags.map((tag) => <button className={normalizeTagInput(tags, existingTags).split(", ").some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase()) ? "isSelected" : undefined} key={tag} onClick={() => addExistingTag(tag)} type="button">{tag}</button>)}</span></span> : null}</label>
       <label>{language === "ja" ? "学名" : "Scientific name"}<input name="scientificName" required placeholder="Canis lupus familiaris" /></label>
-      <label>{text.status}<select name="status">{(["draft", "published", "archived"] as AnimalStatus[]).map((item) => <option value={item} key={item}>{text.statuses[item]}</option>)}</select></label>
+      <label>{text.status}<select name="status">{animalStatuses.map((item) => <option value={item} key={item}>{text.statuses[item]}</option>)}</select></label>
       <label>{language === "ja" ? "短頭種" : "Brachycephalic"}<select name="brachycephalic" defaultValue="no"><option value="no">{language === "ja" ? "いいえ" : "No"}</option><option value="yes">{language === "ja" ? "はい" : "Yes"}</option></select></label>
       <label>{language === "ja" ? "暑さ注意" : "Heat caution"}<select name="heatCaution" defaultValue="yes"><option value="no">{language === "ja" ? "なし" : "No"}</option><option value="yes">{language === "ja" ? "あり" : "Yes"}</option></select></label>
       <label>{language === "ja" ? "脱走リスク" : "Escape risk"}<select name="escapeRisk" defaultValue="medium"><option value="low">{language === "ja" ? "低" : "Low"}</option><option value="medium">{language === "ja" ? "中" : "Medium"}</option><option value="high">{language === "ja" ? "高" : "High"}</option></select></label>
@@ -119,7 +113,6 @@ export function AnimalForm({ action, existingTags, language, modal = false, text
           <label>コテ<input name="koteJa" placeholder="内容が決まり次第入力" /></label>
         </div></div>
         <div className="adminLanguagePanel adminLanguagePanel--en"><div className="adminPetFields">
-          <label>{text.nameEn}<input name="nameEn" required maxLength={80} value={nameEn} onChange={(event) => setNameEn(event.target.value)} /></label>
           <label>Animal type<input name="speciesEn" required placeholder="Dog" /></label>
           <label>{text.aliases}（English）<input name="aliasesEn" defaultValue={suggestion.aliasesEn.join(", ")} /></label>
           <label>Origin<input name="originEn" required placeholder="Japan" /></label>
