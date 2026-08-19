@@ -122,7 +122,7 @@
 
 .adminInboxPage {
   display: grid;
-  gap: 22px;
+  gap: 14px;
 }
 
 .workspacePages .workspacePageSection {
@@ -150,14 +150,8 @@
   margin-left: 4px;
 }
 
-.adminInboxHeading h1,
-.adminInboxHeading p {
-  margin: 0;
-}
-
-.adminInboxHeading p {
-  margin-top: 8px;
-}
+.adminInboxHeading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.adminInboxHeading h1 { margin: 0; }
 
 .adminInboxFilters {
   display: flex;
@@ -217,8 +211,8 @@
 
 .adminInboxWorkspace {
   display: grid;
-  min-height: 480px;
-  grid-template-columns: minmax(260px, 38%) minmax(0, 1fr);
+  min-height: 360px;
+  grid-template-columns: 1fr;
   overflow: hidden;
   border: 1px solid #d8d8d8;
   border-radius: 18px;
@@ -235,8 +229,7 @@
 }
 
 .adminInboxList {
-  border-right: 1px solid #e1e1e1;
-  background: #fafafa;
+  background: #fff;
 }
 
 .adminInboxList svg,
@@ -261,14 +254,8 @@
 
 @media (max-width: 700px) {
   .adminInboxWorkspace {
-    min-height: 520px;
+    min-height: 340px;
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .adminInboxList {
-    border-right: 0;
-    border-bottom: 1px solid #e1e1e1;
   }
 
   .adminInboxList,
@@ -869,12 +856,12 @@
   gap: 24px;
   width: min(100%, 1040px);
   margin: 0 auto;
-  padding: 40px;
+  padding: 0;
 }
 
 .adminContentHeading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
 }
@@ -1020,10 +1007,72 @@
 .adminPetNote p { margin: 0; line-height: 1.7; }
 .adminPetEmpty strong { color: #333; }
 .adminPetEmpty p { color: #777; }
+.adminPetAdd,
+.adminPetBack {
+  display: inline-flex; min-height: 46px; align-items: center; gap: 8px; color: #222; font-weight: 800; text-decoration: none;
+}
+.adminPetAdd { width: 52px; min-height: 52px; justify-content: center; border-radius: 50%; background: #222; padding: 0; color: #fff; }
+.adminListTools { position: relative; display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.adminListTools > button, .adminListTools > a, .adminListSearch > summary { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
+.adminListTools svg { width: 20px; }
+.adminListTools .adminPetAdd { width: 52px; height: 52px; border-color: #222; background: #222; color: #fff; }
+.adminListSearch { position: relative; }
+.adminListSearch > summary { list-style: none; }
+.adminListSearch > summary::-webkit-details-marker { display: none; }
+.adminListSearch[open] > form, .adminListSearch[open] > label { position: absolute; top: 54px; right: 0; z-index: 5; display: flex; width: min(82vw, 420px); gap: 8px; border: 1px solid #d5d5d5; border-radius: 14px; background: #fff; padding: 8px; box-shadow: 0 12px 30px rgb(0 0 0 / 12%); }
+.adminListSearch label { display: flex; min-width: 0; flex: 1; align-items: center; gap: 8px; padding: 0 8px; }
+.adminListSearch input { width: 100%; min-height: 42px; border: 0; outline: 0; font: inherit; }
+.adminListSearch form > button { border: 0; border-radius: 10px; background: #222; padding: 0 16px; color: #fff; font: inherit; font-weight: 700; }
+.adminListSort { text-decoration: none; }
+.adminPetAdd svg, .adminPetBack svg { width: 19px; }
+.adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.adminPetSearch select,
+.adminPetSearch button {
+  min-height: 48px; border: 1px solid #d5d5d5; border-radius: 12px; background: #fff; padding: 0 14px; color: #222; font: inherit; font-weight: 700;
+}
+.adminPetSearch button { border-color: #222; background: #222; color: #fff; padding-inline: 24px; }
+.adminPetCount { display: flex; align-items: center; gap: 7px; color: #666; font-size: 14px; }
+.adminPetCount svg { width: 19px; }
+.adminPetResults { display: grid; overflow: hidden; border: 1px solid #d8d8d8; border-radius: 14px; background: #fff; }
+.adminPetResult { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 17px; border-bottom: 1px solid #e5e5e5; background: #fff; padding: 16px 18px; }
+.adminPetResult:last-child { border-bottom: 0; }
+.adminPetResultIcon { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 14px; background: #f1f1f1; }
+.adminPetResultIcon svg { width: 27px; }
+.adminPetThumb { display: grid; width: 72px; height: 72px; place-items: center; overflow: hidden; border: 1px solid #ddd; border-radius: 14px; background: #f1f1f1 center / cover no-repeat; color: #666; }
+.adminPetThumb svg { width: 28px; }
+.adminPetResultBody { min-width: 0; }
+.adminPetResultTitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adminPetResultTitle > span { color: #666; font-size: 12px; font-weight: 800; }
+.adminPetResultTitle h2 { margin: 0; font-size: 20px; }
+.adminPetResultTitle small { margin-left: auto; border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
+.adminPetResultTitle small.status-published { background: #e7f4e9; color: #245d31; }
+.adminPetActions { display: flex; align-items: center; gap: 7px; }
+.adminPetActions form { margin: 0; }
+.adminPetActions a, .adminPetActions button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #333; cursor: pointer; }
+.adminPetActions button { color: #8c2f2f; }
+.adminPetActions svg { width: 17px; }
+.adminPetResultBody > p { margin: 9px 0 0; color: #555; line-height: 1.7; }
+.adminPetResultBody .adminPetEnglish { margin-top: 3px; color: #777; font-size: 13px; }
+.adminPetTags { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.adminPetTags svg { width: 17px; color: #777; }
+.adminPetTags span { border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-size: 12px; font-weight: 700; }
+.adminPetResult dl { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin: 14px 0 0; border-top: 1px solid #ededed; padding-top: 13px; font-size: 13px; }
+.adminPetResult dt { font-weight: 800; }
+.adminPetResult dd { margin: 0; color: #666; }
+.adminPetBack { width: max-content; }
+.adminPetForm { display: grid; gap: 20px; }
+.adminPetForm fieldset { margin: 0; border: 1px solid #d8d8d8; border-radius: 18px; background: #fff; padding: 24px; }
+.adminPetForm legend { padding: 0 8px; font-size: 19px; font-weight: 800; }
+.adminPetFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.adminPetFields label { display: grid; align-content: start; gap: 8px; color: #333; font-size: 14px; font-weight: 800; }
+.adminPetFields input, .adminPetFields select, .adminPetFields textarea { width: 100%; min-height: 48px; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 13px; color: #222; font: inherit; resize: vertical; }
+.adminPetFields small { color: #777; font-weight: 500; }
+.adminPetSave { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 13px; background: #222; padding: 0 24px; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminPetSave svg { width: 19px; }
 
 @media (max-width: 760px) {
-  .adminContentPage { padding: 28px 20px; }
-  .adminContentHeading { display: grid; }
+  .adminContentPage { padding: 0; }
+  .adminContentHeading { display: flex; }
   .adminContentHeading > button { width: 100%; }
   .adminPetTabs { grid-template-columns: 1fr; }
   .adminPetTabs a { justify-content: flex-start; padding: 0 16px; }
@@ -1032,4 +1081,11 @@
   .adminPetBranch { grid-template-columns: auto 1fr; padding-left: 18px; }
   .adminPetBranch > svg { display: none; }
   .adminPetBreed { grid-column: 1 / -1; }
+  .adminPetSearch { grid-template-columns: 1fr; }
+  .adminPetResult { grid-template-columns: 56px minmax(0, 1fr); padding: 16px; }
+  .adminPetThumb { width: 56px; height: 56px; }
+  .adminPetResultIcon { width: 46px; height: 46px; }
+  .adminPetResultTitle small { margin-left: 0; }
+  .adminPetResult dl { grid-template-columns: 1fr; gap: 4px; }
+  .adminPetFields { grid-template-columns: 1fr; }
 }

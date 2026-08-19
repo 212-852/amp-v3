@@ -1,0 +1,73 @@
+import { ArrowDownUp, BookOpen, Pencil, PawPrint, Plus, Search, Tag, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+
+import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
+
+const copy = {
+  ja: {
+    title: "動物データベース",
+    search: "名称・別名・タグを検索", add: "新規登録",
+    empty: "条件に一致する動物データがありません。", result: "件の登録",
+    statuses: { draft: "下書き", published: "公開中", archived: "非公開" },
+  },
+  en: {
+    title: "Animal database",
+    search: "Search names, aliases, or tags", add: "New entry",
+    empty: "No animal records match your search.", result: "records",
+    statuses: { draft: "Draft", published: "Published", archived: "Archived" },
+  },
+} as const;
+
+export const metadata = { title: "動物データベース | Admin" };
+export const dynamic = "force-dynamic";
+
+export default async function AnimalsPage({ searchParams }: PageProps<"/main/admin/animals">) {
+  const params = await searchParams;
+  const query = typeof params.q === "string" ? params.q.slice(0, 80) : "";
+  const sort = params.sort === "name" ? "name" : "newest";
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const session = token ? await identityDispatcher({ action: "resolve_session", sessionToken: token }) : null;
+  const language = session?.language === "en" ? "en" : "ja";
+  const text = copy[language];
+  const animals = await identityDispatcher({ action: "list_animals", query });
+  if (sort === "name") animals.sort((a, b) => (a.name[language] || a.name.ja).localeCompare(b.name[language] || b.name.ja, language));
+  const isOwner = session?.role === "admin" && session.tier === "owner";
+
+  async function removeAnimal(formData: FormData) {
+    "use server";
+    const store = await cookies();
+    const sessionToken = store.get(SESSION_COOKIE_NAME)?.value;
+    const current = sessionToken ? await identityDispatcher({ action: "resolve_session", sessionToken }) : null;
+    if (!current || current.role !== "admin" || current.tier !== "owner") throw new Error("Forbidden");
+    const animalUuid = String(formData.get("animalUuid") ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(animalUuid)) throw new Error("Invalid animal");
+    await identityDispatcher({ action: "delete_animal", animalUuid });
+    revalidatePath("/main/admin/animals");
+  }
+
+  return <section className="adminContentPage adminPetPage">
+    <header className="adminContentHeading">
+      <h1>{text.title}</h1>
+      <div className="adminListTools">
+        <details className="adminListSearch"><summary aria-label={text.search} title={text.search}><Search aria-hidden="true" /></summary><form method="get"><label><Search aria-hidden="true" /><span className="srOnly">{text.search}</span><input name="q" type="search" defaultValue={query} placeholder={text.search} /></label><button type="submit">{language === "ja" ? "検索" : "Search"}</button></form></details>
+        <Link className="adminListSort" href={`?${query ? `q=${encodeURIComponent(query)}&` : ""}sort=${sort === "name" ? "newest" : "name"}`} aria-label={language === "ja" ? "並び替え" : "Sort"} title={language === "ja" ? "並び替え" : "Sort"}><ArrowDownUp aria-hidden="true" /></Link>
+        <Link className="adminPetAdd" href="/main/admin/animals/new" aria-label={text.add} title={text.add}><Plus aria-hidden="true" /></Link>
+      </div>
+    </header>
+
+    <div className="adminPetCount"><BookOpen aria-hidden="true" /><strong>{animals.length}</strong> {text.result}</div>
+    {animals.length ? <div className="adminPetResults">
+      {animals.map((animal) => <article className="adminPetResult" key={animal.animalUuid}>
+        <div className="adminPetThumb" style={animal.imageUrl ? { backgroundImage: `url(${JSON.stringify(animal.imageUrl).slice(1, -1)})` } : undefined}>{animal.imageUrl ? null : <PawPrint aria-hidden="true" />}</div>
+        <div className="adminPetResultBody">
+          <div className="adminPetResultTitle"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
+          {animal.name.en && language === "ja" ? <p className="adminPetEnglish">{animal.name.en}</p> : null}
+          {animal.tags.length ? <div className="adminPetTags"><Tag aria-hidden="true" />{animal.tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+        </div>
+      </article>)}
+    </div> : <div className="adminContentEmpty adminPetEmpty"><Search aria-hidden="true" /><strong>{text.empty}</strong></div>}
+  </section>;
+}
