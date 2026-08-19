@@ -1,31 +1,19 @@
-import { ArrowDownUp, Building2, Mail, MessageCircle, Search, UserRound, UsersRound, X } from "lucide-react";
+import { ArrowDownUp, Search, X } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
-import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
+import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
 
 const copy = {
   ja: {
     title: "受信トレイ",
     search: "名前・件名・メッセージを検索",
-    emptyTitle: "メッセージはまだありません",
-    emptyBody: "受信した会話やメールが、ここに時系列で表示されます。",
     sort: "並び替え",
-    overallMail: "総合メール",
-    personalMail: "個人メール",
-    chat: "個別チャット",
-    group: "グループ",
   },
   en: {
     title: "Inbox",
     search: "Search names, subjects, or messages",
-    emptyTitle: "No messages yet",
-    emptyBody: "Incoming conversations and email will appear here in chronological order.",
     sort: "Sort",
-    overallMail: "Shared email",
-    personalMail: "Personal email",
-    chat: "Direct chat",
-    group: "Group",
   },
 } as const;
 
@@ -39,11 +27,8 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
   const sort = params.sort === "oldest" ? "oldest" : "newest";
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const session = sessionToken
-    ? await identityDispatcher({ action: "resolve_session", sessionToken })
-    : null;
+  const session = sessionToken ? await resolveSessionCached(sessionToken) : null;
   const text = copy[session?.language === "en" ? "en" : "ja"];
-  const canSeeOverallMail = session?.tier === "owner" || session?.tier === "core";
 
   return (
     <section className="adminInboxPage">
@@ -55,19 +40,6 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
         </div>
         {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{session?.language === "en" ? "Searching" : "検索中"}</span><strong>{query}</strong><Link href={`?sort=${sort}`} aria-label={session?.language === "en" ? "Clear search" : "検索を解除"} title={session?.language === "en" ? "Clear search" : "検索を解除"}><X aria-hidden="true" /></Link></div> : null}
       </header>
-
-      <nav className="adminInboxTypes" aria-label={session?.language === "en" ? "Message types" : "メッセージ種別"}>
-        {canSeeOverallMail ? <span title={text.overallMail}><span className="adminInboxTypeIcon adminInboxTypeIcon--shared"><Mail aria-hidden="true" /><Building2 aria-hidden="true" /></span><strong>{text.overallMail}</strong></span> : null}
-        <span title={text.personalMail}><span className="adminInboxTypeIcon"><Mail aria-hidden="true" /><UserRound aria-hidden="true" /></span><strong>{text.personalMail}</strong></span>
-        <span title={text.chat}><span className="adminInboxTypeIcon"><MessageCircle aria-hidden="true" /></span><strong>{text.chat}</strong></span>
-        <span title={text.group}><span className="adminInboxTypeIcon"><UsersRound aria-hidden="true" /></span><strong>{text.group}</strong></span>
-      </nav>
-
-      <div className="adminInboxWorkspace">
-        <section className="adminInboxList">
-          <strong>{text.emptyTitle}</strong>
-        </section>
-      </div>
     </section>
   );
 }

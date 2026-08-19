@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { cache } from "react";
 
 import {
   DEFAULT_LANGUAGE,
@@ -1121,7 +1122,7 @@ async function resolveSession(
   const sessionTokenHash = await hashSessionToken(sessionToken);
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("user_uuid")
+    .select("user_uuid, expires_at")
     .eq("session_token_hash", sessionTokenHash)
     .is("revoked_at", null)
     .gt("expires_at", new Date().toISOString())
@@ -1135,15 +1136,19 @@ async function resolveSession(
     return null;
   }
 
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
-  const { error: renewalError } = await supabase
-    .from("sessions")
-    .update({ expires_at: expiresAt })
-    .eq("session_token_hash", sessionTokenHash)
-    .is("revoked_at", null);
+  let expiresAt = String(session.expires_at);
+  const renewalThreshold = Date.now() + (SESSION_MAX_AGE * 1_000) / 2;
+  if (new Date(expiresAt).getTime() < renewalThreshold) {
+    expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1_000).toISOString();
+    const { error: renewalError } = await supabase
+      .from("sessions")
+      .update({ expires_at: expiresAt })
+      .eq("session_token_hash", sessionTokenHash)
+      .is("revoked_at", null);
 
-  if (renewalError) {
-    throw new Error(`Session renewal failed: ${renewalError.message}`);
+    if (renewalError) {
+      throw new Error(`Session renewal failed: ${renewalError.message}`);
+    }
   }
 
   const { data: user, error: userError } = await supabase
@@ -1180,6 +1185,8 @@ async function resolveSession(
       }
     : null;
 }
+
+export const resolveSessionCached = cache((sessionToken: string) => resolveSession(sessionToken));
 
 async function resolveSessionUser(userUuid: string) {
   const supabase = getSupabaseAdmin();

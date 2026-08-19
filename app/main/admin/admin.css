@@ -271,61 +271,6 @@
   font: inherit;
 }
 
-.adminInboxWorkspace {
-  display: grid;
-  min-height: 360px;
-  grid-template-columns: 1fr;
-  overflow: hidden;
-  border: 1px solid #d8d8d8;
-  border-radius: 18px;
-  background: #fff;
-}
-
-.adminInboxList,
-.adminInboxDetail {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  padding: 36px;
-  text-align: center;
-}
-
-.adminInboxList {
-  background: #fff;
-}
-
-.adminInboxList svg,
-.adminInboxDetail svg {
-  width: 38px;
-  height: 38px;
-  margin-bottom: 14px;
-  color: #777;
-  stroke-width: 1.5;
-}
-
-.adminInboxList strong,
-.adminInboxDetail strong {
-  font-size: 17px;
-}
-
-.adminInboxList p,
-.adminInboxDetail p {
-  max-width: 360px;
-  font-size: 13px;
-}
-
-@media (max-width: 700px) {
-  .adminInboxWorkspace {
-    min-height: 340px;
-    grid-template-columns: 1fr;
-  }
-
-  .adminInboxList,
-  .adminInboxDetail {
-    padding: 28px 20px;
-  }
-}
-
 .workspaceLanguages {
   width: min(100%, 620px);
   margin: 0 auto;
@@ -1176,15 +1121,6 @@
 .adminPetSave { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 13px; background: #222; padding: 0 24px; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
 .adminPetSave:disabled { opacity: .4; cursor: not-allowed; }
 .adminPetSave svg { width: 19px; }
-
-.adminInboxTypes { display: flex; flex-wrap: wrap; gap: 10px; }
-.adminInboxTypes > span { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; border: 1px solid #d8d8d8; border-radius: 12px; background: #fff; padding: 7px 12px; color: #444; font-size: 12px; }
-.adminInboxTypeIcon { position: relative; display: grid; width: 26px; height: 26px; place-items: center; color: #222; }
-.adminInboxTypeIcon > svg { width: 21px; height: 21px; }
-.adminInboxTypeIcon > svg + svg { position: absolute; right: -3px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; padding: 1px; }
-.adminInboxTypeIcon--shared { border-radius: 7px; background: #222; color: #fff; }
-.adminInboxTypeIcon--shared > svg { width: 17px; }
-.adminInboxTypeIcon--shared > svg + svg { background: #222; }
 
 @media (max-width: 760px) {
   .adminContentPage { padding: 0; }

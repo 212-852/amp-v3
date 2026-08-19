@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
-import { identityDispatcher, SESSION_COOKIE_NAME, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
+import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
 
 const slugify = (value: string) => value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 
@@ -34,7 +34,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
   const sort = params.sort === "name" ? "name" : "newest";
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await identityDispatcher({ action: "resolve_session", sessionToken: token }) : null;
+  const session = token ? await resolveSessionCached(token) : null;
   const language = session?.language === "en" ? "en" : "ja";
   const text = copy[language];
   const animals = await identityDispatcher({ action: "list_animals", query });
