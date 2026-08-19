@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { identityDispatcher, SESSION_COOKIE_NAME, type AnimalInput, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
+import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalInput, type AnimalProfile, type AnimalStatus } from "@/lib/identity";
 
 const statuses: AnimalStatus[] = ["draft", "published", "archived"];
 const split = (value: string) => value.split(/[,、]/).map((item) => item.trim()).filter(Boolean).slice(0, 20);
@@ -13,7 +13,7 @@ export default async function EditAnimalPage({ params }: PageProps<"/main/admin/
   const { id } = await params;
   const store = await cookies();
   const token = store.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await identityDispatcher({ action: "resolve_session", sessionToken: token }) : null;
+  const session = token ? await resolveSessionCached(token) : null;
   const animal = await identityDispatcher({ action: "get_animal", animalUuid: id });
   if (!animal) notFound();
   const preserved = { summary: animal.summary, transport: animal.transport, crateNote: animal.crateNote };
