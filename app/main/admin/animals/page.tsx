@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
-import { animalCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalSource, animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: {
@@ -36,8 +36,8 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
   const session = token ? await resolveSessionCached(token) : null;
   const language = session?.language === "en" ? "en" : "ja";
   const text = copy[language];
-  const [animals, countriesConfig] = await Promise.all([identityDispatcher({ action: "list_animals", query }), identityDispatcher({ action: "get_countries_config" })]);
-  const countries = animalCountryOptions(countriesConfig);
+  const animals = await identityDispatcher({ action: "list_animals", query });
+  const countries = animalWorldCountryOptions();
   const existingTags = Array.from(new Set(animals.flatMap((animal) => animal.tags).map((tag) => tag.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, language));
   if (sort === "name") animals.sort((a, b) => (a.name[language] || a.name.ja).localeCompare(b.name[language] || b.name.ja, language));
   const isOwner = session?.role === "admin" && session.tier === "owner";
@@ -53,8 +53,8 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
     const values = (key: string) => splitCommaValues(value(key));
-    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
-    await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, summary: { ja: "", en: "" }, transport: { ja: "", en: "" }, crateNote: { ja: "", en: "" }, profile } });
+    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, source: animalSource(value("sourceUrl")) };
+    await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, profile } });
     revalidatePath("/main/admin/animals");
   }
 
@@ -85,7 +85,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
       {animals.map((animal) => <article className="adminPetResult" key={animal.animalUuid}>
         <div className="adminPetThumb"><PawPrint aria-hidden="true" /></div>
         <div className="adminPetResultBody">
-          <div className="adminPetResultTitle"><div className="adminPetDetail"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><p>{animal.summary[language] || animal.summary.ja || animal.tags.join(" · ") || "—"}</p></div><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
+          <div className="adminPetResultTitle"><div className="adminPetDetail"><h2>{animal.name[language] || animal.name.ja}</h2><small className={`status-${animal.status}`}>{text.statuses[animal.status]}</small><p>{animal.profile.traits[language] || animal.profile.traits.ja || animal.tags.join(" · ") || "—"}</p></div><div className="adminPetActions"><Link href={`/main/admin/animals/${animal.animalUuid}`} aria-label={language === "ja" ? "編集" : "Edit"} title={language === "ja" ? "編集" : "Edit"}><Pencil aria-hidden="true" /></Link>{isOwner ? <form action={removeAnimal}><input type="hidden" name="animalUuid" value={animal.animalUuid} /><button type="submit" aria-label={language === "ja" ? "削除" : "Delete"} title={language === "ja" ? "削除（ownerのみ）" : "Delete (owner only)"}><Trash2 aria-hidden="true" /></button></form> : null}</div></div>
           {animal.name.en && language === "ja" ? <p className="adminPetEnglish">{animal.name.en}</p> : null}
         </div>
       </article>)}

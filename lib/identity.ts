@@ -170,15 +170,13 @@ export type AnimalProfile = {
   weightGuide: { ja: string; en: string };
   lifespanGuide: { ja: string; en: string };
   traits: { ja: string; en: string };
+  source: { provider: string; url: string; retrievedAt: string; checkedAt: string };
 };
 export type AnimalInput = {
   tags: string[];
   slug: string;
   name: { ja: string; en: string };
   aliases: { ja: string[]; en: string[] };
-  summary: { ja: string; en: string };
-  transport: { ja: string; en: string };
-  crateNote: { ja: string; en: string };
   status: AnimalStatus;
   profile: AnimalProfile;
 };
@@ -538,9 +536,6 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
     slug: String(row.slug),
     name: row.name as AnimalInput["name"],
     aliases: row.aliases as AnimalInput["aliases"],
-    summary: row.summary as AnimalInput["summary"],
-    transport: row.transport as AnimalInput["transport"],
-    crateNote: row.crate_note as AnimalInput["crateNote"],
     status: row.status as AnimalStatus,
     profile: {
       species: localized(rawProfile.species),
@@ -550,6 +545,12 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
       weightGuide: localized(rawProfile.weightGuide),
       lifespanGuide: localized(rawProfile.lifespanGuide),
       traits: localized(rawProfile.traits),
+      source: rawProfile.source && typeof rawProfile.source === "object" && !Array.isArray(rawProfile.source) ? {
+        provider: String(rawProfile.source.provider ?? ""),
+        url: String(rawProfile.source.url ?? ""),
+        retrievedAt: String(rawProfile.source.retrievedAt ?? ""),
+        checkedAt: String(rawProfile.source.checkedAt ?? ""),
+      } : { provider: "", url: "", retrievedAt: "", checkedAt: "" },
     },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -575,9 +576,6 @@ async function createAnimal(animal: AnimalInput) {
     slug: animal.slug,
     name: animal.name,
     aliases: animal.aliases,
-    summary: animal.summary,
-    transport: animal.transport,
-    crate_note: animal.crateNote,
     status: animal.status,
     profile: animal.profile,
   }).select("*").single();
@@ -596,7 +594,6 @@ async function updateAnimal(animalUuid: string, animal: AnimalInput) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("animals").update({
     tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
-    summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
     status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
   }).eq("animal_uuid", animalUuid).select("*").single();
   if (error) throw new Error(`Animal update failed: ${error.message}`);
