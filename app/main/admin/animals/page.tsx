@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
-import { animalCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: {
@@ -36,8 +36,8 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
   const session = token ? await resolveSessionCached(token) : null;
   const language = session?.language === "en" ? "en" : "ja";
   const text = copy[language];
-  const [animals, countriesConfig] = await Promise.all([identityDispatcher({ action: "list_animals", query }), identityDispatcher({ action: "get_countries_config" })]);
-  const countries = animalCountryOptions(countriesConfig);
+  const animals = await identityDispatcher({ action: "list_animals", query });
+  const countries = animalWorldCountryOptions();
   const existingTags = Array.from(new Set(animals.flatMap((animal) => animal.tags).map((tag) => tag.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, language));
   if (sort === "name") animals.sort((a, b) => (a.name[language] || a.name.ja).localeCompare(b.name[language] || b.name.ja, language));
   const isOwner = session?.role === "admin" && session.tier === "owner";
