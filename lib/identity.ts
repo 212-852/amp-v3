@@ -162,6 +162,20 @@ export type IdentityRequest =
   | { action: "delete_animal"; animalUuid: string };
 
 export type AnimalStatus = "draft" | "published" | "archived";
+export type AnimalProfile = {
+  species: { ja: string; en: string };
+  scientificName: string;
+  origin: { ja: string; en: string };
+  sizeClass: { ja: string; en: string };
+  weightGuide: { ja: string; en: string };
+  lifespanGuide: { ja: string; en: string };
+  traits: { ja: string; en: string };
+  brachycephalic: boolean;
+  heatCaution: boolean;
+  escapeRisk: "low" | "medium" | "high";
+  transportMethod: { ja: string; en: string };
+  kote: { ja: string; en: string };
+};
 export type AnimalInput = {
   tags: string[];
   slug: string;
@@ -172,6 +186,7 @@ export type AnimalInput = {
   crateNote: { ja: string; en: string };
   imageUrl: string | null;
   status: AnimalStatus;
+  profile: AnimalProfile;
 };
 export type AnimalRecord = AnimalInput & {
   animalUuid: string;
@@ -521,6 +536,8 @@ export async function identityDispatcher(request: IdentityRequest) {
 }
 
 function mapAnimal(row: Record<string, unknown>): AnimalRecord {
+  const rawProfile = row.profile && typeof row.profile === "object" && !Array.isArray(row.profile) ? row.profile as Partial<AnimalProfile> : {};
+  const localized = (value: unknown) => value && typeof value === "object" && !Array.isArray(value) ? { ja: String((value as Record<string, unknown>).ja ?? ""), en: String((value as Record<string, unknown>).en ?? "") } : { ja: "", en: "" };
   return {
     animalUuid: String(row.animal_uuid),
     tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
@@ -532,6 +549,20 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
     crateNote: row.crate_note as AnimalInput["crateNote"],
     imageUrl: typeof row.image_url === "string" ? row.image_url : null,
     status: row.status as AnimalStatus,
+    profile: {
+      species: localized(rawProfile.species),
+      scientificName: typeof rawProfile.scientificName === "string" ? rawProfile.scientificName : "",
+      origin: localized(rawProfile.origin),
+      sizeClass: localized(rawProfile.sizeClass),
+      weightGuide: localized(rawProfile.weightGuide),
+      lifespanGuide: localized(rawProfile.lifespanGuide),
+      traits: localized(rawProfile.traits),
+      brachycephalic: rawProfile.brachycephalic === true,
+      heatCaution: rawProfile.heatCaution === true,
+      escapeRisk: ["low", "medium", "high"].includes(String(rawProfile.escapeRisk)) ? rawProfile.escapeRisk as AnimalProfile["escapeRisk"] : "medium",
+      transportMethod: localized(rawProfile.transportMethod),
+      kote: localized(rawProfile.kote),
+    },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -561,6 +592,7 @@ async function createAnimal(animal: AnimalInput, createdBy: string) {
     crate_note: animal.crateNote,
     image_url: animal.imageUrl,
     status: animal.status,
+    profile: animal.profile,
     created_by: createdBy,
   }).select("*").single();
   if (error) throw new Error(`Animal registration failed: ${error.message}`);
@@ -579,7 +611,7 @@ async function updateAnimal(animalUuid: string, animal: AnimalInput) {
   const { data, error } = await supabase.from("animals").update({
     tags: animal.tags, slug: animal.slug, name: animal.name, aliases: animal.aliases,
     summary: animal.summary, transport: animal.transport, crate_note: animal.crateNote,
-    image_url: animal.imageUrl, status: animal.status, updated_at: new Date().toISOString(),
+    image_url: animal.imageUrl, status: animal.status, profile: animal.profile, updated_at: new Date().toISOString(),
   }).eq("animal_uuid", animalUuid).select("*").single();
   if (error) throw new Error(`Animal update failed: ${error.message}`);
   return mapAnimal(data);

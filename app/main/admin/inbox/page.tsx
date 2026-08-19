@@ -1,4 +1,4 @@
-import { ArrowDownUp, Building2, Mail, MessageCircle, Search, UserRound, UsersRound } from "lucide-react";
+import { ArrowDownUp, Building2, Mail, MessageCircle, Search, UserRound, UsersRound, X } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
@@ -53,6 +53,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
           <details className="adminListSearch"><summary aria-label={text.search} title={text.search}><Search aria-hidden="true" /></summary><form method="get"><label><Search aria-hidden="true" /><span className="srOnly">{text.search}</span><input name="q" type="search" defaultValue={query} placeholder={text.search} /></label><button type="submit">{session?.language === "en" ? "Search" : "検索"}</button></form></details>
           <Link className="adminListSort" href={`?${query ? `q=${encodeURIComponent(query)}&` : ""}sort=${sort === "newest" ? "oldest" : "newest"}`} aria-label={text.sort} title={text.sort}><ArrowDownUp aria-hidden="true" /></Link>
         </div>
+        {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{session?.language === "en" ? "Searching" : "検索中"}</span><strong>{query}</strong><Link href={`?sort=${sort}`} aria-label={session?.language === "en" ? "Clear search" : "検索を解除"} title={session?.language === "en" ? "Clear search" : "検索を解除"}><X aria-hidden="true" /></Link></div> : null}
       </header>
 
       <nav className="adminInboxTypes" aria-label={session?.language === "en" ? "Message types" : "メッセージ種別"}>

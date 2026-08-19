@@ -1,4 +1,4 @@
-import { ArrowDownUp, Pencil, PawPrint, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDownUp, Pencil, PawPrint, Plus, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -55,6 +55,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
         <details className="adminListSearch"><summary aria-label={text.search} title={text.search}><Search aria-hidden="true" /></summary><form method="get"><label><Search aria-hidden="true" /><span className="srOnly">{text.search}</span><input name="q" type="search" defaultValue={query} placeholder={text.search} /></label><button type="submit">{language === "ja" ? "検索" : "Search"}</button></form></details>
         <Link className="adminListSort" href={`?${query ? `q=${encodeURIComponent(query)}&` : ""}sort=${sort === "name" ? "newest" : "name"}`} aria-label={language === "ja" ? "並び替え" : "Sort"} title={language === "ja" ? "並び替え" : "Sort"}><ArrowDownUp aria-hidden="true" /></Link>
       </div>
+      {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{language === "ja" ? "検索中" : "Searching"}</span><strong>{query}</strong><Link href={sort === "name" ? "?sort=name" : "?sort=newest"} aria-label={language === "ja" ? "検索を解除" : "Clear search"} title={language === "ja" ? "検索を解除" : "Clear search"}><X aria-hidden="true" /></Link></div> : null}
     </header>
 
     {animals.length ? <div className="adminPetResults">
