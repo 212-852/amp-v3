@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Save, Unlock } from "lucide-react";
+import { Plus, Search, Save, Unlock, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AnimalStatus } from "@/lib/identity";
@@ -43,7 +43,7 @@ function normalizeTags(value: string, existingTags: string[]) {
   })).values());
 }
 
-export function AnimalForm({ action, existingTags, language, text }: { action: (formData: FormData) => void | Promise<void>; existingTags: string[]; language: "ja" | "en"; text: Text }) {
+export function AnimalForm({ action, existingTags, language, modal = false, text }: { action: (formData: FormData) => void | Promise<void>; existingTags: string[]; language: "ja" | "en"; modal?: boolean; text: Text }) {
   const [nameJa, setNameJa] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [tags, setTags] = useState("");
@@ -51,6 +51,7 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
   const lastRequestedName = useRef("");
 
   const suggest = useCallback(async (force = false) => {
@@ -91,7 +92,7 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
     setTags(normalizeTags([tags, tag].filter(Boolean).join("、"), existingTags).join("、"));
   }
 
-  return <form action={action} className="adminPetForm">
+  const form = <form action={action} className="adminPetForm" onSubmit={() => { if (modal) setModalOpen(false); }}>
     <fieldset><legend>{text.basic}</legend><div className="adminLanguageEditor adminAnimalNameEditor">
       <input defaultChecked id="animalNameLanguageJa" name="nameEditorLanguage" type="radio" value="ja" /><input id="animalNameLanguageEn" name="nameEditorLanguage" type="radio" value="en" />
       <div className="adminLanguageTabs"><label htmlFor="animalNameLanguageJa">日本語</label><label htmlFor="animalNameLanguageEn">English</label></div>
@@ -141,4 +142,16 @@ export function AnimalForm({ action, existingTags, language, text }: { action: (
     </div></fieldset>
     <button className="adminPetSave" disabled={!unlocked} type="submit"><Save aria-hidden="true" />{text.save}</button>
   </form>;
+
+  if (!modal) return form;
+
+  return <>
+    <button className="adminPetAdd" type="button" aria-label={language === "ja" ? "新規登録" : "New entry"} title={language === "ja" ? "新規登録" : "New entry"} onClick={() => setModalOpen(true)}><Plus aria-hidden="true" /></button>
+    {modalOpen ? <div className="adminAnimalModal" role="presentation" onMouseDown={() => setModalOpen(false)}>
+      <section aria-label={language === "ja" ? "新規登録" : "New entry"} aria-modal="true" className="adminAnimalModalPanel" role="dialog" onMouseDown={(event) => event.stopPropagation()}>
+        <header><h2>{language === "ja" ? "新規登録" : "New entry"}</h2><button type="button" aria-label={language === "ja" ? "閉じる" : "Close"} onClick={() => setModalOpen(false)}><X aria-hidden="true" /></button></header>
+        {form}
+      </section>
+    </div> : null}
+  </>;
 }

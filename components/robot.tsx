@@ -249,10 +249,10 @@ export function PortalToolbar({
 export function AdminTrail({ language = "ja" }: { language?: Language }) {
   const pathname = usePathname();
   const isInbox =
-    pathname === "/main/admin/inbox" || pathname === "/admin/inbox";
+    pathname.startsWith("/main/admin/inbox") || pathname.startsWith("/admin/inbox");
   const isPets =
-    pathname === "/main/admin/animals" || pathname === "/admin/animals" ||
-    pathname === "/main/admin/gallery" || pathname === "/admin/gallery";
+    pathname.startsWith("/main/admin/animals") || pathname.startsWith("/admin/animals") ||
+    pathname.startsWith("/main/admin/gallery") || pathname.startsWith("/admin/gallery");
   const currentLabel = isInbox
     ? getTranslation({ ja: "受信トレイ", en: "Inbox" }, language)
     : isPets

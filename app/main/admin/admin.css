@@ -1091,6 +1091,12 @@
 .adminListSort { text-decoration: none; }
 .adminPetAdd svg, .adminPetBack svg { width: 19px; }
 .adminPetAddFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; width: 58px; height: 58px; min-height: 58px; box-shadow: 0 10px 28px rgb(0 0 0 / 22%); }
+.adminAnimalModal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgb(0 0 0 / 36%); padding: 22px; backdrop-filter: blur(3px); }
+.adminAnimalModalPanel { width: min(760px, 100%); max-height: calc(100dvh - 44px); overflow: auto; border-radius: 22px; background: #f7f7f7; padding: 24px; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: adminSearchPop 180ms ease-out both; }
+.adminAnimalModalPanel > header { position: sticky; top: -24px; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -24px -24px 22px; border-bottom: 1px solid #ddd; background: #fff; padding: 18px 24px; }
+.adminAnimalModalPanel > header h2 { margin: 0; font-size: 25px; }
+.adminAnimalModalPanel > header button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #222; cursor: pointer; }
+.adminAnimalModalPanel > header svg { width: 19px; }
 .adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .adminPetSearch select,
 .adminPetSearch button {
@@ -1200,4 +1206,7 @@
   .adminPetActions { flex-direction: column; }
   .adminPetResult dl { grid-template-columns: 1fr; gap: 4px; }
   .adminPetFields { grid-template-columns: 1fr; }
+  .adminAnimalModal { padding: 0; }
+  .adminAnimalModalPanel { width: 100%; max-height: 100dvh; min-height: 100dvh; border-radius: 0; padding: 20px; }
+  .adminAnimalModalPanel > header { top: -20px; margin: -20px -20px 20px; padding: 16px 20px; }
 }
