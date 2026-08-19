@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { AnimalForm } from "@/components/animalform";
 import { identityDispatcher, resolveSessionCached, SESSION_COOKIE_NAME, type AnimalProfile } from "@/lib/identity";
-import { animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
+import { animalSource, animalWorldCountryOptions, isAnimalStatus, slugify, splitCommaValues } from "@/lib/form";
 
 const copy = {
   ja: {
@@ -53,7 +53,7 @@ export default async function AnimalsPage({ searchParams }: PageProps<"/main/adm
     const slug = slugify(value("nameEn"));
     if (!isAnimalStatus(status) || !slug || !value("nameJa") || !value("nameEn")) throw new Error("Invalid animal record");
     const values = (key: string) => splitCommaValues(value(key));
-    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") } };
+    const profile: AnimalProfile = { species: { ja: value("speciesJa"), en: value("speciesEn") }, scientificName: value("scientificName"), origin: { ja: value("originJa"), en: value("originEn") }, sizeClass: { ja: value("sizeJa"), en: value("sizeEn") }, weightGuide: { ja: value("weightJa"), en: value("weightEn") }, lifespanGuide: { ja: value("lifespanJa"), en: value("lifespanEn") }, traits: { ja: value("traitsJa"), en: value("traitsEn") }, source: animalSource(value("sourceUrl")) };
     await identityDispatcher({ action: "create_animal", animal: { tags: values("tags"), status, slug, name: { ja: value("nameJa"), en: value("nameEn") }, aliases: { ja: values("aliasesJa"), en: values("aliasesEn") }, profile } });
     revalidatePath("/main/admin/animals");
   }

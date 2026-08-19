@@ -170,6 +170,7 @@ export type AnimalProfile = {
   weightGuide: { ja: string; en: string };
   lifespanGuide: { ja: string; en: string };
   traits: { ja: string; en: string };
+  source: { provider: string; url: string; retrievedAt: string; checkedAt: string };
 };
 export type AnimalInput = {
   tags: string[];
@@ -544,6 +545,12 @@ function mapAnimal(row: Record<string, unknown>): AnimalRecord {
       weightGuide: localized(rawProfile.weightGuide),
       lifespanGuide: localized(rawProfile.lifespanGuide),
       traits: localized(rawProfile.traits),
+      source: rawProfile.source && typeof rawProfile.source === "object" && !Array.isArray(rawProfile.source) ? {
+        provider: String(rawProfile.source.provider ?? ""),
+        url: String(rawProfile.source.url ?? ""),
+        retrievedAt: String(rawProfile.source.retrievedAt ?? ""),
+        checkedAt: String(rawProfile.source.checkedAt ?? ""),
+      } : { provider: "", url: "", retrievedAt: "", checkedAt: "" },
     },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),

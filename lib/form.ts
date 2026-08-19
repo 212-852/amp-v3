@@ -79,6 +79,18 @@ export function slugify(value: string) {
     .slice(0, 80);
 }
 
+export function animalSource(url: string, retrievedAt = "") {
+  let normalizedUrl = "";
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol === "https:" && /(^|\.)wikipedia\.org$/i.test(parsed.hostname)) normalizedUrl = parsed.toString();
+  } catch {
+    normalizedUrl = "";
+  }
+  const now = new Date().toISOString();
+  return { provider: normalizedUrl ? "Wikipedia" : "", url: normalizedUrl, retrievedAt: retrievedAt || (normalizedUrl ? now : ""), checkedAt: normalizedUrl ? now : "" };
+}
+
 export function isAnimalStatus(value: string): value is (typeof animalStatuses)[number] {
   return animalStatuses.some((status) => status === value);
 }
