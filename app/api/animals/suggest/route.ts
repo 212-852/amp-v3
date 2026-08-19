@@ -152,7 +152,10 @@ async function enrichWithGemini(name: string, page: WikiPage, englishPage: WikiP
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: "You extract verified animal breed data from the supplied Wikipedia evidence. Return Japanese and English values. Do not guess unsupported facts; use an empty string when evidence is insufficient. Tags must be short reusable labels without category prefixes." }] },
         contents: [{ parts: [{ text: JSON.stringify({ searchedName: name, japaneseWikipedia: wikiEvidence(page), englishWikipedia: wikiEvidence(englishPage), fallback }) }] }],
-        generationConfig: { responseFormat: { text: { mimeType: "application/json", schema: animalSchema } } },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: animalSchema,
+        },
       }),
       signal: AbortSignal.timeout(25_000),
     });
