@@ -1020,6 +1020,45 @@
 .adminPetNote p { margin: 0; line-height: 1.7; }
 .adminPetEmpty strong { color: #333; }
 .adminPetEmpty p { color: #777; }
+.adminPetAdd,
+.adminPetBack {
+  display: inline-flex; min-height: 46px; align-items: center; gap: 8px; color: #222; font-weight: 800; text-decoration: none;
+}
+.adminPetAdd { justify-content: center; border-radius: 13px; background: #222; padding: 0 18px; color: #fff; }
+.adminPetAdd svg, .adminPetBack svg { width: 19px; }
+.adminPetSearch { display: grid; grid-template-columns: minmax(0, 1fr) 190px auto; gap: 10px; }
+.adminPetSearch select,
+.adminPetSearch button {
+  min-height: 48px; border: 1px solid #d5d5d5; border-radius: 12px; background: #fff; padding: 0 14px; color: #222; font: inherit; font-weight: 700;
+}
+.adminPetSearch button { border-color: #222; background: #222; color: #fff; padding-inline: 24px; }
+.adminPetCount { display: flex; align-items: center; gap: 7px; color: #666; font-size: 14px; }
+.adminPetCount svg { width: 19px; }
+.adminPetResults { display: grid; gap: 12px; }
+.adminPetResult { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 17px; border: 1px solid #d8d8d8; border-radius: 17px; background: #fff; padding: 20px; }
+.adminPetResultIcon { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 14px; background: #f1f1f1; }
+.adminPetResultIcon svg { width: 27px; }
+.adminPetResultBody { min-width: 0; }
+.adminPetResultTitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adminPetResultTitle > span { color: #666; font-size: 12px; font-weight: 800; }
+.adminPetResultTitle h2 { margin: 0; font-size: 20px; }
+.adminPetResultTitle small { margin-left: auto; border-radius: 999px; background: #ededed; padding: 5px 9px; color: #555; font-weight: 800; }
+.adminPetResultTitle small.status-published { background: #e7f4e9; color: #245d31; }
+.adminPetResultBody > p { margin: 9px 0 0; color: #555; line-height: 1.7; }
+.adminPetResultBody .adminPetEnglish { margin-top: 3px; color: #777; font-size: 13px; }
+.adminPetResult dl { display: grid; grid-template-columns: auto 1fr; gap: 10px; margin: 14px 0 0; border-top: 1px solid #ededed; padding-top: 13px; font-size: 13px; }
+.adminPetResult dt { font-weight: 800; }
+.adminPetResult dd { margin: 0; color: #666; }
+.adminPetBack { width: max-content; }
+.adminPetForm { display: grid; gap: 20px; }
+.adminPetForm fieldset { margin: 0; border: 1px solid #d8d8d8; border-radius: 18px; background: #fff; padding: 24px; }
+.adminPetForm legend { padding: 0 8px; font-size: 19px; font-weight: 800; }
+.adminPetFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.adminPetFields label { display: grid; align-content: start; gap: 8px; color: #333; font-size: 14px; font-weight: 800; }
+.adminPetFields input, .adminPetFields select, .adminPetFields textarea { width: 100%; min-height: 48px; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 13px; color: #222; font: inherit; resize: vertical; }
+.adminPetFields small { color: #777; font-weight: 500; }
+.adminPetSave { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 13px; background: #222; padding: 0 24px; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminPetSave svg { width: 19px; }
 
 @media (max-width: 760px) {
   .adminContentPage { padding: 28px 20px; }
@@ -1032,4 +1071,10 @@
   .adminPetBranch { grid-template-columns: auto 1fr; padding-left: 18px; }
   .adminPetBranch > svg { display: none; }
   .adminPetBreed { grid-column: 1 / -1; }
+  .adminPetSearch { grid-template-columns: 1fr; }
+  .adminPetResult { grid-template-columns: 46px minmax(0, 1fr); padding: 16px; }
+  .adminPetResultIcon { width: 46px; height: 46px; }
+  .adminPetResultTitle small { margin-left: 0; }
+  .adminPetResult dl { grid-template-columns: 1fr; gap: 4px; }
+  .adminPetFields { grid-template-columns: 1fr; }
 }

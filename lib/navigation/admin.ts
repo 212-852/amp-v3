@@ -76,7 +76,7 @@ export const adminNavigation: NavigationGroup[] = [
     id: "pets",
     label: "動物データベース",
     icon: "paw",
-    href: "/main/admin/pets",
+    href: "/main/admin/animals",
     allowedTiers: ["owner", "core"],
     pages: [
       {
