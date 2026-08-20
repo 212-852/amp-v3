@@ -29,15 +29,15 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
   const orders = await listInboxOrders();
   const language = session.language === "en" ? "en" : "ja";
   const service = thread.mailboxAddress.endsWith("@paws-flight.com")
-    ? { Icon: Plane, kind: "Flight", name: "PawsFlight", detail: "AIRPORT PET TRANSPORT" }
+    ? { Icon: Plane, kind: "Flight", name: "PawsFlight" }
     : thread.mailboxAddress.endsWith("@wan.da-nya.com")
-      ? { Icon: PawPrint, kind: "Company", name: language === "en" ? "Wandanya Inc." : "わんだにゃー株式会社", detail: "WANDANYA" }
-      : { Icon: UserRound, kind: "Personal", name: language === "en" ? "Personal inbox" : "個人メール", detail: "PERSONAL" };
+      ? { Icon: PawPrint, kind: "Company", name: language === "en" ? "Wandanya Inc." : "わんだにゃー株式会社" }
+      : { Icon: UserRound, kind: "Personal", name: language === "en" ? "Personal inbox" : "個人メール" };
 
   return (
     <article className="adminMailPage">
       <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Message box" : "メッセージボックス"}</Link>
-      <aside className={`adminMailService is${service.kind}`}><span><Mail aria-hidden="true" /><service.Icon aria-hidden="true" /></span><div><small>{service.detail}</small><strong>{service.name}</strong><p>{thread.mailboxAddress}</p></div></aside>
+      <aside className={`adminMailService is${service.kind}`}><span><Mail aria-hidden="true" /><service.Icon aria-hidden="true" /></span><div><strong>{service.name}</strong><p>{thread.mailboxAddress}</p></div></aside>
       <header className="adminMailHeading"><div><h1>{thread.subject}</h1><p>{thread.senderName}</p><small>{thread.senderAddress}</small></div></header>
       <section className="adminMailMessages">
         {thread.messages.map((message) => <div className={`adminMailMessage is${message.direction === "outbound" ? "Outbound" : "Inbound"}`} key={message.messageUuid}>

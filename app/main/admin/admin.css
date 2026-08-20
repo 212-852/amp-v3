@@ -2,6 +2,27 @@
   --portal-background: #f4f4f4;
 }
 
+.adminOrderDashboard, .adminOrdersPage { display: grid; gap: 18px; }
+.adminOrderDashboard > header h1, .adminOrdersPage > header h1 { margin: 0; font-size: clamp(28px, 8vw, 42px); }
+.adminOrderList { display: grid; overflow: hidden; border: 1px solid #d8d8d8; border-radius: 17px; background: #fff; }
+.adminOrderItem { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 13px; border-bottom: 1px solid #e3e3e3; padding: 15px; }
+.adminOrderItem:last-child { border-bottom: 0; }
+.adminOrderIcon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 14px; background: #222; color: #fff; }
+.adminOrderIcon svg { width: 21px; }
+.adminOrderIcon.isFlight { background: #dff2ff; color: #174f76; }
+.adminOrderItem > div { display: grid; min-width: 0; gap: 4px; }
+.adminOrderItem > div > span { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 10px; }
+.adminOrderItem strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.adminOrderItem time, .adminOrderItem small { color: #777; font-size: 11px; }
+.adminOrderItem p { margin: 2px 0; font-size: 13px; }
+.adminOrderItem footer { display: flex; flex-wrap: wrap; gap: 6px; }
+.adminOrderItem footer span, .adminOrderItem footer b { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d5d5d5; border-radius: 999px; background: #f4f4f4; padding: 3px 8px; font-size: 10px; font-weight: 800; }
+.adminOrderItem footer svg { width: 12px; height: 12px; }
+.adminOrderItem footer b { border-color: #222; background: #222; color: #fff; }
+.adminOrderEmpty { margin: 0; padding: 34px 18px; color: #777; text-align: center; }
+.adminOrderAll { display: inline-flex; min-height: 44px; align-items: center; justify-self: end; gap: 7px; border: 1px solid #222; border-radius: 999px; padding: 8px 15px; color: #222; font-size: 12px; font-weight: 800; text-decoration: none; }
+.adminOrderAll svg { width: 17px; }
+
 .adminProfileModal {
   width: min(100%, 520px) !important;
 }
