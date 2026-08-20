@@ -460,6 +460,7 @@ body:has(.driverApp) {
 .messageBodyActions { display: flex; min-height: 34px; align-items: center; gap: 10px; margin-top: 12px; }
 .messageBodyActions button, .messageOrderButton { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 999px; background: transparent; padding: 5px 11px; color: inherit; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
 .messageBodyActions button:disabled { opacity: .55; cursor: wait; }
+.messageOrderButton:disabled { opacity: .55; cursor: wait; }
 .messageBodyActions svg, .messageOrderButton svg { width: 15px; }
 .messageBodyActions span { color: #666; font-size: 11px; font-weight: 700; }
 .messageAssistToast { position: fixed; z-index: 1400; top: max(20px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 32px); border-radius: 999px; background: #222; padding: 11px 17px; color: #fff; font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 12px 32px rgb(0 0 0 / 25%); }

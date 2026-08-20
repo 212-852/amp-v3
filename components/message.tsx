@@ -31,23 +31,30 @@ export function MessageBody({ threadUuid, messageUuid, originalText, language }:
     }
     setLoading(true);
     setNotice(language === "en" ? "Translating…" : "翻訳中…");
-    const response = await fetch("/api/inbox/assist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "translate", threadUuid, messageUuid, targetLanguage: language }),
-    });
-    const result = await response.json().catch(() => ({})) as { translatedText?: string; error?: string };
-    setLoading(false);
-    if (!response.ok || !result.translatedText) {
-      setNotice(result.error || (language === "en" ? "Translation failed." : "翻訳できませんでした。"));
-      return;
+    try {
+      const response = await fetch("/api/inbox/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "translate", threadUuid, messageUuid, targetLanguage: language }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(65_000),
+      });
+      const result = await response.json().catch(() => ({})) as { translatedText?: string; error?: string };
+      if (!response.ok || !result.translatedText) {
+        setNotice(result.error || (language === "en" ? "Translation failed." : "翻訳できませんでした。"));
+        return;
+      }
+      setTranslatedText(result.translatedText);
+      setTranslated(true);
+      setNotice("");
+    } catch {
+      setNotice(language === "en" ? "The translation request timed out." : "翻訳処理がタイムアウトしました。もう一度お試しください。");
+    } finally {
+      setLoading(false);
     }
-    setTranslatedText(result.translatedText);
-    setTranslated(true);
-    setNotice("");
   }
 
-  return <div className="messageBody"><div className="adminMailText">{translated ? translatedText : originalText}</div><div className="messageBodyActions"><button type="button" onClick={toggleTranslation} disabled={loading}><Languages aria-hidden="true" />{translated ? language === "en" ? "Original" : "原文" : language === "en" ? "Translate" : "翻訳"}</button>{notice ? <span role="status">{notice}</span> : null}</div></div>;
+  return <div className="messageBody"><div className="adminMailText">{translated ? translatedText : originalText}</div><div className="messageBodyActions"><button type="button" onClick={toggleTranslation} disabled={loading}><Languages aria-hidden="true" />{loading ? language === "en" ? "Translating…" : "翻訳中…" : translated ? language === "en" ? "Original" : "原文" : language === "en" ? "Translate" : "翻訳"}</button>{notice ? <span role="status">{notice}</span> : null}</div>{notice ? <span className="messageAssistToast" role="status">{notice}</span> : null}</div>;
 }
 
 export function MessageOrder({ threadUuid, messageUuid, attachmentCount, language }: { threadUuid: string; messageUuid: string; attachmentCount: number; language: Language }) {
@@ -61,19 +68,26 @@ export function MessageOrder({ threadUuid, messageUuid, attachmentCount, languag
     setOpen(true);
     setLoading(true);
     setNotice(language === "en" ? "AI is reading the message…" : "AIがメッセージを読み取っています…");
-    const response = await fetch("/api/inbox/assist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "suggest_order", threadUuid, messageUuid }),
-    });
-    const result = await response.json().catch(() => ({})) as { suggestion?: Suggestion; error?: string };
-    setLoading(false);
-    if (!response.ok || !result.suggestion) {
-      setNotice(result.error || (language === "en" ? "Could not create a suggestion." : "提案を作成できませんでした。"));
-      return;
+    try {
+      const response = await fetch("/api/inbox/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "suggest_order", threadUuid, messageUuid }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(65_000),
+      });
+      const result = await response.json().catch(() => ({})) as { suggestion?: Suggestion; error?: string };
+      if (!response.ok || !result.suggestion) {
+        setNotice(result.error || (language === "en" ? "Could not create a suggestion." : "提案を作成できませんでした。"));
+        return;
+      }
+      setSuggestion(result.suggestion);
+      setNotice("");
+    } catch {
+      setNotice(language === "en" ? "The AI request timed out." : "AIの読み取りがタイムアウトしました。もう一度お試しください。");
+    } finally {
+      setLoading(false);
     }
-    setSuggestion(result.suggestion);
-    setNotice("");
   }
 
   async function submit(formData: FormData) {
@@ -105,5 +119,5 @@ export function MessageOrder({ threadUuid, messageUuid, attachmentCount, languag
     window.setTimeout(() => setNotice(""), 4000);
   }
 
-  return <><button className="messageOrderButton" type="button" onClick={openOrder}><ListPlus aria-hidden="true" />{language === "en" ? "Create order" : "オーダーを作成"}</button>{notice && !open ? <span className="messageAssistToast" role="status">{notice}</span> : null}<Modal label={language === "en" ? "Create order from message" : "メッセージからオーダーを作成"} open={open} onClose={() => !saving && setOpen(false)} overlayClassName="messageOrderOverlay" panelClassName="messageOrderDialog"><div className="messageOrderHeading"><Sparkles aria-hidden="true" /><h2>{language === "en" ? "Create order" : "オーダーを作成"}</h2></div>{loading ? <div className="messageOrderLoading" role="status"><Sparkles aria-hidden="true" /><strong>{notice}</strong></div> : suggestion ? <form className="messageOrderForm" action={submit}><p>{language === "en" ? "AI suggestion. Review and edit before creating." : "AIの提案です。内容を確認・修正してから登録してください。"}</p><label>{language === "en" ? "Order name" : "オーダー名"}<input name="title" defaultValue={suggestion.title} required /></label><label>{language === "en" ? "Business" : "業務区分"}<select name="businessUnit" defaultValue={suggestion.businessUnit}><option value="pawsflight">PawsFlight</option><option value="wandanya">WanDaNya</option><option value="airport">AirPort</option><option value="tokyo">Tokyo</option></select></label><label>{language === "en" ? "Work type" : "業務種別"}<select name="workType" defaultValue={suggestion.workType}><option value="transport">{language === "en" ? "Transport" : "送迎"}</option><option value="charter">{language === "en" ? "Charter" : "貸切"}</option><option value="airport_shuttle">{language === "en" ? "Airport shuttle" : "空港シャトル"}</option><option value="air_transport">{language === "en" ? "Air transport" : "航空輸送"}</option><option value="quarantine">{language === "en" ? "Quarantine" : "検疫・手続き"}</option><option value="other">{language === "en" ? "Other" : "その他"}</option></select></label><label>{language === "en" ? "Date and time" : "日時"}<input type="datetime-local" name="scheduledAt" defaultValue={suggestion.scheduledAt.slice(0, 16)} /></label><label>{language === "en" ? "AI summary / notes" : "AI要約・メモ"}<textarea name="notes" rows={5} defaultValue={suggestion.notes} /></label>{attachmentCount > 0 ? <label className="messageOrderCheck"><input type="checkbox" name="includeAttachments" defaultChecked />{language === "en" ? `Link attachments (${attachmentCount})` : `添付書類も紐づける（${attachmentCount}件）`}</label> : null}{notice ? <p className="messageOrderError" role="alert">{notice}</p> : null}<button type="submit" disabled={saving}>{saving ? language === "en" ? "Creating…" : "作成中…" : language === "en" ? "Create as draft" : "下書きオーダーを作成"}</button></form> : <p className="messageOrderError" role="alert">{notice}</p>}</Modal></>;
+  return <><button className="messageOrderButton" type="button" onClick={openOrder} disabled={loading}><ListPlus aria-hidden="true" />{loading ? language === "en" ? "Reading…" : "読取中…" : language === "en" ? "Create order" : "オーダー作成"}</button>{notice ? <span className="messageAssistToast" role="status">{notice}</span> : null}<Modal label={language === "en" ? "Create order from message" : "メッセージからオーダー作成"} open={open} onClose={() => !saving && setOpen(false)} overlayClassName="messageOrderOverlay" panelClassName="messageOrderDialog"><div className="messageOrderHeading"><Sparkles aria-hidden="true" /><h2>{language === "en" ? "Create order" : "オーダー作成"}</h2></div>{loading ? <div className="messageOrderLoading" role="status"><Sparkles aria-hidden="true" /><strong>{notice}</strong></div> : suggestion ? <form className="messageOrderForm" action={submit}><p>{language === "en" ? "AI suggestion. Review and edit before creating." : "AIの提案です。内容を確認・修正してから登録してください。"}</p><label>{language === "en" ? "Order name" : "オーダー名"}<input name="title" defaultValue={suggestion.title} required /></label><label>{language === "en" ? "Business" : "業務区分"}<select name="businessUnit" defaultValue={suggestion.businessUnit}><option value="pawsflight">PawsFlight</option><option value="wandanya">WanDaNya</option><option value="airport">AirPort</option><option value="tokyo">Tokyo</option></select></label><label>{language === "en" ? "Work type" : "業務種別"}<select name="workType" defaultValue={suggestion.workType}><option value="transport">{language === "en" ? "Transport" : "送迎"}</option><option value="charter">{language === "en" ? "Charter" : "貸切"}</option><option value="airport_shuttle">{language === "en" ? "Airport shuttle" : "空港シャトル"}</option><option value="air_transport">{language === "en" ? "Air transport" : "航空輸送"}</option><option value="quarantine">{language === "en" ? "Quarantine" : "検疫・手続き"}</option><option value="other">{language === "en" ? "Other" : "その他"}</option></select></label><label>{language === "en" ? "Date and time" : "日時"}<input type="datetime-local" name="scheduledAt" defaultValue={suggestion.scheduledAt.slice(0, 16)} /></label><label>{language === "en" ? "AI summary / notes" : "AI要約・メモ"}<textarea name="notes" rows={5} defaultValue={suggestion.notes} /></label>{attachmentCount > 0 ? <label className="messageOrderCheck"><input type="checkbox" name="includeAttachments" defaultChecked />{language === "en" ? `Link attachments (${attachmentCount})` : `添付書類も紐づける（${attachmentCount}件）`}</label> : null}{notice ? <p className="messageOrderError" role="alert">{notice}</p> : null}<button type="submit" disabled={saving}>{saving ? language === "en" ? "Creating…" : "作成中…" : language === "en" ? "Create as draft" : "下書きで登録"}</button></form> : <p className="messageOrderError" role="alert">{notice}</p>}</Modal></>;
 }
