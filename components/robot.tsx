@@ -440,10 +440,14 @@ export function AdminTrail({ language = "ja" }: { language?: Language }) {
   const isPets =
     pathname.startsWith("/main/admin/animals") || pathname.startsWith("/admin/animals") ||
     pathname.startsWith("/main/admin/gallery") || pathname.startsWith("/admin/gallery");
+  const isWorkspace =
+    pathname.startsWith("/main/admin/workspace") || pathname.startsWith("/admin/workspace");
   const currentLabel = isInbox
     ? getTranslation({ ja: "メッセージボックス", en: "Message box" }, language)
     : isPets
       ? getTranslation({ ja: "動物データベース", en: "Animal database" }, language)
+      : isWorkspace
+        ? "Workspace"
         : "";
   const isSubpage = Boolean(currentLabel);
 
