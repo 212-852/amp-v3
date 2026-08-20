@@ -16,10 +16,11 @@ type ReceivedEvent = {
 };
 
 function getResend() {
-  const apiKey = process.env.AMP_MAIL_RESEND_API_KEY
+  const apiKey = process.env.RESEND_RECEIVING_API_KEY
+    ?? process.env.AMP_MAIL_RESEND_API_KEY
     ?? process.env.MAIL_RESEND_API_KEY
     ?? process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("Resend server configuration is missing.");
+  if (!apiKey) throw new Error("Resend receiving configuration is missing.");
   return new Resend(apiKey);
 }
 
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       messageId: email.message_id,
       sender: email.from,
       recipients: email.to,
+      headers: email.headers,
       subject: email.subject,
       text: email.text,
       html: email.html,

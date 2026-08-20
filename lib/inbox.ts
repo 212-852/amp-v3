@@ -109,6 +109,7 @@ export async function receiveInboxEmail(input: {
   messageId: string;
   sender: string;
   recipients: string[];
+  headers: Record<string, string>;
   subject: string;
   text: string | null;
   html: string | null;
@@ -123,12 +124,19 @@ export async function receiveInboxEmail(input: {
     .maybeSingle();
   if (duplicate) return { duplicate: true } as const;
 
-  const recipients = input.recipients.map(normalizeEmail).filter(isEmailAddress);
+  const headerRecipients = ["to", "x-original-to", "x-forwarded-to", "delivered-to"]
+    .flatMap((name) => {
+      const value = Object.entries(input.headers).find(([key]) => key.toLowerCase() === name)?.[1] ?? "";
+      return value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
+    });
+  const recipients = [...new Set([...input.recipients, ...headerRecipients].map(normalizeEmail).filter(isEmailAddress))];
   const { data: mailboxes, error: mailboxError } = await supabase
     .from("inbox_mailboxes")
     .select("mailbox_uuid, address")
     .in("address", recipients);
-  if (mailboxError || !mailboxes?.length) throw new Error("Inbound mailbox could not be resolved.");
+  if (mailboxError || !mailboxes?.length) {
+    throw new Error(`Inbound mailbox could not be resolved: ${recipients.join(", ") || "no recipient"}`);
+  }
 
   const mailbox = mailboxes[0];
   const mailboxAddress = String(mailbox.address);
