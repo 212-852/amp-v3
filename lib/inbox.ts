@@ -67,6 +67,10 @@ function parseSender(value: string) {
   return { name, address };
 }
 
+function normalizeSubject(value: string) {
+  return value.trim().replace(/^(?:(?:re|fw|fwd)\s*:\s*)+/i, "").toLocaleLowerCase();
+}
+
 export async function listSendMailboxes(userUuid: string, tier: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -122,7 +126,7 @@ export async function receiveInboxEmail(input: {
     .select("message_uuid")
     .eq("external_id", externalId)
     .maybeSingle();
-  if (duplicate) return { duplicate: true } as const;
+  if (duplicate) return { ignored: false, duplicate: true } as const;
 
   const headerRecipients = ["to", "x-original-to", "x-forwarded-to", "delivered-to"]
     .flatMap((name) => {
@@ -134,9 +138,8 @@ export async function receiveInboxEmail(input: {
     .from("inbox_mailboxes")
     .select("mailbox_uuid, address")
     .in("address", recipients);
-  if (mailboxError || !mailboxes?.length) {
-    throw new Error(`Inbound mailbox could not be resolved: ${recipients.join(", ") || "no recipient"}`);
-  }
+  if (mailboxError) throw new Error("Inbound mailboxes could not be loaded.");
+  if (!mailboxes?.length) return { ignored: true, duplicate: false } as const;
 
   const mailbox = mailboxes[0];
   const mailboxAddress = String(mailbox.address);
@@ -148,9 +151,20 @@ export async function receiveInboxEmail(input: {
   const bodyText = cleanText(input.text || bodyHtml?.replace(/<[^>]+>/g, " ") || "", 50_000);
   const preview = bodyText.replace(/\s+/g, " ").slice(0, 160);
 
-  const { data: thread, error: threadError } = await supabase
+  const { data: existingThread } = await supabase
     .from("inbox_threads")
-    .insert({
+    .select("thread_uuid, subject")
+    .eq("mailbox_uuid", mailbox.mailbox_uuid)
+    .eq("channel", "email")
+    .eq("sender_address", sender.address)
+    .eq("status", "open")
+    .order("last_message_at", { ascending: false })
+    .limit(50);
+  const matchingThread = existingThread?.find((thread) => normalizeSubject(String(thread.subject)) === normalizeSubject(subject));
+  let threadUuid = matchingThread?.thread_uuid ? String(matchingThread.thread_uuid) : "";
+  let createdThread = false;
+  if (!threadUuid) {
+    const { data: thread, error: threadError } = await supabase.from("inbox_threads").insert({
       mailbox_uuid: mailbox.mailbox_uuid,
       channel: "email",
       subject,
@@ -161,9 +175,13 @@ export async function receiveInboxEmail(input: {
     })
     .select("thread_uuid")
     .single();
-  if (threadError || !thread) throw new Error("Inbound email thread could not be created.");
-
-  const threadUuid = String(thread.thread_uuid);
+    if (threadError || !thread) throw new Error("Inbound email thread could not be created.");
+    threadUuid = String(thread.thread_uuid);
+    createdThread = true;
+  } else {
+    const { error: updateError } = await supabase.from("inbox_threads").update({ subject, preview, last_message_at: input.receivedAt }).eq("thread_uuid", threadUuid);
+    if (updateError) throw new Error("Inbound email thread could not be updated.");
+  }
   const { error: messageError } = await supabase.from("inbox_messages").insert({
     thread_uuid: threadUuid,
     direction: "inbound",
@@ -176,13 +194,14 @@ export async function receiveInboxEmail(input: {
     created_at: input.receivedAt,
   });
   if (messageError) {
-    await supabase.from("inbox_threads").delete().eq("thread_uuid", threadUuid);
-    if (messageError.code === "23505") return { duplicate: true } as const;
+    if (createdThread) await supabase.from("inbox_threads").delete().eq("thread_uuid", threadUuid);
+    if (messageError.code === "23505") return { ignored: false, duplicate: true } as const;
     throw new Error("Inbound email could not be saved.");
   }
 
-  const { error: recipientError } = await supabase.from("inbox_recipients").insert(
+  const { error: recipientError } = await supabase.from("inbox_recipients").upsert(
     userUuids.map((userUuid) => ({ thread_uuid: threadUuid, user_uuid: userUuid, read_at: null })),
+    { onConflict: "thread_uuid,user_uuid" },
   );
   if (recipientError) throw new Error("Inbound email recipients could not be saved.");
 
@@ -197,7 +216,7 @@ export async function receiveInboxEmail(input: {
   if (notifications.some((result) => result.status === "rejected")) {
     await notifyDispatcher({ level: "error", event: "inbox_notification_failed", data: { threadUuid } });
   }
-  return { duplicate: false, threadUuid, mailboxAddress } as const;
+  return { ignored: false, duplicate: false, threadUuid, mailboxAddress } as const;
 }
 
 export async function createContactMessage(input: {
@@ -294,9 +313,19 @@ export async function sendInboxEmail(input: {
   const { mailboxUuid } = await getMailboxRecipients(mailboxAddress);
   const supabase = getSupabaseAdmin();
   const preview = message.replace(/\s+/g, " ").slice(0, 160);
-  const { data: thread, error: threadError } = await supabase
+  const { data: existingThread } = await supabase
     .from("inbox_threads")
-    .insert({
+    .select("thread_uuid, subject")
+    .eq("mailbox_uuid", mailboxUuid)
+    .eq("channel", "email")
+    .eq("sender_address", recipientAddress)
+    .eq("status", "open")
+    .order("last_message_at", { ascending: false })
+    .limit(50);
+  const matchingThread = existingThread?.find((thread) => normalizeSubject(String(thread.subject)) === normalizeSubject(subject));
+  let threadUuid = matchingThread?.thread_uuid ? String(matchingThread.thread_uuid) : "";
+  if (!threadUuid) {
+    const { data: thread, error: threadError } = await supabase.from("inbox_threads").insert({
       mailbox_uuid: mailboxUuid,
       channel: "email",
       subject,
@@ -306,9 +335,12 @@ export async function sendInboxEmail(input: {
     })
     .select("thread_uuid")
     .single();
-  if (threadError || !thread) throw new Error("Sent email thread could not be saved.");
-
-  const threadUuid = String(thread.thread_uuid);
+    if (threadError || !thread) throw new Error("Sent email thread could not be saved.");
+    threadUuid = String(thread.thread_uuid);
+  } else {
+    const { error: updateError } = await supabase.from("inbox_threads").update({ subject, preview, last_message_at: new Date().toISOString() }).eq("thread_uuid", threadUuid);
+    if (updateError) throw new Error("Sent email thread could not be updated.");
+  }
   const { error: messageError } = await supabase.from("inbox_messages").insert({
     thread_uuid: threadUuid,
     direction: "outbound",
@@ -320,11 +352,11 @@ export async function sendInboxEmail(input: {
   });
   if (messageError) throw new Error("Sent email could not be saved.");
 
-  const { error: recipientError } = await supabase.from("inbox_recipients").insert({
+  const { error: recipientError } = await supabase.from("inbox_recipients").upsert({
     thread_uuid: threadUuid,
     user_uuid: input.senderUserUuid,
     read_at: new Date().toISOString(),
-  });
+  }, { onConflict: "thread_uuid,user_uuid" });
   if (recipientError) throw new Error("Sent email recipient could not be saved.");
   return { threadUuid, emailId: data.id };
 }

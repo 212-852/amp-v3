@@ -65,6 +65,7 @@ export async function POST(request: Request) {
       html: email.html,
       receivedAt: email.created_at,
     });
+    if (result.ignored) return Response.json({ received: true, ignored: true });
     if (!result.duplicate) {
       await notifyDispatcher({
         level: "info",
