@@ -13,7 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
 import { Workspace } from "@/components/workspace";
@@ -36,6 +36,15 @@ type PortalToolbarProps = {
   tier?: string;
 };
 
+type ToolbarNotification = {
+  notificationUuid: string;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export function PortalToolbar({
   displayName,
   pictureUrl,
@@ -50,6 +59,13 @@ export function PortalToolbar({
   const [isChatEnabled, setIsChatEnabled] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notificationTab, setNotificationTab] = useState<"notices" | "settings">("notices");
+  const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [notificationPreferences, setNotificationPreferences] = useState({ push: true, line: true });
+  const [notificationSaving, setNotificationSaving] = useState(false);
   const [currentDisplayName, setCurrentDisplayName] = useState(displayName);
   const [profileName, setProfileName] = useState(displayName);
   const [profileLanguage, setProfileLanguage] = useState<Language>(language);
@@ -69,6 +85,69 @@ export function PortalToolbar({
     () => role ? navigationDispatcher(role).filter((item) => item.id !== "home") : [],
     [role],
   );
+
+  const loadNotifications = useCallback(async () => {
+    setNotificationStatus("loading");
+    try {
+      const response = await fetch("/api/notifications", { cache: "no-store" });
+      if (!response.ok) throw new Error("notification_load_failed");
+      const result = await response.json() as {
+        notifications: ToolbarNotification[];
+        unreadCount: number;
+        preferences: { push: boolean; line: boolean };
+      };
+      setNotifications(result.notifications);
+      setUnreadCount(result.unreadCount);
+      setNotificationPreferences(result.preferences);
+      setNotificationStatus("ready");
+    } catch {
+      setNotificationStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => void loadNotifications(), 0);
+    const interval = window.setInterval(() => void loadNotifications(), 30_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [loadNotifications]);
+
+  async function markNotificationRead(notification: ToolbarNotification) {
+    if (!notification.readAt) {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationUuid: notification.notificationUuid }),
+      });
+      if (response.ok) {
+        setNotifications((current) => current.map((item) => item.notificationUuid === notification.notificationUuid ? { ...item, readAt: new Date().toISOString() } : item));
+        setUnreadCount((current) => Math.max(0, current - 1));
+      }
+    }
+    if (notification.actionUrl) router.push(notification.actionUrl);
+  }
+
+  async function updateNotificationPreference(key: "push" | "line") {
+    if (notificationSaving) return;
+    const previous = notificationPreferences;
+    const next = { ...previous, [key]: !previous[key] };
+    setNotificationPreferences(next);
+    setNotificationSaving(true);
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferences: next }),
+      });
+      if (!response.ok) throw new Error("notification_save_failed");
+    } catch {
+      setNotificationPreferences(previous);
+    } finally {
+      setNotificationSaving(false);
+    }
+  }
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,8 +213,16 @@ export function PortalToolbar({
             className="adminToolButton"
             type="button"
             aria-label={getTranslation({ ja: "お知らせ", en: "Notifications" }, language)}
+            aria-haspopup="dialog"
+            aria-expanded={isNotificationOpen}
+            onClick={() => {
+              setNotificationTab("notices");
+              setIsNotificationOpen(true);
+              void loadNotifications();
+            }}
           >
             <Bell aria-hidden="true" />
+            {unreadCount > 0 ? <span className="adminNotificationBadge">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
           </button>
 
           <button
@@ -226,6 +313,37 @@ export function PortalToolbar({
           </form>
         </Modal>
       ) : null}
+
+      <Modal
+        open={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        label={getTranslation({ ja: "お知らせと通知の設定", en: "Notifications and settings" }, language)}
+        overlayClassName="adminModalOverlay adminNotificationOverlay"
+        panelClassName="adminNotificationModal"
+      >
+        <div className="adminNotificationTabs" role="tablist">
+          <button className={notificationTab === "notices" ? "isActive" : ""} type="button" role="tab" aria-selected={notificationTab === "notices"} onClick={() => setNotificationTab("notices")}>
+            {getTranslation({ ja: "お知らせ", en: "Notices" }, language)}
+            {unreadCount > 0 ? <span>{unreadCount}</span> : null}
+          </button>
+          <button className={notificationTab === "settings" ? "isActive" : ""} type="button" role="tab" aria-selected={notificationTab === "settings"} onClick={() => setNotificationTab("settings")}>
+            {getTranslation({ ja: "設定", en: "Settings" }, language)}
+          </button>
+        </div>
+        {notificationTab === "notices" ? (
+          <div className="adminNotificationBody" role="tabpanel">
+            {notificationStatus === "loading" ? <p>{getTranslation({ ja: "読み込み中…", en: "Loading…" }, language)}</p> : null}
+            {notificationStatus === "error" ? <button type="button" onClick={() => void loadNotifications()}>{getTranslation({ ja: "もう一度試す", en: "Try again" }, language)}</button> : null}
+            {notificationStatus === "ready" && notifications.length === 0 ? <p>{getTranslation({ ja: "新しいお知らせはありません", en: "No new notifications" }, language)}</p> : null}
+            {notifications.length > 0 ? <ul>{notifications.map((notification) => <li key={notification.notificationUuid}><button className={notification.readAt ? "" : "isUnread"} type="button" onClick={() => void markNotificationRead(notification)}><span><strong>{notification.title}</strong>{!notification.readAt ? <i /> : null}</span><small>{notification.body}</small><time dateTime={notification.createdAt}>{new Intl.DateTimeFormat(language === "ja" ? "ja-JP" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(notification.createdAt))}</time></button></li>)}</ul> : null}
+          </div>
+        ) : (
+          <div className="adminNotificationSettings" role="tabpanel">
+            <div><span><Bell aria-hidden="true" /></span><p><strong>{getTranslation({ ja: "PWAプッシュ通知", en: "PWA push notifications" }, language)}</strong><small>{getTranslation({ ja: "アプリへ新着を通知します", en: "Notify the installed app" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.push} disabled={notificationSaving} onClick={() => void updateNotificationPreference("push")}><i /></button></div>
+            <div><span className="adminNotificationLine">LINE</span><p><strong>{getTranslation({ ja: "LINE通知", en: "LINE notifications" }, language)}</strong><small>{getTranslation({ ja: "連携したLINEへ通知します", en: "Notify your linked LINE account" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.line} disabled={notificationSaving} onClick={() => void updateNotificationPreference("line")}><i /></button></div>
+          </div>
+        )}
+      </Modal>
 
       {role ? (
         <Modal
