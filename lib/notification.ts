@@ -50,6 +50,16 @@ export type NotificationItem = {
   createdAt: string;
 };
 
+export type NotificationPreferences = {
+  push: boolean;
+  line: boolean;
+};
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  push: true,
+  line: true,
+};
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const NOTIFICATION_KINDS = new Set<NotificationKind>([
@@ -276,6 +286,79 @@ export async function getUnreadNotificationCount(
   }
 
   return count ?? 0;
+}
+
+export async function getNotificationPreferences(
+  userUuid: string,
+): Promise<NotificationPreferences> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("notification")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (error) {
+    throw new Error("Failed to load notification preferences.");
+  }
+
+  const notification = user?.notification;
+  const preferences =
+    notification && typeof notification === "object" && !Array.isArray(notification)
+      ? notification as Record<string, unknown>
+      : {};
+
+  return {
+    push: typeof preferences.push === "boolean"
+      ? preferences.push
+      : DEFAULT_NOTIFICATION_PREFERENCES.push,
+    line: typeof preferences.line === "boolean"
+      ? preferences.line
+      : DEFAULT_NOTIFICATION_PREFERENCES.line,
+  };
+}
+
+export async function updateNotificationPreferences({
+  userUuid,
+  preferences,
+}: {
+  userUuid: string;
+  preferences: NotificationPreferences;
+}): Promise<NotificationPreferences> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: user, error: loadError } = await supabase
+    .from("users")
+    .select("notification")
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (loadError) {
+    throw new Error("Failed to load notification preferences.");
+  }
+
+  const current =
+    user?.notification && typeof user.notification === "object" && !Array.isArray(user.notification)
+      ? user.notification as Record<string, unknown>
+      : {};
+  const next = { ...current, ...preferences };
+  const { error } = await supabase
+    .from("users")
+    .update({ notification: next })
+    .eq("user_uuid", userUuid);
+
+  if (error) {
+    throw new Error("Failed to update notification preferences.");
+  }
+
+  return preferences;
 }
 
 export async function markNotificationRead({

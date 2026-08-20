@@ -3,9 +3,11 @@ import type { NextRequest } from "next/server";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 import {
   getNotifications,
+  getNotificationPreferences,
   getUnreadNotificationCount,
   isNotificationUuid,
   markNotificationRead,
+  updateNotificationPreferences,
 } from "@/lib/notification";
 
 function noStoreJson(body: unknown, init?: ResponseInit) {
@@ -41,16 +43,17 @@ export async function GET(request: NextRequest) {
 
     const requestedLimit = Number(request.nextUrl.searchParams.get("limit") ?? 20);
     const limit = Number.isInteger(requestedLimit) ? requestedLimit : 20;
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, unreadCount, preferences] = await Promise.all([
       getNotifications({
         userUuid: identity.userUuid,
         language: identity.language,
         limit,
       }),
       getUnreadNotificationCount(identity.userUuid),
+      getNotificationPreferences(identity.userUuid),
     ]);
 
-    return noStoreJson({ notifications, unreadCount });
+    return noStoreJson({ notifications, unreadCount, preferences });
   } catch {
     return noStoreJson(
       { error: "Notifications are unavailable." },
@@ -68,11 +71,17 @@ export async function PATCH(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as {
     notificationUuid?: unknown;
+    preferences?: { push?: unknown; line?: unknown };
   } | null;
 
-  if (!isNotificationUuid(body?.notificationUuid)) {
+  const hasNotificationUuid = isNotificationUuid(body?.notificationUuid);
+  const hasPreferences =
+    typeof body?.preferences?.push === "boolean" &&
+    typeof body?.preferences?.line === "boolean";
+
+  if (!hasNotificationUuid && !hasPreferences) {
     return noStoreJson(
-      { error: "Notification UUID is invalid." },
+      { error: "Notification request is invalid." },
       { status: 400 },
     );
   }
@@ -87,10 +96,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    await markNotificationRead({
-      userUuid: identity.userUuid,
-      notificationUuid: body.notificationUuid,
-    });
+    if (hasPreferences) {
+      const preferences = await updateNotificationPreferences({
+        userUuid: identity.userUuid,
+        preferences: {
+          push: body!.preferences!.push as boolean,
+          line: body!.preferences!.line as boolean,
+        },
+      });
+
+      return noStoreJson({ preferences });
+    }
+
+    await markNotificationRead({ userUuid: identity.userUuid, notificationUuid: body!.notificationUuid as string });
 
     return noStoreJson({ read: true });
   } catch {
