@@ -3,10 +3,12 @@ import type { NextRequest } from "next/server";
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
 import {
   getNotifications,
+  getNotificationChannels,
   getNotificationPreferences,
   getUnreadNotificationCount,
   isNotificationUuid,
   markNotificationRead,
+  savePushSubscription,
   updateNotificationPreferences,
 } from "@/lib/notification";
 
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     const requestedLimit = Number(request.nextUrl.searchParams.get("limit") ?? 20);
     const limit = Number.isInteger(requestedLimit) ? requestedLimit : 20;
-    const [notifications, unreadCount, preferences] = await Promise.all([
+    const [notifications, unreadCount, storedPreferences, linkedChannels] = await Promise.all([
       getNotifications({
         userUuid: identity.userUuid,
         language: identity.language,
@@ -51,9 +53,13 @@ export async function GET(request: NextRequest) {
       }),
       getUnreadNotificationCount(identity.userUuid),
       getNotificationPreferences(identity.userUuid),
+      getNotificationChannels(identity.userUuid),
     ]);
 
-    return noStoreJson({ notifications, unreadCount, preferences });
+    const channels = identity.role === "admin"
+      ? { line: linkedChannels.line, google: false, email: false }
+      : linkedChannels;
+    return noStoreJson({ notifications, unreadCount, preferences: storedPreferences, channels });
   } catch {
     return noStoreJson(
       { error: "Notifications are unavailable." },
@@ -71,13 +77,15 @@ export async function PATCH(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as {
     notificationUuid?: unknown;
-    preferences?: { push?: unknown; line?: unknown };
+    primary?: unknown;
+    subscription?: {
+      endpoint?: unknown;
+      keys?: { p256dh?: unknown; auth?: unknown };
+    };
   } | null;
 
   const hasNotificationUuid = isNotificationUuid(body?.notificationUuid);
-  const hasPreferences =
-    typeof body?.preferences?.push === "boolean" &&
-    typeof body?.preferences?.line === "boolean";
+  const hasPreferences = body?.primary === "push" || body?.primary === "line" || body?.primary === "email";
 
   if (!hasNotificationUuid && !hasPreferences) {
     return noStoreJson(
@@ -97,12 +105,33 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (hasPreferences) {
+      const linkedChannels = await getNotificationChannels(identity.userUuid);
+      const channels = identity.role === "admin"
+        ? { line: linkedChannels.line, google: false, email: false }
+        : linkedChannels;
+      const primary = body!.primary as "push" | "line" | "email";
+      if ((primary === "line" && !channels.line) || (primary === "email" && !channels.google && !channels.email)) {
+        return noStoreJson({ error: "Notification channel is not linked." }, { status: 400 });
+      }
+
+      if (primary === "push") {
+        const subscription = body?.subscription;
+        if (typeof subscription?.endpoint !== "string" || typeof subscription.keys?.p256dh !== "string" || typeof subscription.keys?.auth !== "string") {
+          return noStoreJson({ error: "Push subscription is required." }, { status: 400 });
+        }
+        await savePushSubscription({
+          userUuid: identity.userUuid,
+          subscription: {
+            endpoint: subscription.endpoint,
+            keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+          },
+          userAgent: request.headers.get("user-agent"),
+        });
+      }
+
       const preferences = await updateNotificationPreferences({
         userUuid: identity.userUuid,
-        preferences: {
-          push: body!.preferences!.push as boolean,
-          line: body!.preferences!.line as boolean,
-        },
+        primary,
       });
 
       return noStoreJson({ preferences });

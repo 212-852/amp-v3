@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/modal";
+import { Toast } from "@/components/toast";
 import { Workspace } from "@/components/workspace";
 import { navigationDispatcher } from "@/lib/navigation/dispatcher";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/robot/dispatcher";
 import type { RobotRole } from "@/lib/robot/common";
 import { getTranslation, type Language } from "@/lib/i18n";
+import { acquirePushSubscription, isInstalledPwa, type PushMethod } from "@/lib/push";
 
 type PortalToolbarProps = {
   displayName: string;
@@ -64,8 +66,11 @@ export function PortalToolbar({
   const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [notificationPreferences, setNotificationPreferences] = useState({ push: true, line: true });
+  const [notificationPreferences, setNotificationPreferences] = useState({ primary: "line" as PushMethod, push: false, line: true, email: false });
+  const [notificationChannels, setNotificationChannels] = useState({ line: true, google: false, email: false });
   const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
+  const [isPwa, setIsPwa] = useState(false);
   const [currentDisplayName, setCurrentDisplayName] = useState(displayName);
   const [profileName, setProfileName] = useState(displayName);
   const [profileLanguage, setProfileLanguage] = useState<Language>(language);
@@ -94,15 +99,25 @@ export function PortalToolbar({
       const result = await response.json() as {
         notifications: ToolbarNotification[];
         unreadCount: number;
-        preferences: { push: boolean; line: boolean };
+        preferences: { primary: PushMethod; push: boolean; line: boolean; email: boolean };
+        channels: { line: boolean; google: boolean; email: boolean };
       };
       setNotifications(result.notifications);
       setUnreadCount(result.unreadCount);
       setNotificationPreferences(result.preferences);
+      setNotificationChannels(result.channels);
       setNotificationStatus("ready");
     } catch {
       setNotificationStatus("error");
     }
+  }, []);
+
+  useEffect(() => {
+    const displayMode = window.matchMedia("(display-mode: standalone)");
+    const update = () => setIsPwa(isInstalledPwa());
+    update();
+    displayMode.addEventListener("change", update);
+    return () => displayMode.removeEventListener("change", update);
   }, []);
 
   useEffect(() => {
@@ -131,15 +146,20 @@ export function PortalToolbar({
 
   async function updateNotificationPreference(key: "push" | "line") {
     if (notificationSaving) return;
+    if (key === "push" && !isPwa) {
+      setNotificationMessage(getTranslation({ ja: "プッシュ通知を利用するには、アプリをホーム画面へ追加してください", en: "Add the app to your Home Screen to use push notifications" }, language));
+      return;
+    }
     const previous = notificationPreferences;
-    const next = { ...previous, [key]: !previous[key] };
+    const next = { primary: key, push: key === "push", line: key === "line", email: false };
     setNotificationPreferences(next);
     setNotificationSaving(true);
     try {
+      const subscription = key === "push" ? (await acquirePushSubscription()).toJSON() : undefined;
       const response = await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferences: next }),
+        body: JSON.stringify({ primary: key, subscription }),
       });
       if (!response.ok) throw new Error("notification_save_failed");
     } catch {
@@ -318,7 +338,7 @@ export function PortalToolbar({
         open={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         label={getTranslation({ ja: "お知らせと通知の設定", en: "Notifications and settings" }, language)}
-        overlayClassName="adminModalOverlay adminNotificationOverlay"
+        overlayClassName="adminModalOverlay"
         panelClassName="adminNotificationModal"
       >
         <div className="adminNotificationTabs" role="tablist">
@@ -339,11 +359,13 @@ export function PortalToolbar({
           </div>
         ) : (
           <div className="adminNotificationSettings" role="tabpanel">
-            <div><span><Bell aria-hidden="true" /></span><p><strong>{getTranslation({ ja: "PWAプッシュ通知", en: "PWA push notifications" }, language)}</strong><small>{getTranslation({ ja: "アプリへ新着を通知します", en: "Notify the installed app" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.push} disabled={notificationSaving} onClick={() => void updateNotificationPreference("push")}><i /></button></div>
-            <div><span className="adminNotificationLine">LINE</span><p><strong>{getTranslation({ ja: "LINE通知", en: "LINE notifications" }, language)}</strong><small>{getTranslation({ ja: "連携したLINEへ通知します", en: "Notify your linked LINE account" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.line} disabled={notificationSaving} onClick={() => void updateNotificationPreference("line")}><i /></button></div>
+            <div><span><Bell aria-hidden="true" /></span><p><strong>{getTranslation({ ja: "PWAプッシュ通知", en: "PWA push notifications" }, language)}</strong><small>{isPwa ? getTranslation({ ja: "アプリへ新着を通知します", en: "Notify the installed app" }, language) : getTranslation({ ja: "ホーム画面への追加後に選択できます", en: "Available after adding the app to your Home Screen" }, language)}</small></p><button type="button" role="switch" aria-checked={isPwa && notificationPreferences.push} aria-disabled={!isPwa} disabled={notificationSaving} onClick={() => void updateNotificationPreference("push")}><i /></button></div>
+            {notificationChannels.line ? <div><span className="adminNotificationLine">LINE</span><p><strong>{getTranslation({ ja: "LINE通知", en: "LINE notifications" }, language)}</strong><small>{getTranslation({ ja: "管理者のLINEへ通知します", en: "Notify the admin LINE account" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.line} disabled={notificationSaving} onClick={() => void updateNotificationPreference("line")}><i /></button></div> : null}
           </div>
         )}
       </Modal>
+
+      <Toast message={notificationMessage} onClose={() => setNotificationMessage(null)} />
 
       {role ? (
         <Modal

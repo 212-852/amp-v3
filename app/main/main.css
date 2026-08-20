@@ -446,14 +446,8 @@
   text-align: left;
 }
 
-.notificationModalOverlay {
-  align-items: start;
-  padding-top: max(18px, env(safe-area-inset-top));
-  place-items: start center;
-}
-
 .notificationModalPanel {
-  animation: notificationDrop 420ms cubic-bezier(.2, .8, .25, 1) both;
+  animation: modalDropBounce 720ms cubic-bezier(0.22, 0.76, 0.3, 1.16) both;
 }
 
 .notificationTabs {
@@ -694,6 +688,11 @@
 .notificationToggle:disabled {
   cursor: not-allowed;
   opacity: .55;
+}
+
+.notificationToggle[aria-disabled="true"] {
+  background: #d8cbbb;
+  opacity: .58;
 }
 
 .notificationToggle:focus-visible {
@@ -1089,18 +1088,6 @@
   }
 
   100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes notificationDrop {
-  from {
-    opacity: 0;
-    transform: translateY(-32px) scale(.98);
-  }
-
-  to {
-    opacity: 1;
     transform: translateY(0) scale(1);
   }
 }

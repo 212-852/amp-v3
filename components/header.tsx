@@ -16,6 +16,7 @@ import {
   getTranslation,
   type Language,
 } from "@/lib/i18n";
+import { acquirePushSubscription, isInstalledPwa, type PushMethod } from "@/lib/push";
 
 type SupabaseIdentity = {
   displayName: string;
@@ -151,8 +152,9 @@ export function AppHeader() {
   const [notificationTab, setNotificationTab] = useState<"notices" | "settings">("notices");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notificationPreferences, setNotificationPreferences] = useState({ push: true, line: true });
-  const [notificationPreferenceSaving, setNotificationPreferenceSaving] = useState<"push" | "line" | null>(null);
+  const [notificationPreferences, setNotificationPreferences] = useState({ primary: "line" as PushMethod, push: false, line: true, email: false });
+  const [notificationChannels, setNotificationChannels] = useState({ line: false, google: false, email: false });
+  const [notificationPreferenceSaving, setNotificationPreferenceSaving] = useState<"push" | "line" | "email" | null>(null);
   const [notificationPreferenceMessage, setNotificationPreferenceMessage] = useState<string | null>(null);
   const [notificationStatus, setNotificationStatus] = useState<
     "idle" | "loading" | "ready" | "error"
@@ -210,30 +212,38 @@ export function AppHeader() {
       const result = (await response.json()) as {
         notifications: NotificationItem[];
         unreadCount: number;
-        preferences: { push: boolean; line: boolean };
+        preferences: { primary: PushMethod; push: boolean; line: boolean; email: boolean };
+        channels: { line: boolean; google: boolean; email: boolean };
       };
       setNotifications(result.notifications);
       setUnreadCount(result.unreadCount);
       setNotificationPreferences(result.preferences);
+      setNotificationChannels(result.channels);
       setNotificationStatus("ready");
     } catch {
       setNotificationStatus("error");
     }
   }, []);
 
-  const updateNotificationPreference = useCallback(async (key: "push" | "line") => {
+  const updateNotificationPreference = useCallback(async (key: PushMethod) => {
     if (!activeIdentity || notificationPreferenceSaving) return;
 
+    if (key === "push" && !isPwa) {
+      setNotificationPreferenceMessage(getTranslation({ ja: "プッシュ通知を利用するには、アプリをホーム画面へ追加してください", en: "Add the app to your Home Screen to use push notifications" }, language));
+      return;
+    }
+
     const previous = notificationPreferences;
-    const next = { ...previous, [key]: !previous[key] };
+    const next = { primary: key, push: key === "push", line: key === "line", email: key === "email" };
     setNotificationPreferences(next);
     setNotificationPreferenceSaving(key);
 
     try {
+      const subscription = key === "push" ? (await acquirePushSubscription()).toJSON() : undefined;
       const response = await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferences: next }),
+        body: JSON.stringify({ primary: key, subscription }),
       });
       if (!response.ok) throw new Error("notification_preference_update_failed");
       setNotificationPreferenceMessage(getTranslation({ ja: "通知設定を保存しました", en: "Notification settings saved" }, language));
@@ -243,7 +253,7 @@ export function AppHeader() {
     } finally {
       setNotificationPreferenceSaving(null);
     }
-  }, [activeIdentity, language, notificationPreferenceSaving, notificationPreferences]);
+  }, [activeIdentity, isPwa, language, notificationPreferenceSaving, notificationPreferences]);
 
   const openNotifications = useCallback(() => {
     setNotificationTab("notices");
@@ -395,9 +405,7 @@ export function AppHeader() {
   useEffect(() => {
     const displayMode = window.matchMedia("(display-mode: standalone)");
     const updateDisplayMode = () => {
-      const iosStandalone = (window.navigator as Navigator & { standalone?: boolean })
-        .standalone === true;
-      setIsPwa(displayMode.matches || iosStandalone);
+      setIsPwa(isInstalledPwa());
     };
 
     updateDisplayMode();
@@ -1094,7 +1102,6 @@ export function AppHeader() {
         open={isNotificationOpen}
         label={getTranslation({ ja: "お知らせと通知の設定", en: "Notifications and settings" }, language)}
         panelClassName="notificationModalPanel"
-        overlayClassName="notificationModalOverlay"
         onClose={closeNotifications}
       >
         <div className="notificationTabs" role="tablist" aria-label={getTranslation({ ja: "通知メニュー", en: "Notification menu" }, language)}>
@@ -1191,11 +1198,11 @@ export function AppHeader() {
                     : getTranslation({ ja: "ホーム画面へ追加すると利用できます", en: "Add this app to your Home Screen to use push" }, language)}
                 </small>
               </span>
-              <button className="notificationToggle" type="button" role="switch" aria-checked={notificationPreferences.push} disabled={!activeIdentity || notificationPreferenceSaving !== null} onClick={() => void updateNotificationPreference("push")}>
+              <button className="notificationToggle" type="button" role="switch" aria-checked={isPwa && notificationPreferences.push} aria-disabled={!isPwa || !activeIdentity} disabled={!activeIdentity || notificationPreferenceSaving !== null} onClick={() => void updateNotificationPreference("push")}>
                 <span aria-hidden="true" />
               </button>
             </div>
-            <div className="notificationSettingCard">
+            {notificationChannels.line ? <div className="notificationSettingCard">
               <span className="notificationSettingIcon notificationLineIcon"><span>LINE</span></span>
               <span className="notificationSettingCopy">
                 <strong>{getTranslation({ ja: "LINE通知", en: "LINE notifications" }, language)}</strong>
@@ -1204,7 +1211,15 @@ export function AppHeader() {
               <button className="notificationToggle" type="button" role="switch" aria-checked={notificationPreferences.line} disabled={!activeIdentity || notificationPreferenceSaving !== null} onClick={() => void updateNotificationPreference("line")}>
                 <span aria-hidden="true" />
               </button>
-            </div>
+            </div> : null}
+            {notificationChannels.google || notificationChannels.email ? <div className="notificationSettingCard">
+              <span className="notificationSettingIcon"><Mail aria-hidden="true" /></span>
+              <span className="notificationSettingCopy">
+                <strong>{notificationChannels.google ? "Google メール通知" : getTranslation({ ja: "メール通知", en: "Email notifications" }, language)}</strong>
+                <small>{getTranslation({ ja: "連携しているメールアドレスへ通知します", en: "Notify your linked email address" }, language)}</small>
+              </span>
+              <button className="notificationToggle" type="button" role="switch" aria-checked={notificationPreferences.email} disabled={!activeIdentity || notificationPreferenceSaving !== null} onClick={() => void updateNotificationPreference("email")}><span aria-hidden="true" /></button>
+            </div> : null}
             {!activeIdentity ? <p>{getTranslation({ ja: "ログインすると通知方法を設定できます", en: "Sign in to choose notification methods" }, language)}</p> : null}
           </div>
         )}

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from "react";
+import { type FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 type ToastProps = {
@@ -62,6 +62,19 @@ type MailSendFormProps = {
 export function MailSendForm({ action, language, mailboxes, text }: MailSendFormProps) {
   const [sending, setSending] = useState(false);
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  function closeCompose() {
+    formRef.current?.closest("details")?.removeAttribute("open");
+  }
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") closeCompose();
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,8 +95,11 @@ export function MailSendForm({ action, language, mailboxes, text }: MailSendForm
 
   return (
     <>
-      <form action={action} aria-busy={sending} onSubmit={submit}>
-        <h2>{text.compose}</h2>
+      <form ref={formRef} action={action} aria-busy={sending} onSubmit={submit}>
+        <header className="adminMailComposeHeader">
+          <h2>{text.compose}</h2>
+          <button type="button" aria-label={language === "en" ? "Close" : "閉じる"} onClick={closeCompose}><X aria-hidden="true" /></button>
+        </header>
         <label><span>{text.from}</span><select name="from" defaultValue={mailboxes[0] ?? ""} required>{mailboxes.length === 0 ? <option value="">{language === "en" ? "No sender available" : "送信元がありません"}</option> : null}{mailboxes.map((address) => <option value={address} key={address}>{address}</option>)}</select></label>
         <label><span>{text.to}</span><input name="to" type="email" autoComplete="email" required /></label>
         <label><span>{text.subject}</span><input name="subject" maxLength={240} required /></label>

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import webPush from "web-push";
 
 import {
   getTranslation,
@@ -51,13 +52,23 @@ export type NotificationItem = {
 };
 
 export type NotificationPreferences = {
+  primary: "push" | "line" | "email";
   push: boolean;
   line: boolean;
+  email: boolean;
+};
+
+export type NotificationChannels = {
+  line: boolean;
+  google: boolean;
+  email: boolean;
 };
 
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
-  push: true,
+  primary: "line",
+  push: false,
   line: true,
+  email: false,
 };
 
 const UUID_PATTERN =
@@ -208,6 +219,21 @@ export async function createNotification({
     throw new Error("Failed to create customer notification.");
   }
 
+  try {
+    await sendPushNotification({
+      userUuid,
+      title: normalizedTitle,
+      body: normalizedBody,
+      actionUrl: normalizedActionUrl,
+    });
+  } catch {
+    await notifyDispatcher({
+      level: "error",
+      event: "customer_push_send_failed",
+      data: { userUuid, notificationUuid: notification.notification_uuid },
+    });
+  }
+
   return {
     notificationUuid: notification.notification_uuid,
     createdAt: notification.created_at,
@@ -312,22 +338,50 @@ export async function getNotificationPreferences(
       ? notification as Record<string, unknown>
       : {};
 
+  const primary = preferences.primary === "push" || preferences.primary === "line" || preferences.primary === "email"
+    ? preferences.primary
+    : preferences.push === true
+      ? "push"
+      : preferences.line === true
+        ? "line"
+        : preferences.email === true
+          ? "email"
+          : DEFAULT_NOTIFICATION_PREFERENCES.primary;
+
+  return { primary, push: primary === "push", line: primary === "line", email: primary === "email" };
+}
+
+export async function getNotificationChannels(
+  userUuid: string,
+): Promise<NotificationChannels> {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: accounts, error } = await supabase
+    .from("accounts")
+    .select("login_type")
+    .eq("user_uuid", userUuid);
+
+  if (error) {
+    throw new Error("Failed to load notification channels.");
+  }
+
+  const types = new Set((accounts ?? []).map((account) => account.login_type));
   return {
-    push: typeof preferences.push === "boolean"
-      ? preferences.push
-      : DEFAULT_NOTIFICATION_PREFERENCES.push,
-    line: typeof preferences.line === "boolean"
-      ? preferences.line
-      : DEFAULT_NOTIFICATION_PREFERENCES.line,
+    line: types.has("line"),
+    google: types.has("google"),
+    email: types.has("email"),
   };
 }
 
 export async function updateNotificationPreferences({
   userUuid,
-  preferences,
+  primary,
 }: {
   userUuid: string;
-  preferences: NotificationPreferences;
+  primary: NotificationPreferences["primary"];
 }): Promise<NotificationPreferences> {
   if (!isNotificationUuid(userUuid)) {
     throw new Error("Notification user UUID is invalid.");
@@ -348,6 +402,12 @@ export async function updateNotificationPreferences({
     user?.notification && typeof user.notification === "object" && !Array.isArray(user.notification)
       ? user.notification as Record<string, unknown>
       : {};
+  const preferences: NotificationPreferences = {
+    primary,
+    push: primary === "push",
+    line: primary === "line",
+    email: primary === "email",
+  };
   const next = { ...current, ...preferences };
   const { error } = await supabase
     .from("users")
@@ -359,6 +419,81 @@ export async function updateNotificationPreferences({
   }
 
   return preferences;
+}
+
+export async function savePushSubscription({
+  userUuid,
+  subscription,
+  userAgent,
+}: {
+  userUuid: string;
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+  userAgent?: string | null;
+}) {
+  if (!isNotificationUuid(userUuid) || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+    throw new Error("Push subscription is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("push_subscriptions").upsert({
+    user_uuid: userUuid,
+    endpoint: subscription.endpoint,
+    p256dh: subscription.keys.p256dh,
+    auth: subscription.keys.auth,
+    user_agent: userAgent?.slice(0, 500) || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "endpoint" });
+
+  if (error) throw new Error("Failed to save push subscription.");
+}
+
+async function sendPushNotification({
+  userUuid,
+  title,
+  body,
+  actionUrl,
+}: {
+  userUuid: string;
+  title: Translation;
+  body: Translation;
+  actionUrl: string | null;
+}) {
+  const publicKey = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY;
+  const privateKey = process.env.WEB_PUSH_PRIVATE_KEY;
+  const subject = process.env.WEB_PUSH_SUBJECT;
+  if (!publicKey || !privateKey || !subject) return;
+
+  const preferences = await getNotificationPreferences(userUuid);
+  if (preferences.primary !== "push") return;
+
+  const supabase = getSupabaseAdmin();
+  const [{ data: user }, { data: subscriptions, error }] = await Promise.all([
+    supabase.from("users").select("language").eq("user_uuid", userUuid).single(),
+    supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_uuid", userUuid),
+  ]);
+  if (error || !subscriptions?.length) return;
+
+  const language = isLanguageCode(user?.language) ? user.language : "ja";
+  webPush.setVapidDetails(subject, publicKey, privateKey);
+  const payload = JSON.stringify({
+    title: getTranslation(title, language),
+    body: getTranslation(body, language),
+    url: actionUrl || "/",
+  });
+
+  await Promise.allSettled(subscriptions.map(async (subscription) => {
+    try {
+      await webPush.sendNotification({
+        endpoint: subscription.endpoint,
+        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+      }, payload);
+    } catch (error) {
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      if (statusCode === 404 || statusCode === 410) {
+        await supabase.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
+      }
+    }
+  }));
 }
 
 export async function markNotificationRead({

@@ -335,6 +335,9 @@
 html:has(.adminMailCompose[open]) .adminHeader,
 html:has(.adminMailCompose[open]) .adminFooter { z-index: 0; }
 .adminMailCompose h2 { margin: 0 0 4px; font-size: 24px; }
+.adminMailComposeHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.adminMailComposeHeader > button { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border: 1px solid #d2d2d2; border-radius: 50%; background: #fff; color: #222; cursor: pointer; }
+.adminMailComposeHeader > button svg { width: 20px; height: 20px; }
 .adminMailCompose label { display: grid; gap: 7px; font-weight: 800; }
 .adminMailCompose input, .adminMailCompose select, .adminMailCompose textarea { width: 100%; border: 1px solid #d2d2d2; border-radius: 12px; background: #fff; padding: 12px; color: #222; font: inherit; }
 .adminMailCompose input[readonly] { background: #f2f2f2; }

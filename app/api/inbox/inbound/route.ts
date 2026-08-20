@@ -66,13 +66,6 @@ export async function POST(request: Request) {
       receivedAt: email.created_at,
     });
     if (result.ignored) return Response.json({ received: true, ignored: true });
-    if (!result.duplicate) {
-      await notifyDispatcher({
-        level: "info",
-        event: "inbox_email_received",
-        data: { threadUuid: result.threadUuid, mailboxAddress: result.mailboxAddress, emailId: email.id },
-      });
-    }
     return Response.json({ received: true, duplicate: result.duplicate });
   } catch (error) {
     await notifyDispatcher({
