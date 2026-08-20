@@ -19,9 +19,9 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
   return (
     <article className="adminMailPage">
       <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Message box" : "メッセージボックス"}</Link>
-      <header className="adminMailHeading"><span><Mail aria-hidden="true" /></span><div><h1>{thread.subject}</h1><p>{thread.senderName} &lt;{thread.senderAddress}&gt;</p><small>{language === "en" ? "To" : "宛先"}：{thread.mailboxAddress}</small></div></header>
+      <header className="adminMailHeading"><span><Mail aria-hidden="true" /></span><div><h1>{thread.subject}</h1><p>{thread.senderName} &lt;{thread.senderAddress}&gt;</p><small>{language === "en" ? "Service inbox" : "受付窓口"}：{thread.mailboxAddress.endsWith("@paws-flight.com") ? "PawsFlight" : thread.mailboxAddress.endsWith("@wan.da-nya.com") ? language === "en" ? "Company reception" : "会社総合受付" : language === "en" ? "Personal inbox" : "個人メール"}</small></div></header>
       <section className="adminMailMessages">
-        {thread.messages.map((message) => <div className="adminMailMessage" key={message.messageUuid}><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time><div>{message.bodyText}</div></div>)}
+        {thread.messages.map((message) => <div className={`adminMailMessage is${message.direction === "outbound" ? "Outbound" : "Inbound"}`} key={message.messageUuid}><header><span>{language === "en" ? message.direction === "outbound" ? "Sent" : "Received" : message.direction === "outbound" ? "送信" : "受信"}</span><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time></header><div>{message.bodyText}</div></div>)}
       </section>
     </article>
   );

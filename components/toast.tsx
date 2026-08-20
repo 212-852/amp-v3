@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { type FormEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 type ToastProps = {
@@ -42,6 +42,56 @@ export function Toast({ message, onClose, persistent = false }: ToastProps) {
       <button type="button" aria-label="Close greeting" onClick={onClose}>×</button>
     </div>,
     document.body,
+  );
+}
+
+type MailSendFormProps = {
+  action: string;
+  language: "ja" | "en";
+  mailboxes: string[];
+  text: {
+    compose: string;
+    from: string;
+    to: string;
+    subject: string;
+    message: string;
+    send: string;
+  };
+};
+
+export function MailSendForm({ action, language, mailboxes, text }: MailSendFormProps) {
+  const [sending, setSending] = useState(false);
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (sending) return;
+    setSending(true);
+    const form = event.currentTarget;
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+        credentials: "same-origin",
+      });
+      window.location.assign(response.redirected ? response.url : `${window.location.pathname}?sendError=1`);
+    } catch {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <form action={action} aria-busy={sending} onSubmit={submit}>
+        <h2>{text.compose}</h2>
+        <label><span>{text.from}</span><select name="from" defaultValue={mailboxes[0] ?? ""} required>{mailboxes.length === 0 ? <option value="">{language === "en" ? "No sender available" : "送信元がありません"}</option> : null}{mailboxes.map((address) => <option value={address} key={address}>{address}</option>)}</select></label>
+        <label><span>{text.to}</span><input name="to" type="email" autoComplete="email" required /></label>
+        <label><span>{text.subject}</span><input name="subject" maxLength={240} required /></label>
+        <label><span>{text.message}</span><textarea name="message" rows={8} maxLength={50000} required /></label>
+        <button type="submit" disabled={sending}>{sending ? (language === "en" ? "Sending…" : "送信中…") : text.send}</button>
+      </form>
+      {mounted && sending ? createPortal(<div className="adminLoadingToast" role="status" aria-live="polite"><i aria-hidden="true" />{language === "en" ? "Sending your message…" : "メッセージを送信しています…"}</div>, document.body) : null}
+    </>
   );
 }
 

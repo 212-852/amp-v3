@@ -12,6 +12,8 @@ export type InboxItem = {
   subject: string;
   senderName: string;
   senderAddress: string;
+  mailboxAddress: string;
+  latestDirection: "inbound" | "outbound";
   preview: string;
   readAt: string | null;
   lastMessageAt: string;
@@ -58,6 +60,13 @@ function isEmailAddress(value: string) {
   return /^\S+@\S+\.\S+$/.test(value);
 }
 
+function parseSender(value: string) {
+  const match = value.trim().match(/^(.*?)\s*<([^<>]+)>$/);
+  const address = normalizeEmail(match?.[2] ?? value);
+  const name = cleanText((match?.[1] ?? address).replace(/^['"]|['"]$/g, ""), 120);
+  return { name, address };
+}
+
 export async function listSendMailboxes(userUuid: string, tier: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -93,6 +102,94 @@ async function getMailboxRecipients(address: string) {
     .in("tier", ["owner", "core"]);
   if (usersError) throw new Error("Inbox recipients could not be resolved.");
   return { mailboxUuid: String(mailbox.mailbox_uuid), userUuids: (users ?? []).map((user) => String(user.user_uuid)) };
+}
+
+export async function receiveInboxEmail(input: {
+  externalId: string;
+  messageId: string;
+  sender: string;
+  recipients: string[];
+  subject: string;
+  text: string | null;
+  html: string | null;
+  receivedAt: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const externalId = cleanText(input.externalId, 240);
+  const { data: duplicate } = await supabase
+    .from("inbox_messages")
+    .select("message_uuid")
+    .eq("external_id", externalId)
+    .maybeSingle();
+  if (duplicate) return { duplicate: true } as const;
+
+  const recipients = input.recipients.map(normalizeEmail).filter(isEmailAddress);
+  const { data: mailboxes, error: mailboxError } = await supabase
+    .from("inbox_mailboxes")
+    .select("mailbox_uuid, address")
+    .in("address", recipients);
+  if (mailboxError || !mailboxes?.length) throw new Error("Inbound mailbox could not be resolved.");
+
+  const mailbox = mailboxes[0];
+  const mailboxAddress = String(mailbox.address);
+  const { userUuids } = await getMailboxRecipients(mailboxAddress);
+  const sender = parseSender(input.sender);
+  if (!isEmailAddress(sender.address)) throw new Error("Inbound sender address is invalid.");
+  const subject = cleanText(input.subject || "(No subject)", 240);
+  const bodyHtml = input.html?.trim().slice(0, 250_000) || null;
+  const bodyText = cleanText(input.text || bodyHtml?.replace(/<[^>]+>/g, " ") || "", 50_000);
+  const preview = bodyText.replace(/\s+/g, " ").slice(0, 160);
+
+  const { data: thread, error: threadError } = await supabase
+    .from("inbox_threads")
+    .insert({
+      mailbox_uuid: mailbox.mailbox_uuid,
+      channel: "email",
+      subject,
+      sender_name: sender.name,
+      sender_address: sender.address,
+      preview,
+      last_message_at: input.receivedAt,
+    })
+    .select("thread_uuid")
+    .single();
+  if (threadError || !thread) throw new Error("Inbound email thread could not be created.");
+
+  const threadUuid = String(thread.thread_uuid);
+  const { error: messageError } = await supabase.from("inbox_messages").insert({
+    thread_uuid: threadUuid,
+    direction: "inbound",
+    sender_address: sender.address,
+    recipient_addresses: recipients,
+    subject,
+    body_text: bodyText,
+    body_html: bodyHtml,
+    external_id: externalId,
+    created_at: input.receivedAt,
+  });
+  if (messageError) {
+    await supabase.from("inbox_threads").delete().eq("thread_uuid", threadUuid);
+    if (messageError.code === "23505") return { duplicate: true } as const;
+    throw new Error("Inbound email could not be saved.");
+  }
+
+  const { error: recipientError } = await supabase.from("inbox_recipients").insert(
+    userUuids.map((userUuid) => ({ thread_uuid: threadUuid, user_uuid: userUuid, read_at: null })),
+  );
+  if (recipientError) throw new Error("Inbound email recipients could not be saved.");
+
+  const notifications = await Promise.allSettled(userUuids.map((userUuid) => createNotification({
+    userUuid,
+    kind: "message",
+    title: { ja: "新しいメール", en: "New email" },
+    body: { ja: `${sender.name}さんから「${subject}」が届きました。`, en: `New email from ${sender.name}: ${subject}` },
+    data: { threadUuid, channel: "email", mailboxAddress, messageId: input.messageId },
+    actionUrl: `/admin/inbox/${threadUuid}`,
+  })));
+  if (notifications.some((result) => result.status === "rejected")) {
+    await notifyDispatcher({ level: "error", event: "inbox_notification_failed", data: { threadUuid } });
+  }
+  return { duplicate: false, threadUuid, mailboxAddress } as const;
 }
 
 export async function createContactMessage(input: {
@@ -228,7 +325,7 @@ export async function listInbox(userUuid: string, query = "", sort: "newest" | "
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("inbox_recipients")
-    .select("read_at, thread:inbox_threads!inner(thread_uuid, channel, subject, sender_name, sender_address, preview, last_message_at)")
+    .select("read_at, thread:inbox_threads!inner(thread_uuid, channel, subject, sender_name, sender_address, preview, last_message_at, mailbox:inbox_mailboxes!inner(address), messages:inbox_messages(direction, created_at))")
     .eq("user_uuid", userUuid)
     .limit(200);
   if (error) throw new Error("Inbox could not be loaded.");
@@ -236,9 +333,13 @@ export async function listInbox(userUuid: string, query = "", sort: "newest" | "
   const items = (data ?? []).flatMap((row) => {
     const thread = Array.isArray(row.thread) ? row.thread[0] : row.thread;
     if (!thread) return [];
+    const mailbox = Array.isArray(thread.mailbox) ? thread.mailbox[0] : thread.mailbox;
+    const latestMessage = [...(thread.messages ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
     const item: InboxItem = {
       threadUuid: String(thread.thread_uuid), channel: thread.channel, subject: thread.subject,
       senderName: thread.sender_name, senderAddress: thread.sender_address, preview: thread.preview,
+      mailboxAddress: mailbox?.address ?? "",
+      latestDirection: latestMessage?.direction === "outbound" ? "outbound" : "inbound",
       readAt: row.read_at, lastMessageAt: thread.last_message_at,
     };
     const searchable = `${item.senderName} ${item.senderAddress} ${item.subject} ${item.preview}`.toLocaleLowerCase();
@@ -262,8 +363,9 @@ export async function getInboxThread(userUuid: string, threadUuid: string): Prom
   return {
     threadUuid: String(thread.thread_uuid), channel: thread.channel, subject: thread.subject,
     senderName: thread.sender_name, senderAddress: thread.sender_address, preview: thread.preview,
-    readAt: recipient.read_at ?? new Date().toISOString(), lastMessageAt: thread.last_message_at,
     mailboxAddress: mailbox?.address ?? "",
+    latestDirection: (thread.messages ?? []).at(-1)?.direction === "outbound" ? "outbound" : "inbound",
+    readAt: recipient.read_at ?? new Date().toISOString(), lastMessageAt: thread.last_message_at,
     messages: (thread.messages ?? []).map((message) => ({
       messageUuid: String(message.message_uuid), direction: message.direction,
       senderAddress: message.sender_address, recipientAddresses: message.recipient_addresses ?? [],

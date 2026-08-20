@@ -275,13 +275,17 @@
 .adminInboxItem { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 13px; border-bottom: 1px solid #e5e5e5; padding: 15px; color: #333; text-decoration: none; }
 .adminInboxItem:last-child { border-bottom: 0; }
 .adminInboxItem.isUnread { background: #f2f2f2; }
-.adminInboxType { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
-.adminInboxType svg { width: 20px; }
+.adminInboxType { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
+.adminInboxType .adminInboxTypeMain { width: 20px; }
+.adminInboxType .adminInboxTypeService { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border: 2px solid #fff; border-radius: 50%; background: #222; padding: 3px; }
 .adminInboxSummary { display: grid; min-width: 0; gap: 4px; }
 .adminInboxSummary > span { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; }
 .adminInboxSummary strong, .adminInboxSummary b, .adminInboxSummary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adminInboxSummary time, .adminInboxSummary small { color: #777; font-size: 12px; }
 .adminInboxSummary b { font-size: 14px; }
+.adminMailDirection { width: max-content; border: 1px solid #222; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 900; line-height: 1.4; }
+.adminMailDirection.isOutbound { background: #222; color: #fff; }
+.adminMailDirection.isInbound { background: #fff; color: #222; }
 .adminInboxEmpty { margin: 0; padding: 36px 20px; color: #777; text-align: center; }
 .adminMailPage { display: grid; gap: 20px; }
 .adminMailBack { display: inline-flex; width: max-content; align-items: center; gap: 8px; color: #333; font-weight: 800; text-decoration: none; }
@@ -291,8 +295,13 @@
 .adminMailHeading h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 34px); overflow-wrap: anywhere; }
 .adminMailHeading p, .adminMailHeading small { margin: 0; color: #666; overflow-wrap: anywhere; }
 .adminMailMessages { display: grid; gap: 14px; }
-.adminMailMessage { border: 1px solid #d8d8d8; border-radius: 16px; background: #fff; padding: 20px; }
-.adminMailMessage time { display: block; margin-bottom: 18px; color: #777; font-size: 12px; }
+.adminMailMessage { width: min(92%, 600px); border: 1px solid #d8d8d8; border-radius: 16px; background: #fff; padding: 18px; }
+.adminMailMessage.isInbound { justify-self: start; border-top-left-radius: 5px; }
+.adminMailMessage.isOutbound { justify-self: end; border-color: #222; border-top-right-radius: 5px; background: #222; color: #fff; }
+.adminMailMessage header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.adminMailMessage header span { border: 1px solid currentColor; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 900; }
+.adminMailMessage time { color: #777; font-size: 12px; }
+.adminMailMessage.isOutbound time { color: #ccc; }
 .adminMailMessage div { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
 .adminMailCompose > summary { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #222; color: #fff; cursor: pointer; list-style: none; }
 .adminMailComposeFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; }
@@ -310,6 +319,7 @@ html:has(.adminMailCompose[open]) .adminFooter { z-index: 0; }
 .adminMailCompose input[readonly] { background: #f2f2f2; }
 .adminMailCompose textarea { resize: vertical; }
 .adminMailCompose form > button { min-height: 48px; border: 0; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminMailCompose form > button:disabled { cursor: wait; opacity: .58; }
 .adminMailResult { width: 100%; margin: 4px 0 0; border-radius: 12px; background: #eee; padding: 11px 14px; color: #222; }
 .adminMailResult.isError { background: #fff0f0; color: #9c2424; }
 
@@ -1090,7 +1100,7 @@ html:has(.adminMailCompose[open]) .adminFooter { z-index: 0; }
 .adminAnimalModalPanel > header button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d5d5d5; border-radius: 50%; background: #fff; color: #222; cursor: pointer; }
 .adminAnimalModalPanel > header svg { width: 19px; }
 
-.adminAnimalLoadingToast {
+.adminLoadingToast {
   position: fixed;
   z-index: 120;
   top: max(20px, env(safe-area-inset-top));
@@ -1113,7 +1123,7 @@ html:has(.adminMailCompose[open]) .adminFooter { z-index: 0; }
   animation: adminLoadingToastIn 180ms ease-out both;
 }
 
-.adminAnimalLoadingToast i {
+.adminLoadingToast i {
   width: 20px;
   height: 20px;
   flex: 0 0 auto;

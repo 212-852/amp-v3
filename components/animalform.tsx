@@ -182,7 +182,7 @@ export function AnimalForm({ action, countries, existingTags, language, modal = 
 
   const loadingToast = loading
     ? createPortal(
-        <div className="adminAnimalLoadingToast" role="status" aria-live="polite">
+        <div className="adminLoadingToast" role="status" aria-live="polite">
           <i aria-hidden="true" />
           {language === "ja" ? "Wikipediaから情報を取得しています…" : "Getting information from Wikipedia…"}
         </div>,

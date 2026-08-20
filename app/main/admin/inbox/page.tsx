@@ -1,7 +1,8 @@
-import { ArrowDownUp, Mail, Plus, Search, X } from "lucide-react";
+import { ArrowDownUp, Building2, Mail, Plane, Plus, Search, UserRound, X } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { MailSendForm } from "@/components/toast";
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
 import { listInbox, listSendMailboxes } from "@/lib/inbox";
 
@@ -38,6 +39,22 @@ export const metadata = {
   title: "メッセージボックス | Admin",
 };
 
+function ServiceMailIcon({ address, language }: { address: string; language: "ja" | "en" }) {
+  const normalizedAddress = address.toLowerCase();
+  const service = normalizedAddress.endsWith("@paws-flight.com")
+    ? { Icon: Plane, ja: "PawsFlight受付", en: "PawsFlight inbox" }
+    : normalizedAddress.endsWith("@wan.da-nya.com")
+      ? { Icon: Building2, ja: "会社総合受付", en: "Company inbox" }
+      : { Icon: UserRound, ja: "個人メール", en: "Personal inbox" };
+
+  return (
+    <span className="adminInboxType" aria-label={language === "en" ? service.en : service.ja} title={language === "en" ? service.en : service.ja}>
+      <Mail className="adminInboxTypeMain" aria-hidden="true" />
+      <service.Icon className="adminInboxTypeService" aria-hidden="true" />
+    </span>
+  );
+}
+
 export default async function InboxPage({ searchParams }: PageProps<"/main/admin/inbox">) {
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.slice(0, 80) : "";
@@ -65,22 +82,15 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
       <div className="adminInboxList">
         {items.map((item) => (
           <Link className={`adminInboxItem${item.readAt ? "" : " isUnread"}`} href={`inbox/${item.threadUuid}`} key={item.threadUuid}>
-            <span className="adminInboxType"><Mail aria-hidden="true" /></span>
-            <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><b>{item.subject}</b><small>{item.preview}</small></span>
+            <ServiceMailIcon address={item.mailboxAddress} language={session?.language === "en" ? "en" : "ja"} />
+            <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><span className={`adminMailDirection is${item.latestDirection === "outbound" ? "Outbound" : "Inbound"}`}>{session?.language === "en" ? item.latestDirection === "outbound" ? "Sent" : "Received" : item.latestDirection === "outbound" ? "送信" : "受信"}</span><b>{item.subject}</b><small>{item.preview}</small></span>
           </Link>
         ))}
         {items.length === 0 ? <p className="adminInboxEmpty">{session?.language === "en" ? "No messages." : "受信したメールはありません。"}</p> : null}
       </div>
       <details className="adminMailCompose adminMailComposeFloating">
         <summary aria-label={text.compose} title={text.compose}><Plus aria-hidden="true" /></summary>
-        <form action="/api/inbox/send" method="post">
-          <h2>{text.compose}</h2>
-          <label><span>{text.from}</span><select name="from" defaultValue={mailboxes[0] ?? ""} required>{mailboxes.length === 0 ? <option value="">{session?.language === "en" ? "No sender available" : "送信元がありません"}</option> : null}{mailboxes.map((address) => <option value={address} key={address}>{address}</option>)}</select></label>
-          <label><span>{text.to}</span><input name="to" type="email" autoComplete="email" required /></label>
-          <label><span>{text.subject}</span><input name="subject" maxLength={240} required /></label>
-          <label><span>{text.message}</span><textarea name="message" rows={8} maxLength={50000} required /></label>
-          <button type="submit">{text.send}</button>
-        </form>
+        <MailSendForm action="/api/inbox/send" language={session?.language === "en" ? "en" : "ja"} mailboxes={mailboxes} text={text} />
       </details>
     </section>
   );
