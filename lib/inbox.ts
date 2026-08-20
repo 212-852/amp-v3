@@ -49,6 +49,14 @@ export type InboxAttachmentInput = {
   downloadUrl: string;
 };
 
+export type InboxOrder = {
+  orderUuid: string;
+  orderCode: string;
+  title: string;
+  customerName: string;
+  status: string;
+};
+
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
@@ -280,6 +288,7 @@ export async function createInboxMessageShare(input: {
   userUuid: string;
   messageUuid: string;
   targetType: "order" | "workspace";
+  orderUuid?: string | null;
   targetReference: string;
   includeBody: boolean;
   includeAttachments: boolean;
@@ -287,24 +296,74 @@ export async function createInboxMessageShare(input: {
   note: string;
 }) {
   const supabase = getSupabaseAdmin();
-  const { data: message } = await supabase.from("inbox_messages").select("thread_uuid").eq("message_uuid", input.messageUuid).maybeSingle();
+  const { data: message } = await supabase
+    .from("inbox_messages")
+    .select("thread_uuid, subject, thread:inbox_threads!inner(sender_name, sender_address)")
+    .eq("message_uuid", input.messageUuid)
+    .maybeSingle();
   if (!message) throw new Error("Message could not be found.");
   const { data: recipient } = await supabase.from("inbox_recipients").select("thread_uuid").eq("thread_uuid", message.thread_uuid).eq("user_uuid", input.userUuid).maybeSingle();
   if (!recipient) throw new Error("Message sharing is not permitted.");
-  const targetReference = cleanText(input.targetReference, 160);
-  if (!targetReference) throw new Error("A sharing destination is required.");
+  let targetReference = cleanText(input.targetReference, 160);
   const sharedDatetime = input.sharedDatetime && !Number.isNaN(Date.parse(input.sharedDatetime)) ? new Date(input.sharedDatetime).toISOString() : null;
+  let orderUuid: string | null = null;
+  if (input.targetType === "order") {
+    const selectedOrderUuid = cleanText(input.orderUuid ?? "", 80);
+    if (selectedOrderUuid) {
+      const { data: order } = await supabase.from("orders").select("order_uuid, order_code, title").eq("order_uuid", selectedOrderUuid).maybeSingle();
+      if (!order) throw new Error("The selected order could not be found.");
+      orderUuid = String(order.order_uuid);
+      targetReference = `${order.order_code} ${order.title}`;
+    } else {
+      const thread = Array.isArray(message.thread) ? message.thread[0] : message.thread;
+      const title = targetReference || cleanText(String(message.subject ?? ""), 160);
+      if (!title) throw new Error("An order name is required.");
+      const orderCode = `ORD-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+      const { data: order, error: orderError } = await supabase.from("orders").insert({
+        order_code: orderCode,
+        title,
+        customer_name: cleanText(String(thread?.sender_name ?? ""), 120),
+        customer_email: normalizeEmail(String(thread?.sender_address ?? "")),
+        status: "draft",
+        scheduled_at: sharedDatetime,
+        notes: cleanText(input.note, 2000),
+      }).select("order_uuid").single();
+      if (orderError || !order) throw new Error("Order could not be created.");
+      orderUuid = String(order.order_uuid);
+      targetReference = `${orderCode} ${title}`;
+    }
+  }
+  if (!targetReference) throw new Error("A sharing destination is required.");
   const { error } = await supabase.from("inbox_message_shares").insert({
     message_uuid: input.messageUuid,
     shared_by_user_uuid: input.userUuid,
     target_type: input.targetType,
     target_reference: targetReference,
+    order_uuid: orderUuid,
     include_body: input.includeBody,
     include_attachments: input.includeAttachments,
     shared_datetime: sharedDatetime,
     note: cleanText(input.note, 2000),
   });
   if (error) throw new Error("Message could not be shared.");
+  return { orderUuid };
+}
+
+export async function listInboxOrders(): Promise<InboxOrder[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("order_uuid, order_code, title, customer_name, status")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error("Orders could not be loaded.");
+  return (data ?? []).map((order) => ({
+    orderUuid: String(order.order_uuid),
+    orderCode: String(order.order_code),
+    title: String(order.title),
+    customerName: String(order.customer_name),
+    status: String(order.status),
+  }));
 }
 
 export async function downloadInboxAttachment(userUuid: string, attachmentUuid: string) {

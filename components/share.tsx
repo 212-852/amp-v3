@@ -2,11 +2,14 @@
 
 import { CalendarDays, Paperclip, Share2, X } from "lucide-react";
 import { useState } from "react";
+import type { InboxOrder } from "@/lib/inbox";
 
-export function MessageShare({ messageUuid, attachmentCount, language }: { messageUuid: string; attachmentCount: number; language: "ja" | "en" }) {
+export function MessageShare({ messageUuid, attachmentCount, language, orders }: { messageUuid: string; attachmentCount: number; language: "ja" | "en"; orders: InboxOrder[] }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [targetType, setTargetType] = useState<"order" | "workspace">("order");
+  const [orderUuid, setOrderUuid] = useState("");
 
   async function submit(formData: FormData) {
     setSaving(true);
@@ -17,6 +20,7 @@ export function MessageShare({ messageUuid, attachmentCount, language }: { messa
       body: JSON.stringify({
         messageUuid,
         targetType: formData.get("targetType"),
+        orderUuid: formData.get("orderUuid"),
         targetReference: formData.get("targetReference"),
         includeBody: formData.get("includeBody") === "on",
         includeAttachments: formData.get("includeAttachments") === "on",
@@ -42,8 +46,8 @@ export function MessageShare({ messageUuid, attachmentCount, language }: { messa
       {open ? <div className="adminMessageShareOverlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
         <form className="adminMessageShareDialog" action={submit}>
           <header><div><Share2 aria-hidden="true" /><h2>{language === "en" ? "Share message" : "メッセージを共有"}</h2></div><button type="button" aria-label={language === "en" ? "Close" : "閉じる"} onClick={() => setOpen(false)}><X aria-hidden="true" /></button></header>
-          <fieldset><legend>{language === "en" ? "Destination" : "共有先"}</legend><label><input type="radio" name="targetType" value="order" defaultChecked />{language === "en" ? "Order" : "オーダー"}</label><label><input type="radio" name="targetType" value="workspace" />{language === "en" ? "Workspace" : "ワークスペース"}</label></fieldset>
-          <label>{language === "en" ? "Name or reference" : "共有先の名称・番号"}<input name="targetReference" required placeholder={language === "en" ? "Order number or workspace name" : "オーダー番号またはワークスペース名"} /></label>
+          <fieldset><legend>{language === "en" ? "Destination" : "共有先"}</legend><label><input type="radio" name="targetType" value="order" checked={targetType === "order"} onChange={() => setTargetType("order")} />{language === "en" ? "Order" : "オーダー"}</label><label><input type="radio" name="targetType" value="workspace" checked={targetType === "workspace"} onChange={() => setTargetType("workspace")} />{language === "en" ? "Workspace" : "ワークスペース"}</label></fieldset>
+          {targetType === "order" ? <><label>{language === "en" ? "Order" : "オーダー"}<select name="orderUuid" value={orderUuid} onChange={(event) => setOrderUuid(event.target.value)}><option value="">{language === "en" ? "Create a new order" : "新しいオーダーを作成"}</option>{orders.map((order) => <option key={order.orderUuid} value={order.orderUuid}>{order.orderCode}｜{order.title}{order.customerName ? `｜${order.customerName}` : ""}</option>)}</select></label>{!orderUuid ? <label>{language === "en" ? "New order name" : "新しいオーダー名"}<input name="targetReference" required placeholder={language === "en" ? "Order name" : "オーダー名"} /></label> : <input type="hidden" name="targetReference" value="" />}</> : <label>{language === "en" ? "Workspace" : "ワークスペース"}<input name="targetReference" required placeholder={language === "en" ? "Workspace name" : "ワークスペース名"} /></label>}
           <fieldset><legend>{language === "en" ? "Content" : "共有する内容"}</legend><label><input type="checkbox" name="includeBody" defaultChecked />{language === "en" ? "Message body" : "本文"}</label>{attachmentCount > 0 ? <label><input type="checkbox" name="includeAttachments" defaultChecked /><Paperclip aria-hidden="true" />{language === "en" ? `Attachments (${attachmentCount})` : `添付書類（${attachmentCount}件）`}</label> : null}</fieldset>
           <label><span><CalendarDays aria-hidden="true" />{language === "en" ? "Date and time" : "日時"}</span><input type="datetime-local" name="sharedDatetime" /></label>
           <label>{language === "en" ? "Note" : "メモ"}<textarea name="note" rows={3} /></label>

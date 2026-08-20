@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       userUuid: session.userUuid,
       messageUuid: String(body.messageUuid ?? ""),
       targetType: body.targetType,
+      orderUuid: typeof body.orderUuid === "string" && body.orderUuid ? body.orderUuid : null,
       targetReference: String(body.targetReference ?? ""),
       includeBody: body.includeBody !== false,
       includeAttachments: body.includeAttachments !== false,

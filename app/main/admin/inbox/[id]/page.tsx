@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getInboxThread } from "@/lib/inbox";
+import { getInboxThread, listInboxOrders } from "@/lib/inbox";
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
 import { MessageShare } from "@/components/share";
 
@@ -26,6 +26,7 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
   if (!session) notFound();
   const thread = await getInboxThread(session.userUuid, id);
   if (!thread) notFound();
+  const orders = await listInboxOrders();
   const language = session.language === "en" ? "en" : "ja";
   const service = thread.mailboxAddress.endsWith("@paws-flight.com")
     ? { Icon: Plane, kind: "Flight", name: "PawsFlight", detail: "AIRPORT PET TRANSPORT" }
@@ -44,7 +45,7 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
           <div className="adminMailText">{message.bodyText}</div>
           {message.bodyHtml ? <details className="adminMailHtml"><summary><FileText aria-hidden="true" />{language === "en" ? "View HTML email" : "HTMLメールを表示"}</summary><iframe sandbox="" referrerPolicy="no-referrer" srcDoc={safeEmailDocument(message.bodyHtml)} title={language === "en" ? "HTML email content" : "HTMLメール本文"} /></details> : null}
           {message.attachments.length > 0 ? <section className="adminMailAttachments"><h2><Paperclip aria-hidden="true" />{language === "en" ? "Attachments" : "添付書類"}</h2>{message.attachments.map((attachment) => <a href={`/api/inbox/attachments/${attachment.attachmentUuid}`} key={attachment.attachmentUuid}><FileText aria-hidden="true" /><span><strong>{attachment.filename}</strong><small>{attachment.contentType} · {formatBytes(attachment.sizeBytes, language)}</small></span></a>)}</section> : null}
-          <footer><MessageShare messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} /></footer>
+          <footer><MessageShare messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} orders={orders} /></footer>
         </div>)}
       </section>
     </article>
