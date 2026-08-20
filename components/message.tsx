@@ -1,7 +1,7 @@
 "use client";
 
 import { Languages, ListPlus, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Modal } from "@/components/modal";
 
@@ -13,6 +13,38 @@ type Suggestion = {
   scheduledAt: string;
   notes: string;
 };
+
+function confirmUrl(url: string, language: Language) {
+  if (!/^https?:\/\//i.test(url)) return false;
+  return window.confirm(language === "en" ? `Open this URL?\n${url}` : `このURLを開きますか？\n${url}`);
+}
+
+function LinkedText({ text, language }: { text: string; language: Language }) {
+  const parts = text.split(/(https?:\/\/[^\s<>"']+)/gi);
+  return <>{parts.map((part, index) => /^https?:\/\//i.test(part)
+    ? <a href={part} key={`${part}-${index}`} onClick={(event) => {
+      event.preventDefault();
+      if (confirmUrl(part, language)) window.open(part, "_blank", "noopener,noreferrer");
+    }}>{part}</a>
+    : part)}</>;
+}
+
+export function MessageHtml({ document, language }: { document: string; language: Language }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  function connectLinks() {
+    const links = frameRef.current?.contentDocument?.querySelectorAll<HTMLAnchorElement>("a[href]");
+    links?.forEach((link) => {
+      link.onclick = (event) => {
+        event.preventDefault();
+        const url = link.href;
+        if (confirmUrl(url, language)) window.open(url, "_blank", "noopener,noreferrer");
+      };
+    });
+  }
+
+  return <iframe ref={frameRef} sandbox="allow-same-origin" referrerPolicy="no-referrer" srcDoc={document} onLoad={connectLinks} title={language === "en" ? "HTML email content" : "HTMLメール本文"} />;
+}
 
 export function MessageBody({ threadUuid, messageUuid, originalText, language }: { threadUuid: string; messageUuid: string; originalText: string; language: Language }) {
   const [translatedText, setTranslatedText] = useState("");
@@ -54,7 +86,7 @@ export function MessageBody({ threadUuid, messageUuid, originalText, language }:
     }
   }
 
-  return <div className="messageBody"><div className="adminMailText">{translated ? translatedText : originalText}</div><div className="messageBodyActions"><button type="button" onClick={toggleTranslation} disabled={loading}><Languages aria-hidden="true" />{loading ? language === "en" ? "Translating…" : "翻訳中…" : translated ? language === "en" ? "Original" : "原文" : language === "en" ? "Translate" : "翻訳"}</button>{notice ? <span role="status">{notice}</span> : null}</div>{notice ? <span className="messageAssistToast" role="status">{notice}</span> : null}</div>;
+  return <div className="messageBody"><div className="adminMailText"><LinkedText text={translated ? translatedText : originalText} language={language} /></div><div className="messageBodyActions"><button type="button" onClick={toggleTranslation} disabled={loading}><Languages aria-hidden="true" />{loading ? language === "en" ? "Translating…" : "翻訳中…" : translated ? language === "en" ? "Original" : "原文" : language === "en" ? "Translate" : "翻訳"}</button>{notice ? <span role="status">{notice}</span> : null}</div>{notice ? <span className="messageAssistToast" role="status">{notice}</span> : null}</div>;
 }
 
 export function MessageOrder({ threadUuid, messageUuid, attachmentCount, language }: { threadUuid: string; messageUuid: string; attachmentCount: number; language: Language }) {
