@@ -25,7 +25,7 @@ import {
 } from "@/lib/robot/dispatcher";
 import type { RobotRole } from "@/lib/robot/common";
 import { getTranslation, type Language } from "@/lib/i18n";
-import { acquirePushSubscription, isInstalledPwa, type PushMethod } from "@/lib/push";
+import { acquirePushSubscription, isInstalledPwa, releasePushSubscription, type PushMethod } from "@/lib/push";
 
 type PortalToolbarProps = {
   displayName: string;
@@ -65,6 +65,7 @@ export function PortalToolbar({
   const [notificationTab, setNotificationTab] = useState<"notices" | "settings">("notices");
   const [notifications, setNotifications] = useState<ToolbarNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [notificationPreferences, setNotificationPreferences] = useState({ primary: "line" as PushMethod, push: false, line: true, email: false });
   const [notificationChannels, setNotificationChannels] = useState({ line: true, google: false, email: false });
@@ -99,11 +100,13 @@ export function PortalToolbar({
       const result = await response.json() as {
         notifications: ToolbarNotification[];
         unreadCount: number;
+        messageUnreadCount: number;
         preferences: { primary: PushMethod; push: boolean; line: boolean; email: boolean };
         channels: { line: boolean; google: boolean; email: boolean };
       };
       setNotifications(result.notifications);
       setUnreadCount(result.unreadCount);
+      setMessageUnreadCount(result.messageUnreadCount);
       setNotificationPreferences(result.preferences);
       setNotificationChannels(result.channels);
       setNotificationStatus("ready");
@@ -162,6 +165,7 @@ export function PortalToolbar({
         body: JSON.stringify({ primary: key, subscription }),
       });
       if (!response.ok) throw new Error("notification_save_failed");
+      if (key !== "push") await releasePushSubscription().catch(() => undefined);
     } catch {
       setNotificationPreferences(previous);
     } finally {
@@ -281,6 +285,7 @@ export function PortalToolbar({
         >
           <Inbox aria-hidden="true" />
           <span>メッセージ</span>
+          {messageUnreadCount > 0 ? <span className="adminInboxBadge" aria-label={getTranslation({ ja: `未読${messageUnreadCount}件`, en: `${messageUnreadCount} unread` }, language)}>{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span> : null}
         </Link>
       ) : null}
 

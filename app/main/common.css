@@ -124,6 +124,7 @@ body:has(.driverApp) {
 }
 
 .adminInboxButton {
+  position: relative;
   grid-column: 2;
   grid-row: 2;
   display: inline-flex;
@@ -141,6 +142,23 @@ body:has(.driverApp) {
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
+}
+
+.adminInboxBadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #e5484d;
+  padding: 0 5px;
+  color: #fff;
+  font: 800 11px/1 Arial, sans-serif;
+  box-shadow: 0 3px 8px rgb(229 72 77 / 28%);
 }
 
 .adminInboxButton svg {

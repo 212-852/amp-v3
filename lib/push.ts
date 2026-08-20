@@ -30,3 +30,10 @@ export async function acquirePushSubscription() {
     applicationServerKey: decodeApplicationKey(publicKey),
   });
 }
+
+export async function releasePushSubscription() {
+  if (!("serviceWorker" in navigator)) return;
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  await subscription?.unsubscribe();
+}

@@ -268,6 +268,7 @@ export async function getNotifications({
       "notification_uuid, kind, importance, title, body, data, action_url, external_required, read_at, expires_at, created_at",
     )
     .eq("user_uuid", userUuid)
+    .neq("kind", "message")
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order("created_at", { ascending: false })
     .limit(normalizedLimit);
@@ -304,6 +305,7 @@ export async function getUnreadNotificationCount(
     .from("notifications")
     .select("notification_uuid", { count: "exact", head: true })
     .eq("user_uuid", userUuid)
+    .neq("kind", "message")
     .is("read_at", null)
     .or(`expires_at.is.null,expires_at.gt.${now}`);
 
@@ -445,6 +447,19 @@ export async function savePushSubscription({
   }, { onConflict: "endpoint" });
 
   if (error) throw new Error("Failed to save push subscription.");
+}
+
+export async function deletePushSubscriptions(userUuid: string) {
+  if (!isNotificationUuid(userUuid)) {
+    throw new Error("Notification user UUID is invalid.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("user_uuid", userUuid);
+  if (error) throw new Error("Failed to delete push subscriptions.");
 }
 
 async function sendPushNotification({

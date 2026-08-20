@@ -16,7 +16,7 @@ import {
   getTranslation,
   type Language,
 } from "@/lib/i18n";
-import { acquirePushSubscription, isInstalledPwa, type PushMethod } from "@/lib/push";
+import { acquirePushSubscription, isInstalledPwa, releasePushSubscription, type PushMethod } from "@/lib/push";
 
 type SupabaseIdentity = {
   displayName: string;
@@ -246,6 +246,7 @@ export function AppHeader() {
         body: JSON.stringify({ primary: key, subscription }),
       });
       if (!response.ok) throw new Error("notification_preference_update_failed");
+      if (key !== "push") await releasePushSubscription().catch(() => undefined);
       setNotificationPreferenceMessage(getTranslation({ ja: "通知設定を保存しました", en: "Notification settings saved" }, language));
     } catch {
       setNotificationPreferences(previous);

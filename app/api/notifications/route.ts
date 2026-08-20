@@ -1,7 +1,9 @@
 import type { NextRequest } from "next/server";
 
 import { identityDispatcher, SESSION_COOKIE_NAME } from "@/lib/identity";
+import { getInboxUnreadCount } from "@/lib/inbox";
 import {
+  deletePushSubscriptions,
   getNotifications,
   getNotificationChannels,
   getNotificationPreferences,
@@ -45,13 +47,14 @@ export async function GET(request: NextRequest) {
 
     const requestedLimit = Number(request.nextUrl.searchParams.get("limit") ?? 20);
     const limit = Number.isInteger(requestedLimit) ? requestedLimit : 20;
-    const [notifications, unreadCount, storedPreferences, linkedChannels] = await Promise.all([
+    const [notifications, unreadCount, messageUnreadCount, storedPreferences, linkedChannels] = await Promise.all([
       getNotifications({
         userUuid: identity.userUuid,
         language: identity.language,
         limit,
       }),
       getUnreadNotificationCount(identity.userUuid),
+      getInboxUnreadCount(identity.userUuid),
       getNotificationPreferences(identity.userUuid),
       getNotificationChannels(identity.userUuid),
     ]);
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
     const channels = identity.role === "admin"
       ? { line: linkedChannels.line, google: false, email: false }
       : linkedChannels;
-    return noStoreJson({ notifications, unreadCount, preferences: storedPreferences, channels });
+    return noStoreJson({ notifications, unreadCount, messageUnreadCount, preferences: storedPreferences, channels });
   } catch {
     return noStoreJson(
       { error: "Notifications are unavailable." },
@@ -127,6 +130,8 @@ export async function PATCH(request: NextRequest) {
           },
           userAgent: request.headers.get("user-agent"),
         });
+      } else {
+        await deletePushSubscriptions(identity.userUuid);
       }
 
       const preferences = await updateNotificationPreferences({

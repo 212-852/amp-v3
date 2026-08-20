@@ -388,6 +388,17 @@ export async function listInbox(userUuid: string, query = "", sort: "newest" | "
   return items.sort((a, b) => (sort === "oldest" ? 1 : -1) * a.lastMessageAt.localeCompare(b.lastMessageAt));
 }
 
+export async function getInboxUnreadCount(userUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from("inbox_recipients")
+    .select("thread_uuid", { count: "exact", head: true })
+    .eq("user_uuid", userUuid)
+    .is("read_at", null);
+  if (error) throw new Error("Inbox unread count could not be loaded.");
+  return count ?? 0;
+}
+
 export async function getInboxThread(userUuid: string, threadUuid: string): Promise<InboxThread | null> {
   const supabase = getSupabaseAdmin();
   const { data: recipient } = await supabase.from("inbox_recipients").select("read_at").eq("user_uuid", userUuid).eq("thread_uuid", threadUuid).maybeSingle();
