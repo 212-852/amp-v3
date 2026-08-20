@@ -1,4 +1,4 @@
-import { ArrowDownUp, Building2, Mail, Plane, Plus, Search, UserRound, X } from "lucide-react";
+import { ArrowDownUp, Mail, PawPrint, Plane, Plus, Search, UserRound, X } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
@@ -42,9 +42,9 @@ export const metadata = {
 function resolveService(address: string) {
   const normalizedAddress = address.toLowerCase();
   return normalizedAddress.endsWith("@paws-flight.com")
-    ? { Icon: Plane, kind: "Flight", ja: "PawsFlight受付", en: "PawsFlight inbox" }
+    ? { Icon: Plane, kind: "Flight", ja: "Pawsフライト", en: "PawsFlight" }
     : normalizedAddress.endsWith("@wan.da-nya.com")
-      ? { Icon: Building2, kind: "Company", ja: "会社総合受付", en: "Company inbox" }
+      ? { Icon: PawPrint, kind: "Company", ja: "わんだにゃー株式会社", en: "Wandanya Inc." }
       : { Icon: UserRound, kind: "Personal", ja: "個人メール", en: "Personal inbox" };
 }
 
@@ -84,12 +84,15 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
         {query ? <div className="adminActiveSearch"><Search aria-hidden="true" /><span>{session?.language === "en" ? "Searching" : "検索中"}</span><strong>{query}</strong><Link href={`?sort=${sort}`} aria-label={session?.language === "en" ? "Clear search" : "検索を解除"} title={session?.language === "en" ? "Clear search" : "検索を解除"}><X aria-hidden="true" /></Link></div> : null}
       </header>
       <div className="adminInboxList">
-        {items.map((item) => (
-          <Link className={`adminInboxItem${item.readAt ? "" : " isUnread"}`} href={`inbox/${item.threadUuid}`} key={item.threadUuid}>
-            <ServiceMailIcon address={item.mailboxAddress} language={session?.language === "en" ? "en" : "ja"} />
-            <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><span className="adminInboxMeta"><span className={`adminServiceBadge is${resolveService(item.mailboxAddress).kind}`}>{session?.language === "en" ? resolveService(item.mailboxAddress).en : resolveService(item.mailboxAddress).ja}<small>{item.mailboxAddress}</small></span><span className={`adminMailDirection is${item.latestDirection === "outbound" ? "Outbound" : "Inbound"}`}>{session?.language === "en" ? item.latestDirection === "outbound" ? "Sent" : "Received" : item.latestDirection === "outbound" ? "送信" : "受信"}</span></span><b>{item.subject}</b><small>{item.preview}</small></span>
-          </Link>
-        ))}
+        {items.map((item) => {
+          const service = resolveService(item.mailboxAddress);
+          return (
+            <Link className={`adminInboxItem${item.readAt ? "" : " isUnread"}`} href={`inbox/${item.threadUuid}`} key={item.threadUuid}>
+              <ServiceMailIcon address={item.mailboxAddress} language={session?.language === "en" ? "en" : "ja"} />
+              <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><span className="adminInboxMeta"><span className={`adminServiceBadge is${service.kind}`}><span><service.Icon aria-hidden="true" />{session?.language === "en" ? service.en : service.ja}</span><small>{item.mailboxAddress}</small></span><span className={`adminMailDirection is${item.latestDirection === "outbound" ? "Outbound" : "Inbound"}`}>{session?.language === "en" ? item.latestDirection === "outbound" ? "Sent" : "Received" : item.latestDirection === "outbound" ? "送信" : "受信"}</span></span><b>{item.subject}</b><small>{item.preview}</small></span>
+            </Link>
+          );
+        })}
         {items.length === 0 ? <p className="adminInboxEmpty">{session?.language === "en" ? "No messages." : "受信したメールはありません。"}</p> : null}
       </div>
       <details className="adminMailCompose adminMailComposeFloating">

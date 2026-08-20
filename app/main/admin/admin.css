@@ -277,7 +277,7 @@
 .adminInboxItem.isUnread { background: #f2f2f2; }
 .adminInboxType { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
 .adminInboxType .adminInboxTypeMain { width: 20px; }
-.adminInboxType .adminInboxTypeService { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border: 2px solid #fff; border-radius: 50%; background: #222; padding: 3px; }
+.adminInboxType .adminInboxTypeService { position: absolute; right: -5px; bottom: -5px; width: 22px; height: 22px; border: 2px solid #fff; border-radius: 50%; background: #222; padding: 4px; box-shadow: 0 2px 5px rgb(0 0 0 / 18%); }
 .adminInboxType.isCompany { background: #f2cbd8; color: #542333; }
 .adminInboxType.isCompany .adminInboxTypeService { background: #b85f7c; color: #fff; }
 .adminInboxType.isFlight { background: #cfe9fb; color: #174b70; }
@@ -288,10 +288,12 @@
 .adminInboxSummary time, .adminInboxSummary small { color: #777; font-size: 12px; }
 .adminInboxSummary b { font-size: 14px; }
 .adminInboxMeta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.adminServiceBadge { display: grid; min-width: 0; border-left: 3px solid #222; padding-left: 7px; font-size: 11px; font-weight: 900; line-height: 1.3; }
-.adminServiceBadge small { overflow: hidden; color: #777; font-size: 9px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.adminServiceBadge.isCompany { border-color: #c9708e; }
-.adminServiceBadge.isFlight { border-color: #5ca8d8; }
+.adminServiceBadge { display: grid; min-width: 0; gap: 3px; font-size: 11px; font-weight: 900; line-height: 1.3; }
+.adminServiceBadge > span { display: inline-flex; width: max-content; max-width: 100%; align-items: center; gap: 5px; border: 1px solid #d1d1d1; border-radius: 999px; background: #f1f1f1; padding: 4px 9px; }
+.adminServiceBadge > span svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.adminServiceBadge small { overflow: hidden; padding-left: 5px; color: #777; font-size: 9px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.adminServiceBadge.isCompany > span { border-color: #edb9ca; background: #fae1e9; color: #6d2940; }
+.adminServiceBadge.isFlight > span { border-color: #acd9f5; background: #dff2ff; color: #174f76; }
 .adminMailDirection { width: max-content; border: 1px solid #222; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 900; line-height: 1.4; }
 .adminMailDirection.isOutbound { background: #222; color: #fff; }
 .adminMailDirection.isInbound { background: #fff; color: #222; }
@@ -323,7 +325,44 @@
 .adminMailMessage header span { border: 1px solid currentColor; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 900; }
 .adminMailMessage time { color: #777; font-size: 12px; }
 .adminMailMessage.isOutbound time { color: #ccc; }
-.adminMailMessage div { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.adminMailText { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.adminMailHtml { margin-top: 14px; border-top: 1px solid #ddd; padding-top: 12px; }
+.adminMailHtml summary { display: flex; width: max-content; align-items: center; gap: 7px; color: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.adminMailHtml summary svg { width: 16px; }
+.adminMailHtml iframe { width: 100%; min-height: 280px; margin-top: 12px; border: 1px solid #ddd; border-radius: 12px; background: #fff; }
+.adminMailAttachments { display: grid; gap: 8px; margin-top: 14px; border-top: 1px solid #ddd; padding-top: 12px; }
+.adminMailAttachments h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
+.adminMailAttachments h2 svg { width: 16px; }
+.adminMailAttachments a { display: flex; align-items: center; gap: 9px; border: 1px solid #d8d8d8; border-radius: 11px; background: #f7f7f7; padding: 10px; color: #222; text-decoration: none; }
+.adminMailAttachments a > svg { width: 20px; flex: 0 0 20px; }
+.adminMailAttachments a span { display: grid; min-width: 0; }
+.adminMailAttachments a strong, .adminMailAttachments a small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adminMailAttachments a small { color: #777; font-size: 10px; }
+.adminMailMessage > footer { display: flex; justify-content: flex-end; margin-top: 14px; border-top: 1px solid #ddd; padding-top: 12px; }
+.adminMessageShareButton { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 999px; background: transparent; padding: 5px 11px; color: inherit; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.adminMessageShareButton svg { width: 15px; }
+.adminMessageShareOverlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgb(0 0 0 / 42%); padding: 20px; color: #222; backdrop-filter: blur(3px); }
+.adminMessageShareDialog { display: grid; width: min(100%, 440px); max-height: calc(100dvh - 40px); gap: 15px; overflow: auto; border-radius: 20px; background: #fff; padding: 22px; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: adminMailComposePop 180ms ease-out both; }
+.adminMessageShareDialog > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
+.adminMessageShareDialog > header div { display: flex; align-items: center; gap: 9px; }
+.adminMessageShareDialog > header div svg { width: 20px; }
+.adminMessageShareDialog h2 { margin: 0; font-size: 20px; }
+.adminMessageShareDialog > header > button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #ddd; border-radius: 50%; background: #fff; color: #222; cursor: pointer; }
+.adminMessageShareDialog > header > button svg { width: 18px; }
+.adminMessageShareDialog fieldset { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; border: 1px solid #ddd; border-radius: 13px; padding: 12px; }
+.adminMessageShareDialog legend { padding: 0 5px; font-size: 12px; font-weight: 800; }
+.adminMessageShareDialog label { display: grid; gap: 7px; font-size: 12px; font-weight: 800; }
+.adminMessageShareDialog fieldset label { display: flex; align-items: center; gap: 6px; }
+.adminMessageShareDialog fieldset svg, .adminMessageShareDialog label span svg { width: 15px; }
+.adminMessageShareDialog label span { display: flex; align-items: center; gap: 6px; }
+.adminMessageShareDialog input:not([type="radio"]):not([type="checkbox"]), .adminMessageShareDialog textarea { width: 100%; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 12px; color: #111; font: inherit; }
+.adminMessageShareDialog textarea { resize: vertical; }
+.adminMessageShareSubmit { min-height: 46px; border: 0; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.adminMessageShareSubmit:disabled { opacity: .55; cursor: wait; }
+.adminMessageShareError { margin: 0; color: #a52323; font-size: 12px; font-weight: 700; }
+.adminMessageShareToast { position: fixed; z-index: 100; top: max(20px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 32px); margin: 0; border-radius: 999px; background: #222; padding: 11px 17px; color: #fff; font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 12px 32px rgb(0 0 0 / 25%); }
+html:has(.adminMessageShareOverlay) .adminHeader,
+html:has(.adminMessageShareOverlay) .adminFooter { z-index: 0; }
 .adminMailCompose > summary { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #222; color: #fff; cursor: pointer; list-style: none; }
 .adminMailComposeFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; }
 .adminMailComposeFloating > summary { width: 58px; height: 58px; box-shadow: 0 10px 28px rgb(0 0 0 / 22%); }

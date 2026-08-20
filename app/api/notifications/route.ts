@@ -11,7 +11,9 @@ import {
   isNotificationUuid,
   markNotificationRead,
   savePushSubscription,
+  type NotificationTopics,
   updateNotificationPreferences,
+  updateNotificationTopics,
 } from "@/lib/notification";
 
 function noStoreJson(body: unknown, init?: ResponseInit) {
@@ -85,12 +87,15 @@ export async function PATCH(request: NextRequest) {
       endpoint?: unknown;
       keys?: { p256dh?: unknown; auth?: unknown };
     };
+    topics?: Partial<NotificationTopics>;
   } | null;
 
   const hasNotificationUuid = isNotificationUuid(body?.notificationUuid);
   const hasPreferences = body?.primary === "push" || body?.primary === "line" || body?.primary === "email";
+  const topicKeys = ["email", "chat", "group", "flight", "company", "critical"] as const;
+  const hasTopics = body?.topics && topicKeys.every((key) => typeof body.topics?.[key] === "boolean");
 
-  if (!hasNotificationUuid && !hasPreferences) {
+  if (!hasNotificationUuid && !hasPreferences && !hasTopics) {
     return noStoreJson(
       { error: "Notification request is invalid." },
       { status: 400 },
@@ -140,6 +145,16 @@ export async function PATCH(request: NextRequest) {
       });
 
       return noStoreJson({ preferences });
+    }
+
+    if (hasTopics) {
+      const topics = { ...body!.topics } as NotificationTopics;
+      if (identity.tier !== "owner" && identity.tier !== "core") {
+        const current = await getNotificationPreferences(identity.userUuid);
+        topics.flight = current.topics.flight;
+        topics.company = current.topics.company;
+      }
+      return noStoreJson({ topics: await updateNotificationTopics({ userUuid: identity.userUuid, topics }) });
     }
 
     await markNotificationRead({ userUuid: identity.userUuid, notificationUuid: body!.notificationUuid as string });

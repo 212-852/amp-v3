@@ -19,11 +19,20 @@ alter table public.users
 drop constraint if exists users_language_check;
 
 alter table public.users
-add column if not exists notification jsonb not null default '{"primary":"line","push":false,"line":true,"email":false,"marketing":false}'::jsonb,
+add column if not exists notification jsonb not null default '{"primary":"line","push":false,"line":true,"email":false,"marketing":false,"topics":{"email":true,"chat":true,"group":false,"flight":true,"company":true,"critical":true}}'::jsonb,
 add column if not exists push jsonb not null default '[]'::jsonb;
 
 alter table public.users
-alter column notification set default '{"primary":"line","push":false,"line":true,"email":false,"marketing":false}'::jsonb;
+alter column notification set default '{"primary":"line","push":false,"line":true,"email":false,"marketing":false,"topics":{"email":true,"chat":true,"group":false,"flight":true,"company":true,"critical":true}}'::jsonb;
+
+update public.users
+set notification = jsonb_set(
+  notification,
+  '{topics}',
+  coalesce(notification->'topics', '{"email":true,"chat":true,"group":false,"flight":true,"company":true,"critical":true}'::jsonb),
+  true
+)
+where notification->'topics' is null;
 
 update public.users
 set notification = notification || jsonb_build_object(

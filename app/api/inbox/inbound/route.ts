@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-import { receiveInboxEmail } from "@/lib/inbox";
+import { receiveInboxEmail, saveInboxAttachments } from "@/lib/inbox";
 import { notifyDispatcher } from "@/lib/notify";
 
 type ReceivedEvent = {
@@ -66,6 +66,17 @@ export async function POST(request: Request) {
       receivedAt: email.created_at,
     });
     if (result.ignored) return Response.json({ received: true, ignored: true });
+    const { data: attachmentList, error: attachmentError } = await resend.emails.receiving.attachments.list({ emailId: event.data.email_id });
+    if (attachmentError) throw new Error(attachmentError.message);
+    await saveInboxAttachments(result.messageUuid, (attachmentList?.data ?? []).map((attachment) => ({
+      id: attachment.id,
+      filename: attachment.filename,
+      size: attachment.size,
+      contentType: attachment.content_type,
+      contentDisposition: attachment.content_disposition,
+      contentId: attachment.content_id,
+      downloadUrl: attachment.download_url,
+    })));
     return Response.json({ received: true, duplicate: result.duplicate });
   } catch (error) {
     await notifyDispatcher({

@@ -47,6 +47,10 @@ type ToolbarNotification = {
   createdAt: string;
 };
 
+type NotificationTopic = "email" | "chat" | "group" | "flight" | "company" | "critical";
+type NotificationTopics = Record<NotificationTopic, boolean>;
+const DEFAULT_NOTIFICATION_TOPICS: NotificationTopics = { email: true, chat: true, group: false, flight: true, company: true, critical: true };
+
 export function PortalToolbar({
   displayName,
   pictureUrl,
@@ -67,7 +71,7 @@ export function PortalToolbar({
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [notificationPreferences, setNotificationPreferences] = useState({ primary: "line" as PushMethod, push: false, line: true, email: false });
+  const [notificationPreferences, setNotificationPreferences] = useState({ primary: "line" as PushMethod, push: false, line: true, email: false, topics: DEFAULT_NOTIFICATION_TOPICS });
   const [notificationChannels, setNotificationChannels] = useState({ line: true, google: false, email: false });
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
@@ -101,7 +105,7 @@ export function PortalToolbar({
         notifications: ToolbarNotification[];
         unreadCount: number;
         messageUnreadCount: number;
-        preferences: { primary: PushMethod; push: boolean; line: boolean; email: boolean };
+        preferences: { primary: PushMethod; push: boolean; line: boolean; email: boolean; topics: NotificationTopics };
         channels: { line: boolean; google: boolean; email: boolean };
       };
       setNotifications(result.notifications);
@@ -154,7 +158,7 @@ export function PortalToolbar({
       return;
     }
     const previous = notificationPreferences;
-    const next = { primary: key, push: key === "push", line: key === "line", email: false };
+    const next = { primary: key, push: key === "push", line: key === "line", email: false, topics: previous.topics };
     setNotificationPreferences(next);
     setNotificationSaving(true);
     try {
@@ -168,6 +172,27 @@ export function PortalToolbar({
       if (key !== "push") await releasePushSubscription().catch(() => undefined);
     } catch {
       setNotificationPreferences(previous);
+    } finally {
+      setNotificationSaving(false);
+    }
+  }
+
+  async function updateNotificationTopic(topic: NotificationTopic) {
+    if (notificationSaving) return;
+    const previous = notificationPreferences;
+    const topics = { ...previous.topics, [topic]: !previous.topics[topic] };
+    setNotificationPreferences({ ...previous, topics });
+    setNotificationSaving(true);
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topics }),
+      });
+      if (!response.ok) throw new Error("notification_topic_save_failed");
+    } catch {
+      setNotificationPreferences(previous);
+      setNotificationMessage(getTranslation({ ja: "通知の振り分けを保存できませんでした", en: "Notification filters could not be saved" }, language));
     } finally {
       setNotificationSaving(false);
     }
@@ -366,6 +391,23 @@ export function PortalToolbar({
           <div className="adminNotificationSettings" role="tabpanel">
             <div><span><Bell aria-hidden="true" /></span><p><strong>{getTranslation({ ja: "PWAプッシュ通知", en: "PWA push notifications" }, language)}</strong><small>{isPwa ? getTranslation({ ja: "アプリへ新着を通知します", en: "Notify the installed app" }, language) : getTranslation({ ja: "ホーム画面への追加後に選択できます", en: "Available after adding the app to your Home Screen" }, language)}</small></p><button type="button" role="switch" aria-checked={isPwa && notificationPreferences.push} aria-disabled={!isPwa} disabled={notificationSaving} onClick={() => void updateNotificationPreference("push")}><i /></button></div>
             {notificationChannels.line ? <div><span className="adminNotificationLine">LINE</span><p><strong>{getTranslation({ ja: "LINE通知", en: "LINE notifications" }, language)}</strong><small>{getTranslation({ ja: "管理者のLINEへ通知します", en: "Notify the admin LINE account" }, language)}</small></p><button type="button" role="switch" aria-checked={notificationPreferences.line} disabled={notificationSaving} onClick={() => void updateNotificationPreference("line")}><i /></button></div> : null}
+            <h3>{getTranslation({ ja: "通知の振り分け", en: "Notification filters" }, language)}</h3>
+            {([
+              ["email", "📩", { ja: "メール", en: "Email" }],
+              ["chat", "💬", { ja: "チャット", en: "Chat" }],
+              ["group", "👥", { ja: "グループ", en: "Groups" }],
+              ...((tier === "owner" || tier === "core") ? [
+                ["flight", "✈️", { ja: "PawsFlight", en: "PawsFlight" }],
+                ["company", "🐾", { ja: "わんだにゃー株式会社", en: "Wan Da Nya Inc." }],
+              ] : []),
+              ["critical", "⚠️", { ja: "重要なお知らせ", en: "Important notices" }],
+            ] as Array<[NotificationTopic, string, { ja: string; en: string }]>).map(([topic, emoji, label]) => (
+              <div key={topic}>
+                <span className="adminNotificationEmoji" aria-hidden="true">{emoji}</span>
+                <p><strong>{getTranslation(label, language)}</strong></p>
+                <button type="button" role="switch" aria-checked={notificationPreferences.topics[topic]} disabled={notificationSaving} onClick={() => void updateNotificationTopic(topic)}><i /></button>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

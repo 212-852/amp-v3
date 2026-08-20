@@ -56,7 +56,11 @@ export type NotificationPreferences = {
   push: boolean;
   line: boolean;
   email: boolean;
+  topics: NotificationTopics;
 };
+
+export type NotificationTopic = "email" | "chat" | "group" | "flight" | "company" | "critical";
+export type NotificationTopics = Record<NotificationTopic, boolean>;
 
 export type NotificationChannels = {
   line: boolean;
@@ -69,6 +73,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   push: false,
   line: true,
   email: false,
+  topics: { email: true, chat: true, group: false, flight: true, company: true, critical: true },
 };
 
 const UUID_PATTERN =
@@ -222,8 +227,10 @@ export async function createNotification({
   try {
     await sendPushNotification({
       userUuid,
+      kind,
       title: normalizedTitle,
       body: normalizedBody,
+      data,
       actionUrl: normalizedActionUrl,
     });
   } catch {
@@ -350,7 +357,15 @@ export async function getNotificationPreferences(
           ? "email"
           : DEFAULT_NOTIFICATION_PREFERENCES.primary;
 
-  return { primary, push: primary === "push", line: primary === "line", email: primary === "email" };
+  const storedTopics = preferences.topics && typeof preferences.topics === "object" && !Array.isArray(preferences.topics)
+    ? preferences.topics as Record<string, unknown>
+    : {};
+  const topics = Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_PREFERENCES.topics).map(([topic, fallback]) => [
+    topic,
+    typeof storedTopics[topic] === "boolean" ? storedTopics[topic] : fallback,
+  ])) as NotificationTopics;
+
+  return { primary, push: primary === "push", line: primary === "line", email: primary === "email", topics };
 }
 
 export async function getNotificationChannels(
@@ -409,6 +424,7 @@ export async function updateNotificationPreferences({
     push: primary === "push",
     line: primary === "line",
     email: primary === "email",
+    topics: await getNotificationPreferences(userUuid).then((value) => value.topics),
   };
   const next = { ...current, ...preferences };
   const { error } = await supabase
@@ -421,6 +437,19 @@ export async function updateNotificationPreferences({
   }
 
   return preferences;
+}
+
+export async function updateNotificationTopics({ userUuid, topics }: { userUuid: string; topics: NotificationTopics }) {
+  if (!isNotificationUuid(userUuid)) throw new Error("Notification user UUID is invalid.");
+  const supabase = getSupabaseAdmin();
+  const { data: user, error: loadError } = await supabase.from("users").select("notification").eq("user_uuid", userUuid).single();
+  if (loadError) throw new Error("Failed to load notification preferences.");
+  const current = user?.notification && typeof user.notification === "object" && !Array.isArray(user.notification)
+    ? user.notification as Record<string, unknown>
+    : {};
+  const { error } = await supabase.from("users").update({ notification: { ...current, topics } }).eq("user_uuid", userUuid);
+  if (error) throw new Error("Failed to update notification topics.");
+  return topics;
 }
 
 export async function savePushSubscription({
@@ -464,13 +493,17 @@ export async function deletePushSubscriptions(userUuid: string) {
 
 async function sendPushNotification({
   userUuid,
+  kind,
   title,
   body,
+  data,
   actionUrl,
 }: {
   userUuid: string;
+  kind: NotificationKind;
   title: Translation;
   body: Translation;
+  data: Record<string, unknown>;
   actionUrl: string | null;
 }) {
   const publicKey = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY;
@@ -480,6 +513,22 @@ async function sendPushNotification({
 
   const preferences = await getNotificationPreferences(userUuid);
   if (preferences.primary !== "push") return;
+
+  const channel = data.channel;
+  const mailboxAddress = typeof data.mailboxAddress === "string" ? data.mailboxAddress.toLowerCase() : "";
+  const topic: NotificationTopic = kind === "critical"
+    ? "critical"
+    : channel === "group"
+      ? "group"
+      : channel === "chat"
+        ? "chat"
+        : mailboxAddress === "info@paws-flight.com"
+          ? "flight"
+          : mailboxAddress === "mail@wan.da-nya.com"
+            ? "company"
+            : "email";
+  if (!preferences.topics[topic] || (topic !== "email" && channel === "email" && !preferences.topics.email)) return;
+  const emoji: Record<NotificationTopic, string> = { email: "📩", chat: "💬", group: "👥", flight: "✈️", company: "🐾", critical: "⚠️" };
 
   const supabase = getSupabaseAdmin();
   const [{ data: user }, { data: subscriptions, error }] = await Promise.all([
@@ -491,7 +540,7 @@ async function sendPushNotification({
   const language = isLanguageCode(user?.language) ? user.language : "ja";
   webPush.setVapidDetails(subject, publicKey, privateKey);
   const payload = JSON.stringify({
-    title: getTranslation(title, language),
+    title: `${emoji[topic]} ${getTranslation(title, language)}`,
     body: getTranslation(body, language),
     url: actionUrl || "/",
   });

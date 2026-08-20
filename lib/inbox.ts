@@ -29,8 +29,24 @@ export type InboxThread = InboxItem & {
     subject: string;
     bodyText: string;
     bodyHtml: string | null;
+    attachments: Array<{
+      attachmentUuid: string;
+      filename: string;
+      contentType: string;
+      sizeBytes: number;
+    }>;
     createdAt: string;
   }>;
+};
+
+export type InboxAttachmentInput = {
+  id: string;
+  filename?: string;
+  size: number;
+  contentType: string;
+  contentDisposition: "inline" | "attachment";
+  contentId?: string;
+  downloadUrl: string;
 };
 
 function getSupabaseAdmin() {
@@ -69,6 +85,10 @@ function parseSender(value: string) {
 
 function normalizeSubject(value: string) {
   return value.trim().replace(/^(?:(?:re|fw|fwd)\s*:\s*)+/i, "").toLocaleLowerCase();
+}
+
+function safeStorageName(value: string) {
+  return value.normalize("NFKC").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(0, 160) || "attachment";
 }
 
 export async function listSendMailboxes(userUuid: string, tier: string) {
@@ -126,7 +146,7 @@ export async function receiveInboxEmail(input: {
     .select("message_uuid")
     .eq("external_id", externalId)
     .maybeSingle();
-  if (duplicate) return { ignored: false, duplicate: true } as const;
+  if (duplicate) return { ignored: false, duplicate: true, messageUuid: String(duplicate.message_uuid) } as const;
 
   const headerRecipients = ["to", "x-original-to", "x-forwarded-to", "delivered-to"]
     .flatMap((name) => {
@@ -182,7 +202,7 @@ export async function receiveInboxEmail(input: {
     const { error: updateError } = await supabase.from("inbox_threads").update({ subject, preview, last_message_at: input.receivedAt }).eq("thread_uuid", threadUuid);
     if (updateError) throw new Error("Inbound email thread could not be updated.");
   }
-  const { error: messageError } = await supabase.from("inbox_messages").insert({
+  const { data: message, error: messageError } = await supabase.from("inbox_messages").insert({
     thread_uuid: threadUuid,
     direction: "inbound",
     sender_address: sender.address,
@@ -192,12 +212,17 @@ export async function receiveInboxEmail(input: {
     body_html: bodyHtml,
     external_id: externalId,
     created_at: input.receivedAt,
-  });
+  }).select("message_uuid").single();
   if (messageError) {
     if (createdThread) await supabase.from("inbox_threads").delete().eq("thread_uuid", threadUuid);
-    if (messageError.code === "23505") return { ignored: false, duplicate: true } as const;
+    if (messageError.code === "23505") {
+      const { data: stored } = await supabase.from("inbox_messages").select("message_uuid").eq("external_id", externalId).maybeSingle();
+      return { ignored: false, duplicate: true, messageUuid: stored?.message_uuid ? String(stored.message_uuid) : "" } as const;
+    }
     throw new Error("Inbound email could not be saved.");
   }
+  if (!message) throw new Error("Inbound email identifier could not be resolved.");
+  const messageUuid = String(message.message_uuid);
 
   const { error: recipientError } = await supabase.from("inbox_recipients").upsert(
     userUuids.map((userUuid) => ({ thread_uuid: threadUuid, user_uuid: userUuid, read_at: null })),
@@ -216,7 +241,83 @@ export async function receiveInboxEmail(input: {
   if (notifications.some((result) => result.status === "rejected")) {
     await notifyDispatcher({ level: "error", event: "inbox_notification_failed", data: { threadUuid } });
   }
-  return { ignored: false, duplicate: false, threadUuid, mailboxAddress } as const;
+  return { ignored: false, duplicate: false, threadUuid, mailboxAddress, messageUuid } as const;
+}
+
+export async function saveInboxAttachments(messageUuid: string, attachments: InboxAttachmentInput[]) {
+  if (!messageUuid || attachments.length === 0) return;
+  const supabase = getSupabaseAdmin();
+  for (const attachment of attachments.slice(0, 40)) {
+    const externalId = cleanText(attachment.id, 240);
+    const { data: existing } = await supabase.from("inbox_attachments").select("attachment_uuid").eq("message_uuid", messageUuid).eq("external_id", externalId).maybeSingle();
+    if (existing) continue;
+    if (!attachment.downloadUrl.startsWith("https://") || attachment.size > 40 * 1024 * 1024) continue;
+    const response = await fetch(attachment.downloadUrl, { signal: AbortSignal.timeout(25_000) });
+    if (!response.ok) throw new Error(`Attachment download failed (${response.status}).`);
+    const content = await response.arrayBuffer();
+    const filename = cleanText(attachment.filename || "attachment", 240);
+    const storagePath = `${messageUuid}/${externalId}-${safeStorageName(filename)}`;
+    const { error: uploadError } = await supabase.storage.from("inbox-attachments").upload(storagePath, content, {
+      contentType: attachment.contentType || "application/octet-stream",
+      upsert: false,
+    });
+    if (uploadError && !uploadError.message.toLowerCase().includes("already exists")) throw new Error("Attachment could not be stored.");
+    const { error: insertError } = await supabase.from("inbox_attachments").insert({
+      message_uuid: messageUuid,
+      external_id: externalId,
+      filename,
+      content_type: cleanText(attachment.contentType || "application/octet-stream", 160),
+      content_disposition: attachment.contentDisposition,
+      content_id: attachment.contentId ? cleanText(attachment.contentId, 240) : null,
+      size_bytes: content.byteLength,
+      storage_path: storagePath,
+    });
+    if (insertError && insertError.code !== "23505") throw new Error("Attachment information could not be saved.");
+  }
+}
+
+export async function createInboxMessageShare(input: {
+  userUuid: string;
+  messageUuid: string;
+  targetType: "order" | "workspace";
+  targetReference: string;
+  includeBody: boolean;
+  includeAttachments: boolean;
+  sharedDatetime: string | null;
+  note: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { data: message } = await supabase.from("inbox_messages").select("thread_uuid").eq("message_uuid", input.messageUuid).maybeSingle();
+  if (!message) throw new Error("Message could not be found.");
+  const { data: recipient } = await supabase.from("inbox_recipients").select("thread_uuid").eq("thread_uuid", message.thread_uuid).eq("user_uuid", input.userUuid).maybeSingle();
+  if (!recipient) throw new Error("Message sharing is not permitted.");
+  const targetReference = cleanText(input.targetReference, 160);
+  if (!targetReference) throw new Error("A sharing destination is required.");
+  const sharedDatetime = input.sharedDatetime && !Number.isNaN(Date.parse(input.sharedDatetime)) ? new Date(input.sharedDatetime).toISOString() : null;
+  const { error } = await supabase.from("inbox_message_shares").insert({
+    message_uuid: input.messageUuid,
+    shared_by_user_uuid: input.userUuid,
+    target_type: input.targetType,
+    target_reference: targetReference,
+    include_body: input.includeBody,
+    include_attachments: input.includeAttachments,
+    shared_datetime: sharedDatetime,
+    note: cleanText(input.note, 2000),
+  });
+  if (error) throw new Error("Message could not be shared.");
+}
+
+export async function downloadInboxAttachment(userUuid: string, attachmentUuid: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: attachment } = await supabase.from("inbox_attachments").select("filename, content_type, storage_path, message:inbox_messages!inner(thread_uuid)").eq("attachment_uuid", attachmentUuid).maybeSingle();
+  if (!attachment) return null;
+  const message = Array.isArray(attachment.message) ? attachment.message[0] : attachment.message;
+  if (!message) return null;
+  const { data: recipient } = await supabase.from("inbox_recipients").select("thread_uuid").eq("thread_uuid", message.thread_uuid).eq("user_uuid", userUuid).maybeSingle();
+  if (!recipient) return null;
+  const { data, error } = await supabase.storage.from("inbox-attachments").download(attachment.storage_path);
+  if (error || !data) return null;
+  return { data, filename: String(attachment.filename), contentType: String(attachment.content_type) };
 }
 
 export async function createContactMessage(input: {
@@ -405,7 +506,7 @@ export async function getInboxThread(userUuid: string, threadUuid: string): Prom
   if (!recipient) return null;
   const { data: thread, error } = await supabase
     .from("inbox_threads")
-    .select("thread_uuid, channel, subject, sender_name, sender_address, preview, last_message_at, mailbox:inbox_mailboxes!inner(address), messages:inbox_messages(message_uuid, direction, sender_address, recipient_addresses, subject, body_text, body_html, created_at)")
+    .select("thread_uuid, channel, subject, sender_name, sender_address, preview, last_message_at, mailbox:inbox_mailboxes!inner(address), messages:inbox_messages(message_uuid, direction, sender_address, recipient_addresses, subject, body_text, body_html, created_at, attachments:inbox_attachments(attachment_uuid, filename, content_type, size_bytes))")
     .eq("thread_uuid", threadUuid)
     .single();
   if (error || !thread) return null;
@@ -421,6 +522,10 @@ export async function getInboxThread(userUuid: string, threadUuid: string): Prom
       messageUuid: String(message.message_uuid), direction: message.direction,
       senderAddress: message.sender_address, recipientAddresses: message.recipient_addresses ?? [],
       subject: message.subject, bodyText: message.body_text, bodyHtml: message.body_html,
+      attachments: (message.attachments ?? []).map((attachment) => ({
+        attachmentUuid: String(attachment.attachment_uuid), filename: String(attachment.filename),
+        contentType: String(attachment.content_type), sizeBytes: Number(attachment.size_bytes),
+      })),
       createdAt: message.created_at,
     })).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
   };
