@@ -4,6 +4,8 @@ import { suggestOrder, translateMessage } from "@/lib/ai";
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
 import { getInboxThread } from "@/lib/inbox";
 
+export const maxDuration = 40;
+
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return Response.json({ error: "Forbidden." }, { status: 403 });
@@ -22,9 +24,12 @@ export async function POST(request: NextRequest) {
   if (!thread || !message) return Response.json({ error: "Message could not be found." }, { status: 404 });
 
   try {
+    console.info("[inbox-assist] started", { action, threadUuid, messageUuid });
     if (action === "translate") {
       const targetLanguage = body?.targetLanguage === "en" ? "en" : "ja";
-      return Response.json({ translatedText: await translateMessage(message.bodyText, targetLanguage) });
+      const translatedText = await translateMessage(message.bodyText, targetLanguage);
+      console.info("[inbox-assist] completed", { action, threadUuid, messageUuid });
+      return Response.json({ translatedText });
     }
     if (session.role !== "admin") return Response.json({ error: "Forbidden." }, { status: 403 });
     const suggestion = await suggestOrder({
@@ -36,8 +41,10 @@ export async function POST(request: NextRequest) {
       receivedAt: message.createdAt,
       language: session.language === "en" ? "en" : "ja",
     });
+    console.info("[inbox-assist] completed", { action, threadUuid, messageUuid });
     return Response.json({ suggestion });
   } catch (error) {
+    console.error("[inbox-assist] failed", { action, threadUuid, messageUuid, error: error instanceof Error ? error.message : String(error) });
     return Response.json({ error: error instanceof Error ? error.message : "AI processing failed." }, { status: 502 });
   }
 }

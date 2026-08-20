@@ -26,7 +26,7 @@ async function requestOpenAI<T>(name: string, schema: JsonSchema, system: string
       ],
       text: { format: { type: "json_schema", name, strict: true, schema } },
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(15_000),
   });
   const result = await response.json().catch(() => ({})) as OpenAIResponse;
   if (!response.ok) throw new Error(result.error?.message || `OpenAI request failed (${response.status})`);
@@ -47,7 +47,7 @@ async function requestGemini<T>(schema: JsonSchema, system: string, input: unkno
       contents: [{ parts: [{ text: JSON.stringify(input) }] }],
       generationConfig: { responseMimeType: "application/json", responseSchema: schema },
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(15_000),
   });
   const result = await response.json().catch(() => ({})) as GeminiResponse;
   if (!response.ok) throw new Error(result.error?.message || `Gemini request failed (${response.status})`);

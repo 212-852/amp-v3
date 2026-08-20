@@ -54,8 +54,9 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
       <section className="adminMailMessages">
         {thread.messages.map((message) => <div className={`adminMailMessage is${message.direction === "outbound" ? "Outbound" : "Inbound"}`} key={message.messageUuid}>
           <header><span>{language === "en" ? message.direction === "outbound" ? "Sent" : "Received" : message.direction === "outbound" ? "送信" : "受信"}</span><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time></header>
-          <MessageBody threadUuid={thread.threadUuid} messageUuid={message.messageUuid} originalText={message.bodyText} language={language} />
-          {message.bodyHtml ? <details className="adminMailHtml"><summary><FileText aria-hidden="true" />{language === "en" ? "View HTML email" : "HTMLメールを表示"}</summary><MessageHtml document={safeEmailDocument(message.bodyHtml)} language={language} /></details> : null}
+          {message.bodyHtml
+            ? <div className="adminMailHtml"><MessageHtml document={safeEmailDocument(message.bodyHtml)} language={language} /></div>
+            : <MessageBody threadUuid={thread.threadUuid} messageUuid={message.messageUuid} originalText={message.bodyText} language={language} />}
           {message.attachments.length > 0 ? <section className="adminMailAttachments"><h2><Paperclip aria-hidden="true" />{language === "en" ? "Attachments" : "添付書類"}</h2>{message.attachments.map((attachment) => <a href={`/api/inbox/attachments/${attachment.attachmentUuid}`} key={attachment.attachmentUuid}><FileText aria-hidden="true" /><span><strong>{attachment.filename}</strong><small>{attachment.contentType} · {formatBytes(attachment.sizeBytes, language)}</small></span></a>)}</section> : null}
           <footer><MessageOrder threadUuid={thread.threadUuid} messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} /><MessageShare messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} orders={orders} /></footer>
         </div>)}

@@ -69,7 +69,7 @@ export function MessageBody({ threadUuid, messageUuid, originalText, language }:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "translate", threadUuid, messageUuid, targetLanguage: language }),
         cache: "no-store",
-        signal: AbortSignal.timeout(65_000),
+        signal: AbortSignal.timeout(35_000),
       });
       const result = await response.json().catch(() => ({})) as { translatedText?: string; error?: string };
       if (!response.ok || !result.translatedText) {
@@ -106,7 +106,7 @@ export function MessageOrder({ threadUuid, messageUuid, attachmentCount, languag
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "suggest_order", threadUuid, messageUuid }),
         cache: "no-store",
-        signal: AbortSignal.timeout(65_000),
+        signal: AbortSignal.timeout(35_000),
       });
       const result = await response.json().catch(() => ({})) as { suggestion?: Suggestion; error?: string };
       if (!response.ok || !result.suggestion) {
