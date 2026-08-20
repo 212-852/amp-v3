@@ -12,7 +12,7 @@ function safeEmailDocument(html: string) {
   const policy = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'";
   const transparentPixel = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
   const sanitizedHtml = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+    .replace(/<script\b[^>]*>[\s\S]*?(?:<\/script\s*>|$)/gi, "")
     .replace(/<(?:iframe|object|embed)\b[^>]*>[\s\S]*?<\/(?:iframe|object|embed)\s*>/gi, "")
     .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
     .replace(/\shref\s*=\s*(["'])\s*(?:javascript|data):.*?\1/gi, "")
@@ -21,7 +21,7 @@ function safeEmailDocument(html: string) {
     .replace(/url\(\s*(["']?)https?:\/\/.*?\1\s*\)/gi, "none")
     .replace(/\ssrcset\s*=\s*(["']).*?\1/gi, "")
     .replace(/\ssrc\s*=\s*(["'])\s*https?:\/\/.*?\1/gi, ` src="${transparentPixel}" data-external-image="blocked"`);
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><style>html{color:#222;background:#fff;font:15px/1.65 sans-serif}body{margin:0;padding:16px;overflow-wrap:anywhere}img{max-width:100%;height:auto}img[data-external-image="blocked"]{display:none}table{max-width:100%}a{color:#174f76;text-decoration:underline}</style></head><body>${sanitizedHtml}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><style>html{width:100%;color:#222;background:#fff;font:15px/1.65 sans-serif}body{box-sizing:border-box;width:100%!important;min-width:0!important;max-width:100%!important;margin:0;padding:16px;overflow-x:hidden;overflow-wrap:anywhere}table{width:100%!important;min-width:0!important;max-width:100%!important;border-collapse:collapse}tbody,tr,td,th,div,p{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere}img{max-width:100%!important;height:auto!important}img[data-external-image="blocked"]{display:none}pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}a{color:#174f76;text-decoration:underline}</style></head><body>${sanitizedHtml}</body></html>`;
 }
 
 function formatBytes(size: number, language: "ja" | "en") {
