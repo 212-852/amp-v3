@@ -42,17 +42,17 @@ export const metadata = {
 function resolveService(address: string) {
   const normalizedAddress = address.toLowerCase();
   return normalizedAddress.endsWith("@paws-flight.com")
-    ? { Icon: Plane, ja: "PawsFlight受付", en: "PawsFlight inbox" }
+    ? { Icon: Plane, kind: "Flight", ja: "PawsFlight受付", en: "PawsFlight inbox" }
     : normalizedAddress.endsWith("@wan.da-nya.com")
-      ? { Icon: Building2, ja: "会社総合受付", en: "Company inbox" }
-      : { Icon: UserRound, ja: "個人メール", en: "Personal inbox" };
+      ? { Icon: Building2, kind: "Company", ja: "会社総合受付", en: "Company inbox" }
+      : { Icon: UserRound, kind: "Personal", ja: "個人メール", en: "Personal inbox" };
 }
 
 function ServiceMailIcon({ address, language }: { address: string; language: "ja" | "en" }) {
   const service = resolveService(address);
 
   return (
-    <span className="adminInboxType" aria-label={language === "en" ? service.en : service.ja} title={language === "en" ? service.en : service.ja}>
+    <span className={`adminInboxType is${service.kind}`} aria-label={language === "en" ? service.en : service.ja} title={language === "en" ? service.en : service.ja}>
       <Mail className="adminInboxTypeMain" aria-hidden="true" />
       <service.Icon className="adminInboxTypeService" aria-hidden="true" />
     </span>
@@ -87,7 +87,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/main/admin
         {items.map((item) => (
           <Link className={`adminInboxItem${item.readAt ? "" : " isUnread"}`} href={`inbox/${item.threadUuid}`} key={item.threadUuid}>
             <ServiceMailIcon address={item.mailboxAddress} language={session?.language === "en" ? "en" : "ja"} />
-            <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><span className="adminInboxMeta"><span className="adminServiceBadge">{session?.language === "en" ? resolveService(item.mailboxAddress).en : resolveService(item.mailboxAddress).ja}<small>{item.mailboxAddress}</small></span><span className={`adminMailDirection is${item.latestDirection === "outbound" ? "Outbound" : "Inbound"}`}>{session?.language === "en" ? item.latestDirection === "outbound" ? "Sent" : "Received" : item.latestDirection === "outbound" ? "送信" : "受信"}</span></span><b>{item.subject}</b><small>{item.preview}</small></span>
+            <span className="adminInboxSummary"><span><strong>{item.senderName}</strong><time dateTime={item.lastMessageAt}>{new Intl.DateTimeFormat(session?.language === "en" ? "en" : "ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(item.lastMessageAt))}</time></span><span className="adminInboxMeta"><span className={`adminServiceBadge is${resolveService(item.mailboxAddress).kind}`}>{session?.language === "en" ? resolveService(item.mailboxAddress).en : resolveService(item.mailboxAddress).ja}<small>{item.mailboxAddress}</small></span><span className={`adminMailDirection is${item.latestDirection === "outbound" ? "Outbound" : "Inbound"}`}>{session?.language === "en" ? item.latestDirection === "outbound" ? "Sent" : "Received" : item.latestDirection === "outbound" ? "送信" : "受信"}</span></span><b>{item.subject}</b><small>{item.preview}</small></span>
           </Link>
         ))}
         {items.length === 0 ? <p className="adminInboxEmpty">{session?.language === "en" ? "No messages." : "受信したメールはありません。"}</p> : null}

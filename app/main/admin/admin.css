@@ -278,6 +278,10 @@
 .adminInboxType { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
 .adminInboxType .adminInboxTypeMain { width: 20px; }
 .adminInboxType .adminInboxTypeService { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border: 2px solid #fff; border-radius: 50%; background: #222; padding: 3px; }
+.adminInboxType.isCompany { background: #f2cbd8; color: #542333; }
+.adminInboxType.isCompany .adminInboxTypeService { background: #b85f7c; color: #fff; }
+.adminInboxType.isFlight { background: #cfe9fb; color: #174b70; }
+.adminInboxType.isFlight .adminInboxTypeService { background: #4b9bd0; color: #fff; }
 .adminInboxSummary { display: grid; min-width: 0; gap: 4px; }
 .adminInboxSummary > span { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; }
 .adminInboxSummary strong, .adminInboxSummary b, .adminInboxSummary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -286,6 +290,8 @@
 .adminInboxMeta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .adminServiceBadge { display: grid; min-width: 0; border-left: 3px solid #222; padding-left: 7px; font-size: 11px; font-weight: 900; line-height: 1.3; }
 .adminServiceBadge small { overflow: hidden; color: #777; font-size: 9px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.adminServiceBadge.isCompany { border-color: #c9708e; }
+.adminServiceBadge.isFlight { border-color: #5ca8d8; }
 .adminMailDirection { width: max-content; border: 1px solid #222; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 900; line-height: 1.4; }
 .adminMailDirection.isOutbound { background: #222; color: #fff; }
 .adminMailDirection.isInbound { background: #fff; color: #222; }
@@ -301,6 +307,10 @@
 .adminMailService small { font-size: 10px; font-weight: 900; letter-spacing: .08em; }
 .adminMailService strong { font-size: 17px; }
 .adminMailService p { margin: 0; color: #666; font-size: 12px; overflow-wrap: anywhere; }
+.adminMailService.isCompany { border-color: #e2a9bb; background: #faedf1; }
+.adminMailService.isCompany > span { background: #c9708e; }
+.adminMailService.isFlight { border-color: #9dceed; background: #eaf6fd; }
+.adminMailService.isFlight > span { background: #5ca8d8; }
 .adminMailHeading { border-bottom: 1px solid #ddd; padding-bottom: 20px; }
 .adminMailHeading > span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #222; color: #fff; }
 .adminMailHeading h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 34px); overflow-wrap: anywhere; }

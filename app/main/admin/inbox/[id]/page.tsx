@@ -16,15 +16,15 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
   if (!thread) notFound();
   const language = session.language === "en" ? "en" : "ja";
   const service = thread.mailboxAddress.endsWith("@paws-flight.com")
-    ? { Icon: Plane, name: "PawsFlight", detail: "AIRPORT PET TRANSPORT" }
+    ? { Icon: Plane, kind: "Flight", name: "PawsFlight", detail: "AIRPORT PET TRANSPORT" }
     : thread.mailboxAddress.endsWith("@wan.da-nya.com")
-      ? { Icon: Building2, name: language === "en" ? "Company reception" : "会社総合受付", detail: "WANDANYA" }
-      : { Icon: UserRound, name: language === "en" ? "Personal inbox" : "個人メール", detail: "PERSONAL" };
+      ? { Icon: Building2, kind: "Company", name: language === "en" ? "Company reception" : "会社総合受付", detail: "WANDANYA" }
+      : { Icon: UserRound, kind: "Personal", name: language === "en" ? "Personal inbox" : "個人メール", detail: "PERSONAL" };
 
   return (
     <article className="adminMailPage">
       <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Message box" : "メッセージボックス"}</Link>
-      <aside className="adminMailService"><span><Mail aria-hidden="true" /><service.Icon aria-hidden="true" /></span><div><small>{service.detail}</small><strong>{service.name}</strong><p>{thread.mailboxAddress}</p></div></aside>
+      <aside className={`adminMailService is${service.kind}`}><span><Mail aria-hidden="true" /><service.Icon aria-hidden="true" /></span><div><small>{service.detail}</small><strong>{service.name}</strong><p>{thread.mailboxAddress}</p></div></aside>
       <header className="adminMailHeading"><div><h1>{thread.subject}</h1><p>{thread.senderName}</p><small>{thread.senderAddress}</small></div></header>
       <section className="adminMailMessages">
         {thread.messages.map((message) => <div className={`adminMailMessage is${message.direction === "outbound" ? "Outbound" : "Inbound"}`} key={message.messageUuid}><header><span>{language === "en" ? message.direction === "outbound" ? "Sent" : "Received" : message.direction === "outbound" ? "送信" : "受信"}</span><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time></header><div>{message.bodyText}</div></div>)}
