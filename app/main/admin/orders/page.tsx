@@ -1,4 +1,4 @@
-import { Building2, CarFront, Handshake, Plane } from "lucide-react";
+import { Building2, BusFront, Handshake, MapPin, PawPrint, Plane } from "lucide-react";
 import { cookies } from "next/headers";
 
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
@@ -7,8 +7,8 @@ import { listInboxOrders } from "@/lib/inbox";
 export const metadata = { title: "オーダー | Admin" };
 
 const copy = {
-  ja: { title: "オーダー", empty: "オーダーはありません。", headquarters: "本部受付", external: "外部", transport: "送迎", flight: "PawsFlight", statuses: { draft: "下書き", open: "受付", confirmed: "確定", in_progress: "進行中", completed: "完了", cancelled: "キャンセル" } },
-  en: { title: "Orders", empty: "There are no orders.", headquarters: "Head office", external: "External", transport: "Transport", flight: "PawsFlight", statuses: { draft: "Draft", open: "Open", confirmed: "Confirmed", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled" } },
+  ja: { title: "オーダー", empty: "オーダーはありません。", headquarters: "本部受付", external: "外部", works: { transport: "送迎", charter: "貸切", airport_shuttle: "空港シャトル", air_transport: "航空輸送", quarantine: "検疫・手続き", other: "その他" }, statuses: { draft: "下書き", open: "受付", confirmed: "確定", in_progress: "進行中", completed: "完了", cancelled: "キャンセル" } },
+  en: { title: "Orders", empty: "There are no orders.", headquarters: "Head office", external: "External", works: { transport: "Transport", charter: "Charter", airport_shuttle: "Airport shuttle", air_transport: "Air transport", quarantine: "Quarantine support", other: "Other" }, statuses: { draft: "Draft", open: "Open", confirmed: "Confirmed", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled" } },
 } as const;
 
 export default async function OrdersPage() {
@@ -24,11 +24,12 @@ export default async function OrdersPage() {
     <div className="adminOrderList">
       {orders.map((order) => {
         const IntakeIcon = order.intakeType === "external" ? Handshake : Building2;
-        const ServiceIcon = order.serviceType === "flight" ? Plane : CarFront;
+        const BusinessIcon = order.businessUnit === "pawsflight" ? Plane : order.businessUnit === "airport" ? BusFront : order.businessUnit === "tokyo" ? MapPin : PawPrint;
+        const businessName = order.businessUnit === "pawsflight" ? "PawsFlight" : order.businessUnit === "airport" ? "AirPort" : order.businessUnit === "tokyo" ? "Tokyo" : "WanDaNya";
         const status = text.statuses[order.status as keyof typeof text.statuses] ?? order.status;
         return <article className="adminOrderItem" key={order.orderUuid}>
-          <span className={`adminOrderIcon is${order.serviceType === "flight" ? "Flight" : "Transport"}`}><ServiceIcon aria-hidden="true" /></span>
-          <div><span><strong>{order.title}</strong><time dateTime={order.updatedAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium" }).format(new Date(order.updatedAt))}</time></span><small>{order.orderCode}</small><p>{order.customerName || "—"}</p><footer><span><IntakeIcon aria-hidden="true" />{order.intakeType === "external" ? text.external : text.headquarters}</span><span><ServiceIcon aria-hidden="true" />{order.serviceType === "flight" ? text.flight : text.transport}</span><b>{status}</b></footer></div>
+          <span className={`adminOrderIcon is${order.businessUnit}`}><BusinessIcon aria-hidden="true" /></span>
+          <div><span><strong>{order.title}</strong><time dateTime={order.updatedAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium" }).format(new Date(order.updatedAt))}</time></span><small>{order.orderCode}</small><p>{order.customerName || "—"}</p><footer><span><IntakeIcon aria-hidden="true" />{order.intakeType === "external" ? text.external : text.headquarters}</span><span><BusinessIcon aria-hidden="true" />{businessName}</span><span>{text.works[order.workType]}</span><b>{status}</b></footer></div>
         </article>;
       })}
       {orders.length === 0 ? <p className="adminOrderEmpty">{text.empty}</p> : null}

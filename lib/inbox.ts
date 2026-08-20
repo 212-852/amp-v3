@@ -57,6 +57,8 @@ export type InboxOrder = {
   status: string;
   intakeType: "headquarters" | "external";
   serviceType: "transport" | "flight";
+  businessUnit: "pawsflight" | "wandanya" | "airport" | "tokyo";
+  workType: "transport" | "charter" | "airport_shuttle" | "air_transport" | "quarantine" | "other";
   sourceChannel: "flight" | "phone" | "email" | "chat" | "app";
   scheduledAt: string | null;
   updatedAt: string;
@@ -294,6 +296,8 @@ export async function createInboxMessageShare(input: {
   messageUuid: string;
   targetType: "order" | "workspace";
   orderUuid?: string | null;
+  businessUnit?: string | null;
+  workType?: string | null;
   targetReference: string;
   includeBody: boolean;
   includeAttachments: boolean;
@@ -323,6 +327,10 @@ export async function createInboxMessageShare(input: {
       const thread = Array.isArray(message.thread) ? message.thread[0] : message.thread;
       const mailbox = Array.isArray(thread?.mailbox) ? thread.mailbox[0] : thread?.mailbox;
       const mailboxAddress = String(mailbox?.address ?? "");
+      const inferredBusinessUnit = mailboxAddress.endsWith("@paws-flight.com") ? "pawsflight" : "wandanya";
+      const businessUnit = ["pawsflight", "wandanya", "airport", "tokyo"].includes(input.businessUnit ?? "") ? input.businessUnit : inferredBusinessUnit;
+      const inferredWorkType = inferredBusinessUnit === "pawsflight" ? "air_transport" : "charter";
+      const workType = ["transport", "charter", "airport_shuttle", "air_transport", "quarantine", "other"].includes(input.workType ?? "") ? input.workType : inferredWorkType;
       const title = targetReference || cleanText(String(message.subject ?? ""), 160);
       if (!title) throw new Error("An order name is required.");
       const orderCode = `ORD-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
@@ -335,6 +343,8 @@ export async function createInboxMessageShare(input: {
         intake_type: "headquarters",
         service_type: mailboxAddress.endsWith("@paws-flight.com") ? "flight" : "transport",
         source_channel: mailboxAddress.endsWith("@paws-flight.com") ? "flight" : "email",
+        business_unit: businessUnit,
+        work_type: workType,
         scheduled_at: sharedDatetime,
         notes: cleanText(input.note, 2000),
       }).select("order_uuid").single();
@@ -363,7 +373,7 @@ export async function listInboxOrders(limit = 100, activeOnly = false): Promise<
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("orders")
-    .select("order_uuid, order_code, title, customer_name, status, intake_type, service_type, source_channel, scheduled_at, updated_at")
+    .select("order_uuid, order_code, title, customer_name, status, intake_type, service_type, business_unit, work_type, source_channel, scheduled_at, updated_at")
     .order("updated_at", { ascending: false })
     .limit(limit);
   if (activeOnly) query = query.not("status", "in", "(completed,cancelled)");
@@ -377,6 +387,8 @@ export async function listInboxOrders(limit = 100, activeOnly = false): Promise<
     status: String(order.status),
     intakeType: order.intake_type === "external" ? "external" : "headquarters",
     serviceType: order.service_type === "flight" ? "flight" : "transport",
+    businessUnit: ["pawsflight", "airport", "tokyo"].includes(String(order.business_unit)) ? order.business_unit : "wandanya",
+    workType: ["transport", "airport_shuttle", "air_transport", "quarantine", "other"].includes(String(order.work_type)) ? order.work_type : "charter",
     sourceChannel: ["flight", "phone", "chat", "app"].includes(String(order.source_channel)) ? order.source_channel : "email",
     scheduledAt: order.scheduled_at ? String(order.scheduled_at) : null,
     updatedAt: String(order.updated_at),

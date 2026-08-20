@@ -9,7 +9,9 @@
 .adminOrderItem:last-child { border-bottom: 0; }
 .adminOrderIcon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 14px; background: #222; color: #fff; }
 .adminOrderIcon svg { width: 21px; }
-.adminOrderIcon.isFlight { background: #dff2ff; color: #174f76; }
+.adminOrderIcon.ispawsflight { background: #dff2ff; color: #174f76; }
+.adminOrderIcon.iswandanya { background: #fae1e9; color: #6d2940; }
+.adminOrderIcon.isairport, .adminOrderIcon.istokyo { background: #ededed; color: #222; }
 .adminOrderItem > div { display: grid; min-width: 0; gap: 4px; }
 .adminOrderItem > div > span { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 10px; }
 .adminOrderItem strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
