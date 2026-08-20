@@ -364,8 +364,8 @@
 .adminMailMessage > footer { display: flex; justify-content: flex-end; margin-top: 14px; border-top: 1px solid #ddd; padding-top: 12px; }
 .adminMessageShareButton { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 999px; background: transparent; padding: 5px 11px; color: inherit; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
 .adminMessageShareButton svg { width: 15px; }
-.adminMessageShareOverlay { z-index: 1200; background: rgb(0 0 0 / 42%); padding: 20px; color: #222; backdrop-filter: blur(3px); }
-.adminMessageShareDialog { width: min(440px, calc(100dvw - 40px)); max-height: calc(100dvh - 40px); overflow: auto; border: 0; border-radius: 20px; background: #fff; padding: 22px; color: #222; font-family: inherit; text-align: left; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: adminMailComposePop 180ms ease-out both; }
+.adminMessageShareOverlay { z-index: 1200; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / 42%); padding: 20px; color: #222; backdrop-filter: blur(3px); }
+.adminMessageShareDialog { width: min(440px, calc(100dvw - 40px)); max-height: calc(100dvh - 40px); margin: auto; overflow: auto; border: 0; border-radius: 20px; background: #fff; padding: 22px; color: #222; font-family: inherit; text-align: left; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: adminCenteredModalPop 180ms ease-out both; }
 .adminMessageShareDialog .modalCloseAnchor { top: 0; }
 .adminMessageShareDialog .modalClose { border: 1px solid #ddd; background: #fff; color: #222; }
 .adminMessageShareDialog .modalBody { margin-top: 0; }
@@ -388,6 +388,7 @@
 .adminMessageShareToast { position: fixed; z-index: 100; top: max(20px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 32px); margin: 0; border-radius: 999px; background: #222; padding: 11px 17px; color: #fff; font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 12px 32px rgb(0 0 0 / 25%); }
 html:has(.adminMessageShareOverlay) .adminHeader,
 html:has(.adminMessageShareOverlay) .adminFooter { z-index: 0; }
+@keyframes adminCenteredModalPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
 .adminMailCompose > summary { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 50%; background: #222; color: #fff; cursor: pointer; list-style: none; }
 .adminMailComposeFloating { position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); z-index: 10; }
 .adminMailComposeFloating > summary { width: 58px; height: 58px; box-shadow: 0 10px 28px rgb(0 0 0 / 22%); }

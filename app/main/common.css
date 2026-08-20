@@ -463,8 +463,8 @@ body:has(.driverApp) {
 .messageBodyActions svg, .messageOrderButton svg { width: 15px; }
 .messageBodyActions span { color: #666; font-size: 11px; font-weight: 700; }
 .messageAssistToast { position: fixed; z-index: 1400; top: max(20px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 32px); border-radius: 999px; background: #222; padding: 11px 17px; color: #fff; font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 12px 32px rgb(0 0 0 / 25%); }
-.messageOrderOverlay { z-index: 1300; background: rgb(0 0 0 / 42%); }
-.messageOrderDialog { width: min(460px, calc(100dvw - 40px)); max-height: calc(100dvh - 40px); overflow: auto; border: 0; border-radius: 20px; background: #fff; padding: 22px; color: #222; font-family: inherit; text-align: left; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); }
+.messageOrderOverlay { z-index: 1300; display: flex; align-items: center; justify-content: center; background: rgb(0 0 0 / 42%); }
+.messageOrderDialog { width: min(460px, calc(100dvw - 40px)); max-height: calc(100dvh - 40px); margin: auto; overflow: auto; border: 0; border-radius: 20px; background: #fff; padding: 22px; color: #222; font-family: inherit; text-align: left; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); animation: messageCenteredModalPop 180ms ease-out both; }
 .messageOrderDialog .modalCloseAnchor { top: 0; }
 .messageOrderDialog .modalClose { border: 1px solid #ddd; background: #fff; color: #222; }
 .messageOrderDialog .modalBody { margin-top: 0; }
@@ -483,6 +483,7 @@ body:has(.driverApp) {
 .messageOrderForm > button:disabled { opacity: .55; cursor: wait; }
 .messageOrderError { margin: 0; color: #a52323; font-size: 12px; font-weight: 700; }
 @keyframes messageAssistPulse { from { opacity: .45; transform: scale(.88); } to { opacity: 1; transform: scale(1.08); } }
+@keyframes messageCenteredModalPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
 .greetingToast button { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 0; border-radius: 50%; background: rgb(255 255 255 / 14%); color: #fff; font-size: 22px; cursor: pointer; }
 
 .adminMenuModal .modalBody {
