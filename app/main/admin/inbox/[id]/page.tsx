@@ -10,7 +10,14 @@ import { MessageShare } from "@/components/share";
 
 function safeEmailDocument(html: string) {
   const policy = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'";
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><style>html{color:#222;background:#fff;font:15px/1.65 sans-serif}body{margin:0;padding:16px;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}a{color:#174f76;text-decoration:underline}</style></head><body>${html}</body></html>`;
+  const transparentPixel = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+  const sanitizedHtml = html
+    .replace(/<link\b[^>]*>/gi, "")
+    .replace(/@import\s+(?:url\()?\s*["']?https?:\/\/[^;)}"']+["']?\s*\)?\s*;?/gi, "")
+    .replace(/url\(\s*(["']?)https?:\/\/.*?\1\s*\)/gi, "none")
+    .replace(/\ssrcset\s*=\s*(["']).*?\1/gi, "")
+    .replace(/\ssrc\s*=\s*(["'])\s*https?:\/\/.*?\1/gi, ` src="${transparentPixel}" data-external-image="blocked"`);
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><style>html{color:#222;background:#fff;font:15px/1.65 sans-serif}body{margin:0;padding:16px;overflow-wrap:anywhere}img{max-width:100%;height:auto}img[data-external-image="blocked"]{display:none}table{max-width:100%}a{color:#174f76;text-decoration:underline}</style></head><body>${sanitizedHtml}</body></html>`;
 }
 
 function formatBytes(size: number, language: "ja" | "en") {
