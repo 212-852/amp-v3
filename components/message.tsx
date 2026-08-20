@@ -1,7 +1,7 @@
 "use client";
 
 import { Languages, ListPlus, Sparkles } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Modal } from "@/components/modal";
 
@@ -29,21 +29,26 @@ function LinkedText({ text, language }: { text: string; language: Language }) {
     : part)}</>;
 }
 
-export function MessageHtml({ document, language }: { document: string; language: Language }) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
+export function MessageHtml({ htmlDocument, language }: { htmlDocument: string; language: Language }) {
+  const hostRef = useRef<HTMLDivElement>(null);
 
-  function connectLinks() {
-    const links = frameRef.current?.contentDocument?.querySelectorAll<HTMLAnchorElement>("a[href]");
-    links?.forEach((link) => {
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
+    const parsed = new DOMParser().parseFromString(htmlDocument, "text/html");
+    const styles = Array.from(parsed.querySelectorAll("style")).map((style) => style.outerHTML).join("");
+    root.innerHTML = `${styles}${parsed.body.innerHTML}`;
+    root.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((link) => {
       link.onclick = (event) => {
         event.preventDefault();
         const url = link.href;
         if (confirmUrl(url, language)) window.open(url, "_blank", "noopener,noreferrer");
       };
     });
-  }
+  }, [htmlDocument, language]);
 
-  return <iframe ref={frameRef} sandbox="allow-same-origin" referrerPolicy="no-referrer" srcDoc={document} onLoad={connectLinks} title={language === "en" ? "HTML email content" : "HTMLメール本文"} />;
+  return <div ref={hostRef} className="adminMailDocument" role="document" aria-label={language === "en" ? "HTML email content" : "HTMLメール本文"} />;
 }
 
 export function MessageBody({ threadUuid, messageUuid, originalText, language }: { threadUuid: string; messageUuid: string; originalText: string; language: Language }) {

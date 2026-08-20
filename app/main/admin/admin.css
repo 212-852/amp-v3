@@ -350,7 +350,7 @@
 .adminMailMessage.isOutbound time { color: #ccc; }
 .adminMailText { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
 .adminMailHtml { margin-top: 14px; }
-.adminMailHtml iframe { width: 100%; min-height: 360px; border: 1px solid #ddd; border-radius: 12px; background: #fff; }
+.adminMailDocument { width: 100%; min-height: 360px; overflow: hidden; border: 1px solid #ddd; border-radius: 12px; background: #fff; }
 .adminMailAttachments { display: grid; gap: 8px; margin-top: 14px; border-top: 1px solid #ddd; padding-top: 12px; }
 .adminMailAttachments h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
 .adminMailAttachments h2 svg { width: 16px; }
