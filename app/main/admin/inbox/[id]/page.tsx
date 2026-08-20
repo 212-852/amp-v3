@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { getInboxThread, listInboxOrders } from "@/lib/inbox";
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
+import { MessageBody, MessageOrder } from "@/components/message";
 import { MessageShare } from "@/components/share";
 
 function safeEmailDocument(html: string) {
@@ -42,10 +43,10 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
       <section className="adminMailMessages">
         {thread.messages.map((message) => <div className={`adminMailMessage is${message.direction === "outbound" ? "Outbound" : "Inbound"}`} key={message.messageUuid}>
           <header><span>{language === "en" ? message.direction === "outbound" ? "Sent" : "Received" : message.direction === "outbound" ? "送信" : "受信"}</span><time dateTime={message.createdAt}>{new Intl.DateTimeFormat(language === "en" ? "en" : "ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}</time></header>
-          <div className="adminMailText">{message.bodyText}</div>
+          <MessageBody threadUuid={thread.threadUuid} messageUuid={message.messageUuid} originalText={message.bodyText} language={language} />
           {message.bodyHtml ? <details className="adminMailHtml"><summary><FileText aria-hidden="true" />{language === "en" ? "View HTML email" : "HTMLメールを表示"}</summary><iframe sandbox="" referrerPolicy="no-referrer" srcDoc={safeEmailDocument(message.bodyHtml)} title={language === "en" ? "HTML email content" : "HTMLメール本文"} /></details> : null}
           {message.attachments.length > 0 ? <section className="adminMailAttachments"><h2><Paperclip aria-hidden="true" />{language === "en" ? "Attachments" : "添付書類"}</h2>{message.attachments.map((attachment) => <a href={`/api/inbox/attachments/${attachment.attachmentUuid}`} key={attachment.attachmentUuid}><FileText aria-hidden="true" /><span><strong>{attachment.filename}</strong><small>{attachment.contentType} · {formatBytes(attachment.sizeBytes, language)}</small></span></a>)}</section> : null}
-          <footer><MessageShare messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} orders={orders} /></footer>
+          <footer><MessageOrder threadUuid={thread.threadUuid} messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} /><MessageShare messageUuid={message.messageUuid} attachmentCount={message.attachments.length} language={language} orders={orders} /></footer>
         </div>)}
       </section>
     </article>

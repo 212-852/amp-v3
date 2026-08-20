@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid request." }, { status: 400 });
   }
   try {
-    await createInboxMessageShare({
+    const result = await createInboxMessageShare({
       userUuid: session.userUuid,
       messageUuid: String(body.messageUuid ?? ""),
       targetType: body.targetType,
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       sharedDatetime: typeof body.sharedDatetime === "string" && body.sharedDatetime ? body.sharedDatetime : null,
       note: String(body.note ?? ""),
     });
-    return Response.json({ shared: true });
+    return Response.json({ shared: true, ...result });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Message could not be shared." }, { status: 400 });
   }

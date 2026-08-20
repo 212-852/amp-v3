@@ -457,6 +457,32 @@ body:has(.driverApp) {
 @keyframes adminNotificationDrop { 0% { opacity: 0; transform: translateY(-110vh) scale(.9); } 60% { opacity: 1; transform: translateY(16px) scale(1.02); } 78% { transform: translateY(-8px) scale(.99); } 100% { transform: translateY(0) scale(1); } }
 
 .greetingToast { position: fixed; z-index: 1300; top: max(20px, env(safe-area-inset-top)); left: 50%; display: flex; width: min(calc(100% - 32px), 410px); min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; border-radius: 18px; background: #222; padding: 12px 12px 12px 18px; color: #fff; box-shadow: 0 16px 42px rgb(0 0 0 / 30%); transform: translateX(-50%); font-family: var(--font-m-plus-rounded), sans-serif; font-weight: 700; }
+.messageBodyActions { display: flex; min-height: 34px; align-items: center; gap: 10px; margin-top: 12px; }
+.messageBodyActions button, .messageOrderButton { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 999px; background: transparent; padding: 5px 11px; color: inherit; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.messageBodyActions button:disabled { opacity: .55; cursor: wait; }
+.messageBodyActions svg, .messageOrderButton svg { width: 15px; }
+.messageBodyActions span { color: #666; font-size: 11px; font-weight: 700; }
+.messageAssistToast { position: fixed; z-index: 1400; top: max(20px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 32px); border-radius: 999px; background: #222; padding: 11px 17px; color: #fff; font-size: 12px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 12px 32px rgb(0 0 0 / 25%); }
+.messageOrderOverlay { z-index: 1300; background: rgb(0 0 0 / 42%); }
+.messageOrderDialog { width: min(460px, calc(100dvw - 40px)); max-height: calc(100dvh - 40px); overflow: auto; border: 0; border-radius: 20px; background: #fff; padding: 22px; color: #222; font-family: inherit; text-align: left; box-shadow: 0 24px 80px rgb(0 0 0 / 28%); }
+.messageOrderDialog .modalCloseAnchor { top: 0; }
+.messageOrderDialog .modalClose { border: 1px solid #ddd; background: #fff; color: #222; }
+.messageOrderDialog .modalBody { margin-top: 0; }
+.messageOrderHeading { display: flex; min-height: 44px; align-items: center; gap: 9px; padding-right: 50px; }
+.messageOrderHeading svg { width: 20px; }
+.messageOrderHeading h2 { margin: 0; font-size: 20px; }
+.messageOrderLoading { display: grid; min-height: 240px; place-items: center; gap: 12px; color: #555; text-align: center; }
+.messageOrderLoading svg { width: 32px; height: 32px; animation: messageAssistPulse 1s ease-in-out infinite alternate; }
+.messageOrderForm { display: grid; gap: 15px; }
+.messageOrderForm > p { margin: 0; color: #666; font-size: 12px; line-height: 1.7; }
+.messageOrderForm label { display: grid; gap: 7px; font-size: 12px; font-weight: 800; }
+.messageOrderForm input:not([type="checkbox"]), .messageOrderForm select, .messageOrderForm textarea { width: 100%; border: 1px solid #ccc; border-radius: 11px; background: #fff; padding: 11px 12px; color: #111; font: inherit; }
+.messageOrderForm textarea { resize: vertical; }
+.messageOrderForm .messageOrderCheck { display: flex; align-items: center; gap: 7px; }
+.messageOrderForm > button { min-height: 46px; border: 0; border-radius: 12px; background: #222; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.messageOrderForm > button:disabled { opacity: .55; cursor: wait; }
+.messageOrderError { margin: 0; color: #a52323; font-size: 12px; font-weight: 700; }
+@keyframes messageAssistPulse { from { opacity: .45; transform: scale(.88); } to { opacity: 1; transform: scale(1.08); } }
 .greetingToast button { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 0; border-radius: 50%; background: rgb(255 255 255 / 14%); color: #fff; font-size: 22px; cursor: pointer; }
 
 .adminMenuModal .modalBody {
