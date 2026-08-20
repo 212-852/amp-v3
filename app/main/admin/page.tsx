@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 const copy = {
-  ja: { title: "進行中のオーダー", empty: "進行中のオーダーはありません。", all: "オーダー一覧へ", headquarters: "本部受付", external: "外部", works: { transport: "送迎", charter: "貸切", airport_shuttle: "空港シャトル", air_transport: "航空輸送", quarantine: "検疫・手続き", other: "その他" } },
-  en: { title: "Active orders", empty: "There are no active orders.", all: "View all orders", headquarters: "Head office", external: "External", works: { transport: "Transport", charter: "Charter", airport_shuttle: "Airport shuttle", air_transport: "Air transport", quarantine: "Quarantine support", other: "Other" } },
+  ja: { title: "Workspace", empty: "ワークスペースはありません。", all: "Workspace一覧へ", headquarters: "本部受付", external: "外部", works: { transport: "送迎", charter: "貸切", airport_shuttle: "空港シャトル", air_transport: "航空輸送", quarantine: "検疫・手続き", other: "その他" } },
+  en: { title: "Workspace", empty: "There are no workspaces.", all: "View all workspaces", headquarters: "Head office", external: "External", works: { transport: "Transport", charter: "Charter", airport_shuttle: "Airport shuttle", air_transport: "Air transport", quarantine: "Quarantine support", other: "Other" } },
 } as const;
 
 export default async function AdminPage() {
@@ -38,7 +38,7 @@ export default async function AdminPage() {
         })}
         {orders.length === 0 ? <p className="adminOrderEmpty">{text.empty}</p> : null}
       </div>
-      <Link className="adminOrderAll" href="admin/orders">{text.all}<ArrowRight aria-hidden="true" /></Link>
+      <Link className="adminOrderAll" href="admin/workspace">{text.all}<ArrowRight aria-hidden="true" /></Link>
     </section>
   );
 }

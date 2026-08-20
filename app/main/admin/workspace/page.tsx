@@ -4,14 +4,14 @@ import { cookies } from "next/headers";
 import { resolveSessionCached, SESSION_COOKIE_NAME } from "@/lib/identity";
 import { listInboxOrders } from "@/lib/inbox";
 
-export const metadata = { title: "オーダー | Admin" };
+export const metadata = { title: "Workspace | Admin" };
 
 const copy = {
-  ja: { title: "オーダー", empty: "オーダーはありません。", headquarters: "本部受付", external: "外部", works: { transport: "送迎", charter: "貸切", airport_shuttle: "空港シャトル", air_transport: "航空輸送", quarantine: "検疫・手続き", other: "その他" }, statuses: { draft: "下書き", open: "受付", confirmed: "確定", in_progress: "進行中", completed: "完了", cancelled: "キャンセル" } },
-  en: { title: "Orders", empty: "There are no orders.", headquarters: "Head office", external: "External", works: { transport: "Transport", charter: "Charter", airport_shuttle: "Airport shuttle", air_transport: "Air transport", quarantine: "Quarantine support", other: "Other" }, statuses: { draft: "Draft", open: "Open", confirmed: "Confirmed", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled" } },
+  ja: { title: "Workspace", empty: "ワークスペースはありません。", headquarters: "本部受付", external: "外部", works: { transport: "送迎", charter: "貸切", airport_shuttle: "空港シャトル", air_transport: "航空輸送", quarantine: "検疫・手続き", other: "その他" }, statuses: { draft: "下書き", open: "受付", confirmed: "確定", in_progress: "進行中", completed: "完了", cancelled: "キャンセル" } },
+  en: { title: "Workspace", empty: "There are no workspaces.", headquarters: "Head office", external: "External", works: { transport: "Transport", charter: "Charter", airport_shuttle: "Airport shuttle", air_transport: "Air transport", quarantine: "Quarantine support", other: "Other" }, statuses: { draft: "Draft", open: "Open", confirmed: "Confirmed", in_progress: "In progress", completed: "Completed", cancelled: "Cancelled" } },
 } as const;
 
-export default async function OrdersPage() {
+export default async function WorkspacePage() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await resolveSessionCached(token) : null;
