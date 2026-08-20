@@ -14,8 +14,9 @@ function safeEmailDocument(html: string) {
   const sanitizedHtml = html
     .replace(/<script\b[^>]*>[\s\S]*?(?:<\/script\s*>|$)/gi, "")
     .replace(/<(?:iframe|object|embed)\b[^>]*>[\s\S]*?<\/(?:iframe|object|embed)\s*>/gi, "")
-    .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
-    .replace(/\shref\s*=\s*(["'])\s*(?:javascript|data):.*?\1/gi, "")
+    .replace(/\s+on[a-z][\w:-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s+(?:href|src|formaction)\s*=\s*(?:"\s*(?:javascript|vbscript|data):[^"]*"|'\s*(?:javascript|vbscript|data):[^']*'|(?:javascript|vbscript|data):[^\s>]+)/gi, "")
+    .replace(/<meta\b[^>]*http-equiv\s*=\s*(?:"refresh"|'refresh'|refresh)[^>]*>/gi, "")
     .replace(/<link\b[^>]*>/gi, "")
     .replace(/@import\s+(?:url\()?\s*["']?https?:\/\/[^;)}"']+["']?\s*\)?\s*;?/gi, "")
     .replace(/url\(\s*(["']?)https?:\/\/.*?\1\s*\)/gi, "none")
