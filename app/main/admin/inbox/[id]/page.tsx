@@ -49,7 +49,7 @@ export default async function InboxThreadPage({ params }: PageProps<"/main/admin
 
   return (
     <article className="adminMailPage">
-      <Link className="adminMailBack" href="../inbox"><ArrowLeft aria-hidden="true" />{language === "en" ? "Message box" : "メッセージボックス"}</Link>
+      <Link className="adminMailBack" href="../inbox" aria-label={language === "en" ? "Back to message list" : "メッセージ一覧へ戻る"} title={language === "en" ? "Back to message list" : "メッセージ一覧へ戻る"}><ArrowLeft aria-hidden="true" /></Link>
       <aside className={`adminMailService is${service.kind}`}><span><Mail aria-hidden="true" /><service.Icon aria-hidden="true" /></span><div><strong>{service.name}</strong><p>{thread.mailboxAddress}</p></div></aside>
       <header className="adminMailHeading"><div><h1>{thread.subject}</h1><p>{thread.senderName}</p><small>{thread.senderAddress}</small></div></header>
       <section className="adminMailMessages">
