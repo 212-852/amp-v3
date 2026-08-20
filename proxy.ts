@@ -88,6 +88,7 @@ export const proxy: NextProxy = async (request, event) => {
   const requestHeaders = new Headers(request.headers);
   const isPublicAsset =
     pathname === "/manifest.webmanifest" ||
+    pathname === "/push.js" ||
     pathname.startsWith("/icons/") ||
     pathname.startsWith("/images/");
 
